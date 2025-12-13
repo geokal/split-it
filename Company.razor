@@ -1,3 +1,6 @@
+<div id="companies-start"></div>
+
+                            @if (UserRole == "Company")
                             {
                                 @if (!isInitializedAsCompanyUser)
                                 {
@@ -12358,3 +12361,5 @@
 
 
 
+<div id="professors-tab-table-start"></div>
+                            else if (UserRole == "Professor")

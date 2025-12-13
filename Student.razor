@@ -1,3 +1,53 @@
+.actions-cell {
+    text-align: center;
+    vertical-align: middle;
+}
+
+/* Add this to reset centering for other table cells */
+td {
+    text-align: left; /* Reset to default left alignment */
+}
+
+/* Specifically target the download button container to ensure it stays left-aligned */
+.modern-button {
+    text-align: left;
+    justify-content: flex-start;
+}
+
+/* Ensure the interested students/professors sections stay left-aligned */
+.text-center {
+    text-align: center !important; /* Keep actual centered content centered */
+}
+
+</style>
+
+
+<PageTitle>Job Finder</PageTitle>
+
+
+<div class="page">
+    <main class="main">
+        <div class="top-row px-4">
+            <AccessControl />
+            <!-- Add CSS class to the login link -->
+            @*
+            <a class="about-link" href="https://docs.microsoft.com/aspnet/" target="_blank">About</a>
+            *@
+        </div>
+
+        <article class="content px-4">
+            @Body
+        </article>
+
+        <AuthorizeView>
+            <Authorized>
+                <div class="card-container">
+<div id="students-tab-table-start"></div>
+
+                    @if (!HideAllInitialCards())
+                    {
+                        <div class="content-area">
+                            @if (UserRole == "Student")
                             {
                                 @if (!isInitializedAsStudentUser)
                                 {
@@ -9896,3 +9946,4 @@
                                 }
                                             
  <div id="students-tab-table-end"></div>
+                           
