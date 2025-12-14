@@ -1,6 +1,6 @@
 # Project: Split-It Refactoring
 
-This document outlines the tasks being performed to refactor the `split-it` Blazor application.
+This document outlines the tasks being performed to refactor the `split-it` Blazor application. The application is a .NET 6 Blazor app.
 
 ## Task History
 
@@ -43,4 +43,12 @@ This document outlines the tasks being performed to refactor the `split-it` Blaz
 
 **Goal:** Analyze the four newly created Razor files (`Student.razor`, `Company.razor`, `Professor.razor`, and `Admin.razor`) and identify common, reusable code that can be extracted into shared Blazor components within a `Shared/` folder.
 
-**Motivation:** This will reduce code duplication and improve the maintainability of the application, following the principles of .NET 8 Blazor server development.
+**Motivation:** This will reduce code duplication and improve the maintainability of the application, following the principles of .NET 8 Blazor server development. After refactoring and placing common markup code to `/Shared`, we will add the code-behind code for the monolithic `MainLayout.razor` (which will be `New_MainLayout.razor` renamed).
+
+## Progress Update
+
+### 3. Pagination Refactoring
+
+**Goal:** Replace all manual pagination controls in `Admin.razor`, `Company.razor`, `Professor.razor`, and `Student.razor` with the `Shared.Pagination` component to standardize the pagination logic and improve maintainability.
+
+**Status:** Completed. All manual pagination controls have been replaced, and previously untracked files (`AGENTS.md`, `ResearchGroup.razor`, and `Shared/`) have been added to the repository.
