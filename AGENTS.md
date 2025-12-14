@@ -52,3 +52,9 @@ This document outlines the tasks being performed to refactor the `split-it` Blaz
 **Goal:** Replace all manual pagination controls in `Admin.razor`, `Company.razor`, `Professor.razor`, and `Student.razor` with the `Shared.Pagination` component to standardize the pagination logic and improve maintainability.
 
 **Status:** Completed. All manual pagination controls have been replaced, and previously untracked files (`AGENTS.md`, `ResearchGroup.razor`, and `Shared/`) have been added to the repository.
+
+### 4. Extracting News Section Component
+
+**Goal:** Extract repetitive news display logic in `Professor.razor` and `Company.razor` into a reusable `Shared.NewsSection` component. This component encapsulates the UI and logic for displaying a list of news articles with a toggleable section.
+
+**Status:** In Progress. The `Shared.NewsSection` component has been created, and the "University News Section" and "SVSE News Section" in `Professor.razor` and `Company.razor` have been replaced with instances of this new component.
