@@ -1,180 +1,48 @@
-
-                            @*RESEARCH GROUP CONTENT*@
-                            @if (UserRole == "Research Group")
+@if (UserRole == "Admin")
                             {
-                                @if (!isInitializedAsResearchGroupUser)
-                                {
-                                    <div class="professional-loading">
-                                        <div class="loading-content">
-                                            <div class="loading-spinner">
-                                                <div class="spinner-circle"></div>
-                                                <div class="spinner-circle"></div>
-                                                <div class="spinner-circle"></div>
-                                            </div>
-                                            <div class="loading-text">
-                                                <span class="loading-title">Φορτώνει, Παρακαλώ Περιμένετε...</span>
-                                                <span class="loading-subtitle">Γίνεται προετοιμασία του περιεχομένου</span>
-                                            </div>
-                                        </div>
-                                        <div class="loading-progress">
-                                            <div class="progress-bar">
-                                                <div class="progress-fill"></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                }
-                                else if (!isResearchGroupRegistered)
-                                {
-                                    <div style="display: flex; justify-content: flex-start; padding: 20px; flex-direction: column;">
-                                        <div style="width: 300px; border: none; border-radius: 12px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); transition: transform 0.3s ease, box-shadow 0.3s ease; background: linear-gradient(135deg, #f9f9f9, #e0e0e0);">
-                                            <div style="padding: 20px; text-align: center;">
-                                                <h5 style="font-size: 1.5rem; font-weight: bold; color: #333; margin-bottom: 20px;">Εγγραφή Ερευνητικής Ομάδας</h5>
-                                                <a style="background-color: #007bff; border: none; border-radius: 25px; padding: 10px 20px; font-size: 1rem; color: white; text-decoration: none; transition: background-color 0.3s ease, transform 0.2s ease;" 
-                                                   href="researchGroupRegistration" 
-                                                   onmouseover="this.style.backgroundColor='#0056b3'; this.style.transform='scale(1.05)'" 
-                                                   onmouseout="this.style.backgroundColor='#007bff'; this.style.transform='scale(1)'">
-                                                    Εγγραφή
-                                                </a>
-                                            </div>
-                                        </div>
-                                        <p style="font-size: 0.9rem; color: #000; margin-top: 7px; text-align: center; font-weight: bold;">
-                                            <span style="color: #ff0000;">**</span> <span style="color: #ff0000;">Προσοχή</span>: Για εμφάνιση του περιεχομένου της σελίδας είναι <span style="color: #ff0000;">Υποχρεωτική</span> η Εγγραφή σας
-                                        </p>                                      
-                                    </div>
-                                }
-                                else
+                                @if (isInitializedAsAdminUser)
                                 {
                                     <div class="table-bordered">
                                         <!-- Tabs navigation -->
                                         <ul class="nav nav-tabs" id="myTab" role="tablist">
                                             <li class="nav-item" role="presentation">
-                                                <button class="nav-link fade show active" id="rgannouncements-tab" data-bs-toggle="tab" data-bs-target="#rgannouncements" type="button" role="tab" aria-controls="rgannouncements" aria-selected="true">Ανακοινώσεις</button>
+                                                <button class="nav-link fade show active" id="requests-tab" data-bs-toggle="tab" data-bs-target="#requests" type="button" role="tab" aria-controls="requests" aria-selected="true">Αιτήματα</button>
                                             </li>
                                             <li class="nav-item" role="presentation">
-                                                <button class="nav-link" id="rgevents-tab" data-bs-toggle="tab" data-bs-target="#rgevents" type="button" role="tab" aria-controls="rgevents" aria-selected="false">Εκδηλώσεις</button>
+                                                <button class="nav-link" id="create-area-tab" data-bs-toggle="tab" data-bs-target="#create-area" type="button" role="tab" aria-controls="create-area" aria-selected="false">Τομείς</button>
                                             </li>
                                             <li class="nav-item" role="presentation">
-                                                <button class="nav-link" id="rgsearchcompany-tab" data-bs-toggle="tab" data-bs-target="#rgsearchcompany" type="button" role="tab" aria-controls="rgsearchcompany" aria-selected="false">Αναζήτηση Εταιρείας</button>
+                                                <button class="nav-link" id="create-skills-tab" data-bs-toggle="tab" data-bs-target="#create-skills" type="button" role="tab" aria-controls="create-skills" aria-selected="false">Δεξιότητες</button>
+                                            </li>
+                                             <li class="nav-item" role="presentation">
+                                                <button class="nav-link" id="upload-news-tab" data-bs-toggle="tab" data-bs-target="#upload-news" type="button" role="tab" aria-controls="upload-news" aria-selected="false">Ειδήσεις</button>
                                             </li>
                                             <li class="nav-item" role="presentation">
-                                                <button class="nav-link" id="rgsearchprofessor-tab" data-bs-toggle="tab" data-bs-target="#rgsearchprofessor" type="button" role="tab" aria-controls="rgsearchprofessor" aria-selected="false">Αναζήτηση Καθηγητή</button>
+                                                <button class="nav-link" id="platform-statistics-tab" data-bs-toggle="tab" data-bs-target="#platform-statistics" type="button" role="tab" aria-controls="platform-statistics" aria-selected="false">Στατιστικά Πλατφόρμας</button>
                                             </li>
-                                            <li class="nav-item" role="presentation">
-                                                <button class="nav-link" id="rgstatistics-tab" data-bs-toggle="tab" data-bs-target="#rgstatistics" type="button" role="tab" aria-controls="rgstatistics" aria-selected="false">Στατιστικά Ερευνητικής Ομάδας</button>
-                                            </li> @*ADDED 10/09/25*@
                                         </ul>
-
                                         <!-- Tab panes -->
                                         <div class="tab-content mt-3" id="myTabContent">
-                                            <!-- CREATE ANNOUNCEMENTS TAB AS RG -->
-                                            <div class="tab-pane show active" id="rgannouncements" role="tabpanel" aria-labelledby="rgannouncements-tab">
-                                                <div class="mb-3 row-dark-gray">
-                                                    <div class="d-flex justify-content-between align-items-center" @onclick="ToggleFormVisibilityToShowGeneralAnnouncementsAndEventsAsRG" style="cursor: pointer;">
-                                                        <label class="form-label" style="color: #FFF8DC;">• Πρόσφατες Ανακοινώσεις •</label>
-                                                        <button class="btn btn-link" @onclick="ToggleFormVisibilityToShowGeneralAnnouncementsAndEventsAsRG" @onclick:stopPropagation="true">
-                                                            @if (isAnnouncementsFormVisibleToShowGeneralAnnouncementsAndEventsAsRG)
-                                                            {
-                                                                <span>&#8722;</span> <!-- Minus sign -->
-                                                            }
-                                                            else
-                                                            {
-                                                                <span>&#43;</span> <!-- Plus sign -->
-                                                            }
-                                                        </button>
-                                                    </div>                              
-                                                </div>
-
-                                                @if (isAnnouncementsFormVisibleToShowGeneralAnnouncementsAndEventsAsRG)
-                                                {
-                                                    <!-- University News Section -->
-                                                    <div class="mb-3" style="background-color: #e6f2ff; border: 1px solid #b3c6e0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                                                        <div class="d-flex justify-content-between align-items-center p-3" 
-                                                             style="border-bottom: 1px solid #b3c6e0; cursor: pointer;"
-                                                             @onclick="ToggleUniversityNewsVisibility">
-                                                            <h1 class="news-heading form-label m-0">
-                                                                <span class="black-text">
-                                                                    <span style="color: #b399d4; margin-left: 10px; margin-right: 5px;">
-                                                                        <i class="fas fa-rss"></i>
-                                                                    </span>
-                                                                    Πανεπιστήμιο Αθηνών
-                                                                    <span style="color: black; margin-left: 5px;">
-                                                                        <i class="fas fa-university"></i>
-                                                                    </span>
-                                                                </span>
-                                                            </h1>
-                                                            <button class="btn" 
-                                                                    style="width: 30px; height: 30px; border-radius: 50%; background-color: #0d47a1; color: white; border: none; padding: 0; display: flex; align-items: center; justify-content: center; margin-right: 10px;" 
-                                                                    @onclick="ToggleUniversityNewsVisibility">
-                                                                @if (isUniversityNewsVisible)
-                                                                {
-                                                                    <span>&#8722;</span> 
-                                                                }
-                                                                else
-                                                                {
-                                                                    <span>&#43;</span> 
-                                                                }
-                                                            </button>
-                                                        </div>
-    
-                                                        @if (isUniversityNewsVisible)
-                                                        {
-                                                            <div id="university-news-content" class="p-3" style="border-top: 1px solid #e6f2ff;">
-                                                                @if (newsArticles != null && newsArticles.Any())
-                                                                {
-                                                                    @foreach (var article in newsArticles)
-                                                                    {
-                                                                        <div class="news-article mb-2 pb-2" style="border-bottom: 1px dashed #ccc;">
-                                                                            <a href="@article.Url" target="_blank" style="color: #0d47a1; text-decoration: none;">
-                                                                                <i class="fa fa-external-link me-2" style="font-size: 0.8em;"></i>@article.Title
-                                                                            </a>
-                                                                        </div>
-                                                                    }
-                                                                }
-                                                                else
-                                                                {
-                                                                    <p class="mb-0 text-muted">Καμία Ανακοίνωση από το Πανεπιστήμιο Αθηνών ακόμη....</p>
-                                                                }
-                                                            </div>
-                                                        }
-                                                    </div>
-
-                                                    <!-- SVSE News Section -->
-                                                    <div class="mb-3" style="background-color: #e6f2ff; border: 1px solid #b3c6e0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                                                        <div class="d-flex justify-content-between align-items-center p-3" 
-                                                             style="border-bottom: 1px solid #b3c6e0; cursor: pointer;"
-                                                             @onclick="ToggleSvseNewsVisibility">
-                                                            <h1 class="news-heading form-label m-0">
-                                                                <span class="black-text">
-                                                                    <span style="color: #b399d4; margin-left: 10px; margin-right: 5px;">
-                                                                        <i class="fas fa-rss"></i>
-                                                                    </span>
-                                                                    Σύνδεσμος Βιομηχανιών Στερεάς Ελλάδας
-                                                                    <span style="color: black; margin-left: 5px;">
-                                                                        <i class="fas fa-industry"></i>
-                                                                    </span>
-                                                                </span>
-                                                            </h1>
-                                                            <button class="btn" 
-                                                                    style="width: 30px; height: 30px; border-radius: 50%; background-color: #0d47a1; color: white; border: none; padding: 0; display: flex; align-items: center; justify-content: center; margin-right: 10px;" 
-                                                                    @onclick="ToggleSvseNewsVisibility">
-                                                                @if (isSvseNewsVisible)
-                                                                {
-                                                                    <span>&#8722;</span> <!-- Minus sign -->
-                                                                }
-                                                                else
-                                                                {
-                                                                    <span>&#43;</span> <!-- Plus sign -->
-                                                                }
-                                                            </button>
-                                                        </div>
-    
-                                                        @if (isSvseNewsVisible)
-                                                        {
-                                                            <div id="svse-news-content" class="p-3" style="border-top: 1px solid #e6f2ff;">
-                                                                @if (svseNewsArticles != null && svseNewsArticles.Any())
-                                                                {
-                                                                    @foreach (var article in svseNewsArticles)
-                                                                    {
-                                                                        <div class="news-article mb-2 pb-2" style="border-bottom: 1px dashed #ccc;">
-                                                                            <a href="@article.Url" target="_blank" style="color: #0d47a1; text-decoration: none;">
-                                                                                <i class="fa fa-external-link me-2" style="font-size: 0.8em;"></i>@article.Title
+                                            <!-- Requests tab content -->
+                                            <div class="tab-pane fade show active" id="requests" role="tabpanel" aria-labelledby="requests-tab">
+                                            </div>
+                                            <!-- Create Area tab content -->
+                                            <div class="tab-pane fade" id="create-area" role="tabpanel" aria-labelledby="create-area-tab">
+                                            </div>
+                                            <!-- Create Skills tab content -->
+                                            <div class="tab-pane fade" id="create-skills" role="tabpanel" aria-labelledby="create-skills-tab">
+                                            </div>
+                                             <!-- Upload News tab content -->
+                                            <div class="tab-pane fade" id="upload-news" role="tabpanel" aria-labelledby="upload-news-tab">
+                                            </div>
+                                            <!-- Platform Statistics tab content -->
+                                            <div class="tab-pane fade" id="platform-statistics" role="tabpanel" aria-labelledby="platform-statistics-tab">
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <Shared.LoadingIndicator />
+                                }
+                            }
