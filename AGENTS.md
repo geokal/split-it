@@ -77,4 +77,4 @@ This document outlines the tasks being performed to refactor the `split-it` Blaz
 ## Memories
 - If a component is only in one user role create a folder under Shared with that user-role name and place there the extracted component.
 - Always update AGENTS.md and keep it updated after changes or tasks being completed.
-- Only place code in the Shared/ folder if it is exactly the same for all user roles that will use it. If the code is not exactly the same, it should not be a shared component.
+- Only place code in the Shared/ folder if it is exactly the same for all user roles that will use it. If the code is not exactly the same, it should not be a shared component.- if a component is only in one user role create a folder under Shared with that user-role name and place there the extracted component
