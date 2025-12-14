@@ -57,4 +57,13 @@ This document outlines the tasks being performed to refactor the `split-it` Blaz
 
 **Goal:** Extract repetitive news display logic in `Professor.razor` and `Company.razor` into a reusable `Shared.NewsSection` component. This component encapsulates the UI and logic for displaying a list of news articles with a toggleable section.
 
-**Status:** In Progress. The `Shared.NewsSection` component has been created, and the "University News Section" and "SVSE News Section" in `Professor.razor` and `Company.razor` have been replaced with instances of this new component.
+**Status:** Completed. The `Shared.NewsSection` component has been created, and the "University News Section" and "SVSE News Section" in `Professor.razor` and `Company.razor` have been replaced with instances of this new component.
+
+### 5. Extracting Announcement Sections into Shared Components
+
+**Goal:** Extract repetitive announcement display logic in `Company.razor`, `Professor.razor`, and `Student.razor` into reusable shared components.
+
+**Status:** Completed.
+- The "Platform company announcements" section in `Company.razor` has been extracted into `Shared.CompanyAnnouncementsSection.razor` and integrated.
+- The "Platform professor announcements" section in `Company.razor` has been extracted into `Shared.ProfessorAnnouncementsSection.razor` and integrated.
+- The "Platform research group announcements" section in `Company.razor` has been extracted into `Shared.ResearchGroupAnnouncementsSection.razor` and integrated.
