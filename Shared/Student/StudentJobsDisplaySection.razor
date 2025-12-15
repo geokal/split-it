@@ -1,0 +1,616 @@
+                                                <!-- DISPLAY JOB POSITIONS -->
+                                                @if (showJobApplications)
+                                                {
+                                                        <div class="col-md-2">
+                                                            <label style="color: #2d3748; font-weight: bold; font-size: 15px; display: block;">Αποτελέσματα ανά Σελίδα</label>
+                                                            <div class="input-group" style="max-width: 65px;"> <!-- Adjust width here -->
+                                                                <select class="form-control form-control-sm" @onchange="OnJobPageSizeChange_SearchForJobsAsStudent" aria-label="Items per page">
+                                                                    @foreach (var option in pageSizeOptions_SearchForJobsAsStudent)
+                                                                    {
+                                                                        <option value="@option" selected="@(jobPositionPageSize == option)">@option</option>
+                                                                    }
+                                                                </select>
+                                                                <div class="input-group-append">
+                                                                    <span class="input-group-text">
+                                                                        <i class="fas fa-chevron-down"></i>
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    var publishedJobs = jobs?.Where(i => i.PositionStatus == "Δημοσιευμένη").ToList();
+                                                    @if (jobs != null && publishedJobs.Any())
+                                                    {
+                                                        // Calculate pagination values
+                                                        var totalJobCount = publishedJobs.Count;
+                                                        var totalPages = (int)Math.Ceiling((double)totalJobCount / jobPositionPageSize);
+                                                        var paginatedJobs = publishedJobs
+                                                            .Skip((currentJobPositionPage - 1) * jobPositionPageSize)
+                                                            .Take(jobPositionPageSize)
+                                                            .ToList();
+        
+                                                        <table class="table table-bordered">
+                                                            <thead>
+                                                                <tr>
+                                                                    <td colspan="9" style="padding: 0;">
+                                                                        <div style="display: flex; justify-content: space-between; align-items: center; height: 24px; line-height: 24px; width: 100%;">
+                                                                            <i class="fa-solid fa-magnifying-glass" style="font-size: 18px; color: #0d6efd;"></i>
+                                                                            <label class="form-label" style="color: #0d6efd; font-weight: bold; font-size: 18px; margin: 0;">Διαθέσιμες Θέσεις Εργασίας</label>
+                                                                            <i class="fa-solid fa-magnifying-glass" style="font-size: 18px; color: #0d6efd;"></i>
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <th><i class="fa-solid fa-key fa-sm" style="color: #0d6efd;"></i> Κωδικός Θέσης</th>
+                                                                    <th>
+                                                                        <i class="fa-solid fa-industry fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                        Εταιρία
+                                                                    </th>
+                                                                    <th>
+                                                                        <i class="fa-solid fa-font fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                        Τίτλος Θέσης
+                                                                    </th>
+                                                                    <th>
+                                                                        <i class="fa-solid fa-tags fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                        Τομείς
+                                                                    </th>
+                                                                    <th>
+                                                                        <i class="fa-solid fa-calendar-plus fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                        Ημερομηνία Ανάρτησης
+                                                                    </th>
+                                                                    <th>
+                                                                        <i class="fa-solid fa-circle-info fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                        Λεπτομέρειες
+                                                                    </th>
+                                                                    <th>
+                                                                        <i class="fa-solid fa-hand fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                        Κάνε Αίτηση
+                                                                    </th>
+                                                                </tr>
+                                                            </thead>
+                                                                <tbody id="jobApplicationsTable">
+                                                                    @foreach (var job in paginatedJobs)
+                                                                    {
+                                                                        <tr>
+                                                                            <td style="color: #2d3748;">
+                                                                                @job.RNGForPositionUploaded_HashedAsUniqueID
+                                                                            </td>
+                                                                            <td>
+                                                                                @if (job.Company != null)
+                                                                                {
+                                                                                    <a href="#" @onclick="() => ShowCompanyDetailsAsAHyperlinkInJobSearchAsStudent(job.Company.CompanyName)" style="text-decoration: none;">
+                                                                                        @job.Company.CompanyName
+                                                                                    </a>
+                                                                                }
+                                                                                else
+                                                                                {
+                                                                                    <span class="text-warning">Άγνωστη Εταιρεία</span>
+                                                                                }
+                                                                            </td>                                                                        
+                                                                            <td>@job.PositionTitle</td>
+                                                                            <td>@job.PositionAreas</td>
+                                                                            <td>@job.UploadDateTime.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                                                                            <td style="text-align: center;">
+                                                                                <i class="fas fa-eye" style="color: #003366; cursor: pointer;" @onclick="() => ShowJobDetails(job)"></i>
+                                                                            </td>
+                                                                            <td>
+                                                                                @if (jobIdsApplied.Contains(job.RNGForPositionUploaded))
+                                                                                {
+                                                                                    <span style="color: #0d6efd; font-weight: bold;">
+                                                                                        <i class="fas fa-check-circle"></i> Έχετε ήδη δείξει Ενδιαφέρον για αυτήν την Θέση Εργασίας
+                                                                                    </span>
+
+                                                                                }
+                                                                                else if (job.PositionStatus == "Δημοσιευμένη")
+                                                                                {
+                                                                                    <button class="modern-button" style="background-color: #2d3748; color: white;" 
+                                                                                            @onclick="() => ConfirmApplyForJob(job)">
+                                                                                        Αίτηση
+                                                                                    </button>
+                                                                                }
+                                                                                else
+                                                                                {
+                                                                                    <button class="modern-button" style="background-color: #cccccc; color: #666666; cursor: not-allowed;" 
+                                                                                            title="Η Θέση Εργασίας δεν είναι διαθέσιμη για αίτηση">
+                                                                                        Μη Διαθέσιμη
+                                                                                    </button>
+                                                                                }
+                                                                            </td>
+                                                                        </tr>
+                                                                    }
+                                                                </tbody>
+                                                        </table>
+                                                                                                                 <Shared.Pagination CurrentPage="currentJobPositionPage"
+                                                                                                                                    TotalPages="totalJobPositionPages"
+                                                                                                                                    GoToFirstPage="@(() => ChangeJobPositionPage(1))"
+                                                                                                                                    PreviousPage="@(() => ChangeJobPositionPage(currentJobPositionPage - 1))"
+                                                                                                                                    NextPage="@(() => ChangeJobPositionPage(currentJobPositionPage + 1))"
+                                                                                                                                    GoToLastPage="@(() => ChangeJobPositionPage(totalJobPositionPages))"
+                                                                                                                                    GoToPage="ChangeJobPositionPage" />                                                        <br/>
+                                                        <br/>
+                                                    }
+                                                    else 
+                                                    {
+                                                        <div class="alert alert-warning" role="alert" id="noJobsFoundAlert">
+                                                            <p>Δεν υπάρχουν θέσεις εργασίας που να ταιριάζουν με τα κριτήρια της αναζήτησής σας.</p>
+                                                        </div>
+                                                        <br/>
+                                                        <br/>
+                                                    }
+                                                }
+
+                                                <!-- Loading Modal for Job Application -->
+                                                @if (showLoadingModalWhenApplyForJobAsStudent)
+                                                {
+                                                    <div class="loading-modal">
+                                                        <div class="loading-modal-content">
+                                                            <div class="loading-spinner"></div>
+                                                            <p>Υποβολή αίτησης για θέση εργασίας...</p>
+                                                            <div class="progress-bar">
+                                                                <div class="progress-bar-fill" style="width: @loadingProgressWhenApplyForJobAsStudent%"></div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                }
+                                                
+                                                <!-- Modal For Company Hyperlink Name When Search For Job As Student -->
+                                                @if (isCompanyDetailsModalOpenForJobSearch && selectedCompanyDetailsForJobSearch != null)
+                                                {
+                                                    <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0, 0, 0, 0.5);">
+                                                        <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+                                                            <div class="modal-content" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);">
+                                                                <div class="modal-header" style="border-bottom: 1px solid #e9ecef; border-radius: 12px 12px 0 0; background-color: #f8f9fa;">
+                                                                    <h5 class="modal-title" style="color: #4682B4; font-weight: 600; font-size: 1.25rem;">
+                                                                        @selectedCompanyDetailsForJobSearch.CompanyName
+                                                                    </h5>
+                                                                    <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" 
+                                                                            @onclick="CloseModalForCompanyNameHyperlinkDetailsInJobSearch"
+                                                                            onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                            onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                        <span style="font-size: 1.2rem; line-height: 1;">×</span>
+                                                                    </button>
+                                                                </div>
+                                                                <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                                                                    <div class="form-group text-center">
+                                                                        @if (selectedCompanyDetailsForJobSearch.CompanyLogo != null)
+                                                                        {
+                                                                            <img src="@ShowProfileImage(selectedCompanyDetailsForJobSearch.CompanyLogo)"
+                                                                                 alt="Company Logo"
+                                                                                 class="rounded-circle img-fluid"
+                                                                                 style="max-width: 150px; max-height: 150px; object-fit: cover;" />
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <p style="color: #6c757d;">Δεν είναι διαθέσιμο</p>
+                                                                        }
+                                                                    </div>
+
+                                                                    <div class="form-group">
+                                                                        <label style="font-weight: bold;">Σύντομη Ονομασία</label>
+                                                                        <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                                                                            <i class="fas fa-tag" style="color: #5F9EA0; margin-right: 8px;"></i>
+                                                                            <span class="flex-grow-1">@selectedCompanyDetailsForJobSearch.CompanyShortName</span>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div class="form-group">
+                                                                        <label style="font-weight: bold;">Τύπος Εταιρείας</label>
+                                                                        <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" value="@selectedCompanyDetailsForJobSearch.CompanyType" readonly />
+                                                                    </div>
+
+                                                                    <div class="form-group">
+                                                                        <label style="font-weight: bold;">Email Εταιρείας</label>
+                                                                        <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                                                                            <i class="fas fa-envelope" style="color: #4682B4; margin-right: 8px;"></i>
+                                                                            @if (!string.IsNullOrEmpty(selectedCompanyDetailsForJobSearch.CompanyEmail))
+                                                                            {
+                                                                                <a href="mailto:@selectedCompanyDetailsForJobSearch.CompanyEmail" 
+                                                                                   style="color: #007bff; text-decoration: underline; word-break: break-all;">
+                                                                                    @selectedCompanyDetailsForJobSearch.CompanyEmail
+                                                                                </a>
+                                                                            }
+                                                                            else
+                                                                            {
+                                                                                <span style="color: #6c757d;">Δεν υπάρχει email</span>
+                                                                            }
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div class="form-group">
+                                                                        <label style="font-weight: bold;">Ιστοσελίδα Εταιρείας</label>
+                                                                        @if (!string.IsNullOrWhiteSpace(selectedCompanyDetailsForJobSearch.CompanyWebsite))
+                                                                        {
+                                                                            <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa; cursor: pointer;" 
+                                                                                 onclick="window.open('@(selectedCompanyDetailsForJobSearch.CompanyWebsite.StartsWith("http") ? selectedCompanyDetailsForJobSearch.CompanyWebsite : "http://" + selectedCompanyDetailsForJobSearch.CompanyWebsite)', '_blank')">
+                                                                                <i class="fas fa-globe" style="color: #007bff; margin-right: 8px;"></i>
+                                                                                <span style="color: #007bff; text-decoration: underline;">@selectedCompanyDetailsForJobSearch.CompanyWebsite</span>
+                                                                            </div>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" value="Δεν υπάρχει" readonly />
+                                                                        }
+                                                                    </div>
+
+                                                                    <div class="form-group">
+                                                                        <label style="font-weight: bold;">Ανακοινώσεις Εταιρείας</label>
+                                                                        @if (!string.IsNullOrWhiteSpace(selectedCompanyDetailsForJobSearch.CompanyWebsiteAnnouncements))
+                                                                        {
+                                                                            <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa; cursor: pointer;" 
+                                                                                 onclick="window.open('@(selectedCompanyDetailsForJobSearch.CompanyWebsiteAnnouncements.StartsWith("http") ? selectedCompanyDetailsForJobSearch.CompanyWebsiteAnnouncements : "http://" + selectedCompanyDetailsForJobSearch.CompanyWebsiteAnnouncements)', '_blank')">
+                                                                                <i class="fas fa-bullhorn" style="color: #007bff; margin-right: 8px;"></i>
+                                                                                <span style="color: #007bff; text-decoration: underline;">@selectedCompanyDetailsForJobSearch.CompanyWebsiteAnnouncements</span>
+                                                                            </div>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" value="Δεν υπάρχει" readonly />
+                                                                        }
+                                                                    </div>
+
+                                                                    <div class="form-group">
+                                                                        <label style="font-weight: bold;">Θέσεις Εργασίας Εταιρείας</label>
+                                                                        @if (!string.IsNullOrWhiteSpace(selectedCompanyDetailsForJobSearch.CompanyWebsiteJobs))
+                                                                        {
+                                                                            <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa; cursor: pointer;" 
+                                                                                 onclick="window.open('@(selectedCompanyDetailsForJobSearch.CompanyWebsiteJobs.StartsWith("http") ? selectedCompanyDetailsForJobSearch.CompanyWebsiteJobs : "http://" + selectedCompanyDetailsForJobSearch.CompanyWebsiteJobs)', '_blank')">
+                                                                                <i class="fas fa-briefcase" style="color: #007bff; margin-right: 8px;"></i>
+                                                                                <span style="color: #007bff; text-decoration: underline;">@selectedCompanyDetailsForJobSearch.CompanyWebsiteJobs</span>
+                                                                            </div>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" value="Δεν υπάρχει" readonly />
+                                                                        }
+                                                                    </div>
+
+                                                                    <div class="form-group">
+                                                                        <label style="font-weight: bold;">Τηλέφωνο Εταιρείας</label>
+                                                                        <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                                                                            <i class="fas fa-phone" style="color: #28a745; margin-right: 8px;"></i>
+                                                                            <span class="flex-grow-1">@selectedCompanyDetailsForJobSearch.CompanyTelephone</span>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div class="form-group">
+                                                                        <label style="font-weight: bold;">Περιγραφή Εταιρείας</label>
+                                                                        <textarea class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" rows="3" readonly>@selectedCompanyDetailsForJobSearch.CompanyDescription</textarea>
+                                                                    </div>
+
+                                                                    <div class="form-group">
+                                                                        <label style="font-weight: bold;">Δραστηριότητα Εταιρείας</label>
+                                                                        <textarea class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" readonly>@selectedCompanyDetailsForJobSearch.CompanyActivity</textarea>
+                                                                    </div>
+
+                                                                    <div class="form-group">
+                                                                        <label style="font-weight: bold;">Περιοχές Ενδιαφέροντος</label>
+                                                                        <textarea class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" rows="2" readonly>@selectedCompanyDetailsForJobSearch.CompanyAreas</textarea>
+                                                                    </div>
+
+                                                                    <div class="form-group">
+                                                                        <label style="font-weight: bold;">Χώρα</label>
+                                                                        <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" value="@selectedCompanyDetailsForJobSearch.CompanyCountry" readonly />
+                                                                    </div>
+
+                                                                    <div class="form-group">
+                                                                        <label style="font-weight: bold;">Περιφέρεια</label>
+                                                                        <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                                                                            <i class="fas fa-map" style="color: #5F9EA0; margin-right: 8px;"></i>
+                                                                            <span class="flex-grow-1">@selectedCompanyDetailsForJobSearch.CompanyRegions</span>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div class="form-group">
+                                                                        <label style="font-weight: bold;">Πόλη</label>
+                                                                        <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                                                                            <i class="fas fa-city" style="color: #5F9EA0; margin-right: 8px;"></i>
+                                                                            <span class="flex-grow-1">@selectedCompanyDetailsForJobSearch.CompanyTown</span>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div class="form-group">
+                                                                        <label style="font-weight: bold;">Διεύθυνση</label>
+                                                                        <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                                                                            <i class="fas fa-map-marker-alt" style="color: #dc3545; margin-right: 8px;"></i>
+                                                                            <a href="https://www.google.com/maps/search/?api=1&query=@Uri.EscapeDataString(selectedCompanyDetailsForJobSearch.CompanyLocation)"
+                                                                               target="_blank"
+                                                                               style="color: #007bff; text-decoration: underline; word-break: break-word;">
+                                                                                @selectedCompanyDetailsForJobSearch.CompanyLocation
+                                                                            </a>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div class="form-group">
+                                                                        <label style="font-weight: bold;">Ταχυδρομικός Κώδικας</label>
+                                                                        <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                                                                            <i class="fas fa-envelope-open-text" style="color: #5F9EA0; margin-right: 8px;"></i>
+                                                                            <span class="flex-grow-1">@selectedCompanyDetailsForJobSearch.CompanyPC</span>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div class="form-group">
+                                                                        <label style="font-weight: bold;">Email Υπεύθυνου Ανθρώπινου Δυναμικού</label>
+                                                                        <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                                                                            <i class="fas fa-envelope" style="color: #4682B4; margin-right: 8px;"></i>
+                                                                            @if (!string.IsNullOrEmpty(selectedCompanyDetailsForJobSearch.CompanyHREmail))
+                                                                            {
+                                                                                <a href="mailto:@selectedCompanyDetailsForJobSearch.CompanyHREmail" 
+                                                                                   style="color: #007bff; text-decoration: underline; word-break: break-all;">
+                                                                                    @selectedCompanyDetailsForJobSearch.CompanyHREmail
+                                                                                </a>
+                                                                            }
+                                                                            else
+                                                                            {
+                                                                                <span style="color: #6c757d;">Δεν υπάρχει email</span>
+                                                                            }
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div class="form-group">
+                                                                        <label style="font-weight: bold;">Τηλέφωνο Υπεύθυνου Ανθρώπινου Δυναμικού</label>
+                                                                        <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                                                                            <i class="fas fa-phone" style="color: #28a745; margin-right: 8px;"></i>
+                                                                            <span class="flex-grow-1">@selectedCompanyDetailsForJobSearch.CompanyHRTelephone</span>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div class="form-group">
+                                                                        <label style="font-weight: bold;">Επικεφαλής Τμήματος Έρευνας και Ανάπτυξης</label>
+                                                                        <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" value="@selectedCompanyDetailsForJobSearch.RnD_HeadName" readonly />
+                                                                    </div>
+
+                                                                    <div class="form-group">
+                                                                        <label style="font-weight: bold;">Υπεύθυνος Επικοινωνίας Τμήματος Έρευνας και Ανάπτυξης</label>
+                                                                        <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" value="@selectedCompanyDetailsForJobSearch.RnD_ContactPersonFullName" readonly />
+                                                                    </div>
+
+                                                                    <div class="form-group">
+                                                                        <label style="font-weight: bold;">Email Επικοινωνίας Υπευθύνου Τμήματος Έρευνας και Ανάπτυξης</label>
+                                                                        <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                                                                            <i class="fas fa-envelope" style="color: #4682B4; margin-right: 8px;"></i>
+                                                                            @if (!string.IsNullOrEmpty(selectedCompanyDetailsForJobSearch.RnD_ContactPersonEmail))
+                                                                            {
+                                                                                <a href="mailto:@selectedCompanyDetailsForJobSearch.RnD_ContactPersonEmail" 
+                                                                                   style="color: #007bff; text-decoration: underline; word-break: break-all;">
+                                                                                    @selectedCompanyDetailsForJobSearch.RnD_ContactPersonEmail
+                                                                                </a>
+                                                                            }
+                                                                            else
+                                                                            {
+                                                                                <span style="color: #6c757d;">Δεν υπάρχει email</span>
+                                                                            }
+                                                                        </div>
+                                                                    </div>
+
+                                                                </div>
+                                                                <div class="modal-footer">
+                                                                    <button class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; padding: 8px 20px; transition: all 0.2s;" 
+                                                                            @onclick="CloseModalForCompanyNameHyperlinkDetailsInJobSearch"
+                                                                            onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                            onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                        <i class="fas fa-arrow-left me-2"></i> Κλείσιμο
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                }
+
+                                            
+                                            }
+                                            
+                                        </div>
+
+                                            
+
+
+                                        
+                                       
+                                            @if (isModalVisibleForJobs)
+                                            {
+                                                <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0, 0, 0, 0.5);">
+                                                    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+                                                        <div class="modal-content" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);">
+                                                            <div class="modal-header" style="border-bottom: 1px solid #e9ecef; border-radius: 12px 12px 0 0; background-color: #f8f9fa;">
+                                                                <h5 class="modal-title" style="color: #4682B4; font-weight: 600; font-size: 1.25rem;">@currentJob.PositionTitle</h5>
+                                                                <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" 
+                                                                        @onclick="CloseModalForJobs"
+                                                                        onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                        onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                    <span style="font-size: 1.2rem; line-height: 1;">×</span>
+                                                                </button>
+                                                            </div>
+                                                            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Τύπος Θέσης</label>
+                                                                    <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;"
+                                                                           value="@(currentJob.PositionType == "Full-Time" ? "Αορίστου Χρόνου" :
+                                                                                   currentJob.PositionType == "Part-Time" ? "Περιορισμένου Χρόνου" :
+                                                                                   currentJob.PositionType == "Simvasi-Ergou" ? "Σύμβαση Έργου" :
+                                                                                   currentJob.PositionType)"
+                                                                           readonly />
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Όνομα Εταιρείας</label>
+                                                                    @if (!string.IsNullOrWhiteSpace(currentJob.Company?.CompanyName))
+                                                                    {
+                                                                        <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                                                                            <i class="fas fa-industry" style="color: #5F9EA0; margin-right: 8px;"></i>
+                                                                            <span>@currentJob.Company.CompanyName</span>
+                                                                        </div>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" value="Δεν υπάρχει" readonly />
+                                                                    }
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Περιγραφή Θέσης</label>
+                                                                    <textarea class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" rows="4" readonly>@currentJob.PositionDescription</textarea>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Φορέας</label>
+                                                                    <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;"
+                                                                           value="@currentJob.PositionForeas" readonly />
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Email Επικοινωνίας</label>
+                                                                    <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-envelope" style="color: #4682B4; margin-right: 8px;"></i>
+                                                                        @if (!string.IsNullOrEmpty(currentJob.PositionContactPerson))
+                                                                        {
+                                                                            <a href="mailto:@currentJob.PositionContactPerson"
+                                                                               style="color: #007bff; text-decoration: underline; word-break: break-all;">
+                                                                                @currentJob.PositionContactPerson
+                                                                            </a>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <span style="color: #6c757d;">Δεν υπάρχει email</span>
+                                                                        }
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Τηλέφωνο Επικοινωνίας</label>
+                                                                    <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-phone-alt" style="color: #28a745; margin-right: 8px;"></i>
+                                                                        <span>@currentJob.PositionContactTelephonePerson</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Διεύθυνση</label>
+                                                                    <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-map-marker-alt" style="color: #dc3545; margin-right: 8px;"></i>
+                                                                        <a href="https://www.google.com/maps/search/?api=1&query=@Uri.EscapeDataString(currentJob.PositionAddressLocation)"
+                                                                           target="_blank"
+                                                                           style="color: #007bff; text-decoration: underline; word-break: break-word;">
+                                                                            @currentJob.PositionAddressLocation
+                                                                        </a>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Περιφέρεια</label>
+                                                                    <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-map-marked-alt" style="color: #5F9EA0; margin-right: 8px;"></i>
+                                                                        <span>@currentJob.PositionPerifereiaLocation</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Δήμος</label>
+                                                                    <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-city" style="color: #5F9EA0; margin-right: 8px;"></i>
+                                                                        <span>@currentJob.PositionDimosLocation</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Ταχυδρομικός Κώδικας</label>
+                                                                    <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-envelope-open-text" style="color: #5F9EA0; margin-right: 8px;"></i>
+                                                                        <span>@currentJob.PositionPostalCodeLocation</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Παροχή Μεταφοράς</label>
+                                                                    <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;
+                                                                         @(currentJob.PositionTransportOffer ? "color: #28a745;" : "color: #dc3545;")">
+                                                                        <i class="fas fa-car" style="margin-right: 8px;"></i>
+                                                                        <span style="font-weight: 500;">
+                                                                            @(currentJob.PositionTransportOffer ? "Ναι" : "Όχι")
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Περιοχές Ενδιαφέροντος</label>
+                                                                    <textarea class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" rows="3" readonly>@currentJob.PositionAreas</textarea>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Ξεκινάει από</label>
+                                                                    <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-calendar-alt" style="color: #5F9EA0; margin-right: 8px;"></i>
+                                                                        <span>@currentJob.PositionActivePeriod.ToString("dd/MM/yyyy")</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Κατάσταση Θέσης</label>
+                                                                    <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;"
+                                                                           value="@currentJob.PositionStatus" readonly />
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Υπεύθυνο Τμήμα Εταιρείας</label>
+                                                                    @if (!string.IsNullOrWhiteSpace(currentJob.PositionDepartment))
+                                                                    {
+                                                                        <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                                                                            <i class="fas fa-building" style="color: #5F9EA0; margin-right: 8px;"></i>
+                                                                            <span>@currentJob.PositionDepartment</span>
+                                                                        </div>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" value="Δεν έχει διευκρινιστεί" readonly />
+                                                                    }
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Συνημμένο</label>
+                                                                    @if (currentJob.PositionAttachment != null && currentJob.PositionAttachment.Length > 0)
+                                                                    {
+                                                                        <div class="d-flex align-items-center">
+                                                                            <a href="@("data:application/pdf;base64," + Convert.ToBase64String(currentJob.PositionAttachment))" 
+                                                                               download="JobAttachment.pdf" 
+                                                                               class="modern-button" 
+                                                                               style="background-color: #2d3748; color: white; border: none; border-radius: 6px; padding: 8px 16px; text-decoration: none; transition: all 0.2s;"
+                                                                               onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                               onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                                <i class="fas fa-download me-2"></i>Λήψη Αρχείου
+                                                                            </a>
+                                                                        </div>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa; color: #dc3545;">
+                                                                            <i class="fas fa-exclamation-circle" style="margin-right: 8px;"></i>
+                                                                            <span><strong>Δεν υπάρχει συνημμένο</strong></span>
+                                                                        </div>
+                                                                    }
+                                                                </div>
+                                                            </div>
+                                                            <div class="modal-footer">
+                                                                <button class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; padding: 8px 20px; transition: all 0.2s;" 
+                                                                        @onclick="CloseModalForJobs"
+                                                                        onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                        onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                    <i class="fas fa-arrow-left me-2"></i> Κλείσιμο
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            }
+
+
+      
+
+
+
+
+
+
+
+
+                                        <!-- Internships tab content -->
+                                        @*<link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">*@
+                                        
+                                        <div class="tab-pane fade" id="internships" role="tabpanel" aria-labelledby="internships-tab">
