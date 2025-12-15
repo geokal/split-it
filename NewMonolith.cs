@@ -1,4 +1,4 @@
-﻿public class NewMonolith
+public class NewMonolith
 {
     private ResearchGroup currentResearchGroup;
 
@@ -316,7 +316,7 @@
     private string? professorScholarProfile;
     private string? professorOrchidProfile;
 
-    private bool isForm1Visible = false;
+
     private bool isAnnouncementsFormVisible = false;
     private bool isResearchGroupToUploadAnnouncementsFormVisible = false;
     private bool isAnnouncementsFormVisibleToShowGeneralAnnouncementsAndEventsAsCompany = false;
@@ -4999,12 +4999,6 @@
             CompanyInternshipAttachmentErrorMessage = "Προέκυψε ένα σφάλμα κατά την μεταφόρτωση του αρχείου.";
             companyInternship.CompanyInternshipAttachment = null;
         }
-    }
-
-    private void ToggleFormVisibilityForUploadCompanyJobs()
-    {
-        isForm1Visible = !isForm1Visible;
-        StateHasChanged();
     }
 
     private void ToggleFormVisibilityForUploadCompanyAnnouncements()
