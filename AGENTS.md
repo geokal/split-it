@@ -45,6 +45,8 @@ This project refactors a very large and historically grown Blazor MainLayout.raz
 
 **Motivation:** This will reduce code duplication and improve the maintainability of the application, following the principles of .NET 8 Blazor server development. After refactoring and placing common markup code to `/Shared`, we will wire the code-behind (`MainLayout.razor.cs`, which contains the extracted `@code{}` section from the original ~780000 line MainLayout.razor) to the refactored Razor components.
 
+**Strategic Plan:** See [REFACTORING_PLAN.md](REFACTORING_PLAN.md) for a comprehensive plan with priorities, phases, and execution order. The plan recommends completing component extraction before wiring the code-behind.
+
 For completed tasks and progress updates, see [PROGRESS.md](PROGRESS.md).
 
 ## Operational Guidelines
