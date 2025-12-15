@@ -66,7 +66,7 @@ This project refactors a very large and historically grown Blazor MainLayout.raz
 **Status:** Completed.
 - The "Platform company announcements" section in `Company.razor` has been extracted into `Shared.CompanyAnnouncementsSection.razor` and integrated.
 - The "Platform professor announcements" section in `Company.razor` has been extracted into `Shared.ProfessorAnnouncementsSection.razor` and integrated.
-- The "Platform research group announcements" section in `Company.razor` has been extracted into `Shared.ResearchGroupAnnouncementsSection.razor` and integrated.
+- The "Platform research group announcements" section in `Company.razor` has been extracted into `Shared/Company/ResearchGroupAnnouncementsSection.razor` and integrated. (Moved to role-specific folder)
 
 ### 6. Consolidating CompanyInternshipsSection Component
 **Goal:** Consolidate duplicate `CompanyInternshipsSection.razor` files to maintain a single, canonical version and adhere to role-specific shared component guidelines.
