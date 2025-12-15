@@ -1,4 +1,21 @@
-<Shared.LoadingIndicator />
+<div id="professors-tab-table-start"></div>
+                            else if (UserRole == "Professor")
+                            {
+                                @if (!isInitializedAsProfessorUser)
+                                {
+                                    <div class="professional-loading">
+                                        <div class="loading-content">
+                                            <div class="loading-spinner">
+                                                <div class="spinner-circle"></div>
+                                                <div class="spinner-circle"></div>
+                                                <div class="spinner-circle"></div>
+                                            </div>
+                                            <div class="loading-text">
+                                                <span class="loading-title">Φορτώνει, Παρακαλώ Περιμένετε...</span>
+                                                <span class="loading-subtitle">Γίνεται προετοιμασία του περιεχομένου</span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 }
                                 else if (!isProfessorRegistered)
                                 {
@@ -1879,3 +1896,20 @@
                                                                                         <div style="display: flex; align-items: center;">
                                                                                             <div style="width: 16px; height: 16px; background-color: lightblue; border: 1px solid #ccc; border-radius: 3px; margin-right: 5px;"></div>
                                                                                             <span>Δημοσιευμένη</span>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+<div id="professors-tab-table-end"></div>
