@@ -167,49 +167,13 @@
                                                                                             }
 
                                                                                                 <!-- Pagination Controls for Company Announcements -->
-                                                                                                <div class="d-flex justify-content-center align-items-center mt-3 gap-1">
-                                                                                                    <!-- First Page (<<) -->
-                                                                                                    <span class="pagination-item @(currentPageForCompanyAnnouncements == 1 ? "disabled" : "")"
-                                                                                                          @onclick="GoToFirstPageForCompanyAnnouncements">
-                                                                                                        &lt;&lt;
-                                                                                                    </span>
-
-                                                                                                    <!-- Previous Page (<) -->
-                                                                                                    <span class="pagination-item @(currentPageForCompanyAnnouncements == 1 ? "disabled" : "")"
-                                                                                                          @onclick="PreviousPageForCompanyAnnouncements">
-                                                                                                        &lt;
-                                                                                                    </span>
-
-                                                                                                    <!-- Page Numbers -->
-                                                                                                    @foreach (var pageNumber in GetVisiblePagesForCompanyAnnouncements())
-                                                                                                    {
-                                                                                                        if (pageNumber == -1)
-                                                                                                        {
-                                                                                                            <span class="pagination-ellipsis">...</span>
-                                                                                                        }
-                                                                                                        else
-                                                                                                        {
-                                                                                                            <span class="pagination-item @(pageNumber == currentPageForCompanyAnnouncements ? "active" : "")"
-                                                                                                                  @onclick="() => GoToPageForCompanyAnnouncements(pageNumber)">
-                                                                                                                @pageNumber
-                                                                                                            </span>
-                                                                                                        }
-                                                                                                    }
-
-                                                                                                    <!-- Next Page (>) -->
-                                                                                                    <span class="pagination-item @(currentPageForCompanyAnnouncements == totalPagesForCompanyAnnouncements ? "disabled" : "")"
-                                                                                                          @onclick="NextPageForCompanyAnnouncements">
-                                                                                                        &gt;
-                                                                                                    </span>
-
-                                                                                                    <!-- Last Page (>>) -->
-                                                                                                    <span class="pagination-item @(currentPageForCompanyAnnouncements == totalPagesForCompanyAnnouncements ? "disabled" : "")"
-                                                                                                          @onclick="GoToLastPageForCompanyAnnouncements">
-                                                                                                        &gt;&gt;
-                                                                                                    </span>
-
-                                                                                                    <span class="ms-3">Σελίδα @currentPageForCompanyAnnouncements από @totalPagesForCompanyAnnouncements</span>
-                                                                                                </div>
+                                                                                                <Shared.Pagination CurrentPage="currentPageForCompanyAnnouncements"
+                                                                                                                   TotalPages="totalPagesForCompanyAnnouncements"
+                                                                                                                   GoToFirstPage="GoToFirstPageForCompanyAnnouncements"
+                                                                                                                   PreviousPage="PreviousPageForCompanyAnnouncements"
+                                                                                                                   NextPage="NextPageForCompanyAnnouncements"
+                                                                                                                   GoToLastPage="GoToLastPageForCompanyAnnouncements"
+                                                                                                                   GoToPage="GoToPageForCompanyAnnouncements" />
 
                                                                                         }
                                                                                         else
@@ -297,49 +261,13 @@
                                                                                                 </div>
                                                                                            }
                                                                                                 <!-- Pagination Controls for Professor Announcements -->
-                                                                                                <div class="d-flex justify-content-center align-items-center mt-3 gap-1">
-                                                                                                    <!-- First Page (<<) -->
-                                                                                                    <span class="pagination-item @(currentPageForProfessorAnnouncements == 1 ? "disabled" : "")"
-                                                                                                          @onclick="GoToFirstPageForProfessorAnnouncements">
-                                                                                                        &lt;&lt;
-                                                                                                    </span>
-
-                                                                                                    <!-- Previous Page (<) -->
-                                                                                                    <span class="pagination-item @(currentPageForProfessorAnnouncements == 1 ? "disabled" : "")"
-                                                                                                          @onclick="PreviousPageForProfessorAnnouncements">
-                                                                                                        &lt;
-                                                                                                    </span>
-
-                                                                                                    <!-- Page Numbers -->
-                                                                                                    @foreach (var pageNumber in GetVisiblePagesForProfessorAnnouncements())
-                                                                                                    {
-                                                                                                        if (pageNumber == -1)
-                                                                                                        {
-                                                                                                            <span class="pagination-ellipsis">...</span>
-                                                                                                        }
-                                                                                                        else
-                                                                                                        {
-                                                                                                            <span class="pagination-item @(pageNumber == currentPageForProfessorAnnouncements ? "active" : "")"
-                                                                                                                  @onclick="() => GoToPageForProfessorAnnouncements(pageNumber)">
-                                                                                                                @pageNumber
-                                                                                                            </span>
-                                                                                                        }
-                                                                                                    }
-
-                                                                                                    <!-- Next Page (>) -->
-                                                                                                    <span class="pagination-item @(currentPageForProfessorAnnouncements == totalPagesForProfessorAnnouncements ? "disabled" : "")"
-                                                                                                          @onclick="NextPageForProfessorAnnouncements">
-                                                                                                        &gt;
-                                                                                                    </span>
-
-                                                                                                    <!-- Last Page (>>) -->
-                                                                                                    <span class="pagination-item @(currentPageForProfessorAnnouncements == totalPagesForProfessorAnnouncements ? "disabled" : "")"
-                                                                                                          @onclick="GoToLastPageForProfessorAnnouncements">
-                                                                                                        &gt;&gt;
-                                                                                                    </span>
-
-                                                                                                    <span class="ms-3">Σελίδα @currentPageForProfessorAnnouncements από @totalPagesForProfessorAnnouncements</span>
-                                                                                                </div>
+                                                                                                <Shared.Pagination CurrentPage="currentPageForProfessorAnnouncements"
+                                                                                                                   TotalPages="totalPagesForProfessorAnnouncements"
+                                                                                                                   GoToFirstPage="GoToFirstPageForProfessorAnnouncements"
+                                                                                                                   PreviousPage="PreviousPageForProfessorAnnouncements"
+                                                                                                                   NextPage="NextPageForProfessorAnnouncements"
+                                                                                                                   GoToLastPage="GoToLastPageForProfessorAnnouncements"
+                                                                                                                   GoToPage="GoToPageForProfessorAnnouncements" />
 
                                                                                         }
                                                                                         else
@@ -653,49 +581,13 @@
                                                                                                 </div>
                                                                                            }
                                                                                             <!-- Pagination Controls for Research Group Announcements -->
-                                                                                            <div class="d-flex justify-content-center align-items-center mt-3 gap-1">
-                                                                                                <!-- First Page (<<) -->
-                                                                                                <span class="pagination-item @(currentPageForResearchGroupPublicAnnouncements == 1 ? "disabled" : "")"
-                                                                                                      @onclick="GoToFirstPageForResearchGroupPublicAnnouncements">
-                                                                                                    &lt;&lt;
-                                                                                                </span>
-
-                                                                                                <!-- Previous Page (<) -->
-                                                                                                <span class="pagination-item @(currentPageForResearchGroupPublicAnnouncements == 1 ? "disabled" : "")"
-                                                                                                      @onclick="PreviousPageForResearchGroupPublicAnnouncements">
-                                                                                                    &lt;
-                                                                                                </span>
-
-                                                                                                <!-- Page Numbers -->
-                                                                                                @foreach (var pageNumber in GetVisiblePagesForResearchGroupPublicAnnouncements())
-                                                                                                {
-                                                                                                    if (pageNumber == -1)
-                                                                                                    {
-                                                                                                        <span class="pagination-ellipsis">...</span>
-                                                                                                    }
-                                                                                                    else
-                                                                                                    {
-                                                                                                        <span class="pagination-item @(pageNumber == currentPageForResearchGroupPublicAnnouncements ? "active" : "")"
-                                                                                                              @onclick="() => GoToPageForResearchGroupPublicAnnouncements(pageNumber)">
-                                                                                                            @pageNumber
-                                                                                                        </span>
-                                                                                                    }
-                                                                                                }
-
-                                                                                                <!-- Next Page (>) -->
-                                                                                                <span class="pagination-item @(currentPageForResearchGroupPublicAnnouncements == totalPagesForResearchGroupPublicAnnouncements ? "disabled" : "")"
-                                                                                                      @onclick="NextPageForResearchGroupPublicAnnouncements">
-                                                                                                    &gt;
-                                                                                                </span>
-
-                                                                                                <!-- Last Page (>>) -->
-                                                                                                <span class="pagination-item @(currentPageForResearchGroupPublicAnnouncements == totalPagesForResearchGroupPublicAnnouncements ? "disabled" : "")"
-                                                                                                      @onclick="GoToLastPageForResearchGroupPublicAnnouncements">
-                                                                                                    &gt;&gt;
-                                                                                                </span>
-
-                                                                                                <span class="ms-3">Σελίδα @currentPageForResearchGroupPublicAnnouncements από @totalPagesForResearchGroupPublicAnnouncements</span>
-                                                                                            </div>
+                                                                                            <Shared.Pagination CurrentPage="currentPageForResearchGroupPublicAnnouncements"
+                                                                                                               TotalPages="totalPagesForResearchGroupPublicAnnouncements"
+                                                                                                               GoToFirstPage="GoToFirstPageForResearchGroupPublicAnnouncements"
+                                                                                                               PreviousPage="PreviousPageForResearchGroupPublicAnnouncements"
+                                                                                                               NextPage="NextPageForResearchGroupPublicAnnouncements"
+                                                                                                               GoToLastPage="GoToLastPageForResearchGroupPublicAnnouncements"
+                                                                                                               GoToPage="GoToPageForResearchGroupPublicAnnouncements" />
 
                                                                                         }
                                                                                         else
@@ -1148,50 +1040,13 @@
                                                                     @if (FilteredAnnouncementsAsProfessor != null && FilteredAnnouncementsAsProfessor.Any())
                                                                     {
                                                                         <!-- Pagination Controls -->
-                                                                        <div class="d-flex justify-content-center align-items-center mt-3 gap-1">
-                                                                            <!-- First Page (<<) -->
-                                                                            <span class="pagination-item @(currentPageForProfessorAnnouncements_ProfessorAnnouncements == 1 ? "disabled" : "")" 
-                                                                                  @onclick="@(() => GoToFirstPageForProfessorAnnouncements_ProfessorAnnouncements())">
-                                                                                &lt;&lt;
-                                                                            </span>
-        
-                                                                            <!-- Previous Page (<) -->
-                                                                            <span class="pagination-item @(currentPageForProfessorAnnouncements_ProfessorAnnouncements == 1 ? "disabled" : "")" 
-                                                                                  @onclick="@(() => PreviousPageForProfessorAnnouncements_ProfessorAnnouncements())">
-                                                                                &lt;
-                                                                            </span>
-        
-                                                                            <!-- Page Numbers -->
-                                                                            @foreach (var pageNum in GetVisiblePagesForProfessorAnnouncements_ProfessorAnnouncements())
-                                                                            {
-                                                                                @if (pageNum == -1)
-                                                                                {
-                                                                                    <span class="pagination-ellipsis">...</span>
-                                                                                }
-                                                                                else
-                                                                                {
-                                                                                    <span class="pagination-item @(pageNum == currentPageForProfessorAnnouncements_ProfessorAnnouncements ? "active" : "")" 
-                                                                                          @onclick="@(() => GoToPageForProfessorAnnouncements_ProfessorAnnouncements(pageNum))">
-                                                                                        @pageNum
-                                                                                    </span>
-                                                                                }
-                                                                            }
-        
-                                                                            <!-- Next Page (>) -->
-                                                                            <span class="pagination-item @(currentPageForProfessorAnnouncements_ProfessorAnnouncements == totalPagesForProfessorAnnouncements_ProfessorAnnouncements ? "disabled" : "")" 
-                                                                                  @onclick="@(() => NextPageForProfessorAnnouncements_ProfessorAnnouncements())">
-                                                                                &gt;
-                                                                            </span>
-        
-                                                                            <!-- Last Page (>>) -->
-                                                                            <span class="pagination-item @(currentPageForProfessorAnnouncements_ProfessorAnnouncements == totalPagesForProfessorAnnouncements_ProfessorAnnouncements ? "disabled" : "")" 
-                                                                                  @onclick="@(() => GoToLastPageForProfessorAnnouncements_ProfessorAnnouncements())">
-                                                                                &gt;&gt;
-                                                                            </span>
-        
-                                                                            <!-- Page counter -->
-                                                                            <span class="ms-3">Σελίδα @currentPageForProfessorAnnouncements_ProfessorAnnouncements από @totalPagesForProfessorAnnouncements_ProfessorAnnouncements</span>
-                                                                        </div>
+                                                                        <Shared.Pagination CurrentPage="currentPageForProfessorAnnouncements_ProfessorAnnouncements"
+                                                                                           TotalPages="totalPagesForProfessorAnnouncements_ProfessorAnnouncements"
+                                                                                           GoToFirstPage="@(() => GoToFirstPageForProfessorAnnouncements_ProfessorAnnouncements())"
+                                                                                           PreviousPage="@(() => PreviousPageForProfessorAnnouncements_ProfessorAnnouncements())"
+                                                                                           NextPage="@(() => NextPageForProfessorAnnouncements_ProfessorAnnouncements())"
+                                                                                           GoToLastPage="@(() => GoToLastPageForProfessorAnnouncements_ProfessorAnnouncements())"
+                                                                                           GoToPage="@((pageNum) => GoToPageForProfessorAnnouncements_ProfessorAnnouncements(pageNum))" />
                                                                         <br/>
                                                                     }
                                                                 </div>
