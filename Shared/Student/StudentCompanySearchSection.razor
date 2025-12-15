@@ -1,0 +1,647 @@
+@using split_it.Data
+@using split_it.Pages
+@using System.Globalization
+@using split_it.Shared.Company
+
+<div class="mb-3 row-dark-gray">
+    <div class="d-flex justify-content-between align-items-center" @onclick="ToggleFormVisibilityForSearchCompanyAsStudent" style="cursor: pointer;">
+        <label class="form-label" style="color: #FFF8DC;">• Αναζήτηση Εταιρείας •</label>
+        <button class="btn btn-link" @onclick="ToggleFormVisibilityForSearchCompanyAsStudent" @onclick:stopPropagation="true">
+            @if (isStudentSearchCompanyFormVisible)
+            {
+                <span>&#8722;</span> <!-- Minus sign -->
+            }
+            else
+            {
+                <span>&#43;</span> <!-- Plus sign -->
+            }
+        </button>
+    </div>
+</div>
+
+@if (isStudentSearchCompanyFormVisible)
+{
+    @* Section 1: Global Search *@
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="section-header" style="border-left: 4px solid #2d3748; padding-left: 12px; margin-bottom: 16px;">
+                <label for="globalCompanySearch" class="form-label" style="font-weight: bold; color: #2d3748; font-size: 1.1em;">
+                    <i class="fa-solid fa-magnifying-glass" style="margin-right: 8px;"></i>Ελεύθερη Αναζήτηση
+                </label>
+            </div>
+            <input 
+                type="text" 
+                id="globalCompanySearch" 
+                class="form-control" 
+                @bind="globalCompanySearch" 
+                placeholder="Αναζητείστε Εδώ..." 
+                style="padding: 12px; border-radius: 8px; border: 2px solid #e2e8f0;" />
+        </div>
+    </div>
+
+    @* Divider between sections *@
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <hr style="border-top: 2px dashed #d1d5db; margin: 20px 0;" />
+        </div>
+    </div>
+
+    @* Section 2: Filter Search *@
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <div class="section-header" style="border-left: 4px solid #2d3748; padding-left: 12px; margin-bottom: 16px;">
+                <label class="form-label" style="font-weight: bold; color: #2d3748; font-size: 1.1em;">
+                    <i class="fa-solid fa-filter" style="margin-right: 8px;"></i>Αναζήτηση με Φίλτρα
+                </label>
+                <div style="font-size: 0.9em; color: #6b7280; margin-top: 4px;">
+                    Χρησιμοποιήστε συγκεκριμένα φίλτρα για πιο ακριβή αναζήτηση
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <label for="searchCompanyEmailAsStudent"><strong>Email</strong></label>
+            <input type="text" class="form-control" placeholder="Αναζήτηση με Email" @bind="searchCompanyEmailAsStudentToFindCompany" />
+        </div>
+        <div class="col-md-4 position-relative">
+            <label for="searchCompanyNameAsStudent"><strong>Όνομα Εταιρείας</strong></label>
+            <input 
+                type="text" 
+                id="searchCompanyNameAsStudent"
+                class="form-control" 
+                placeholder="Αναζήτηση με όνομα" 
+                @bind="searchCompanyNameENGAsStudentToFindCompany" 
+                @oninput="HandleCompanyInputAsStudent" />
+
+            <!-- Suggestions dropdown -->
+            <ul class="list-group position-absolute" 
+                style="z-index: 100; width: 100%; max-height: 150px; overflow-y: auto;" 
+                hidden="@(!companyNameSuggestionsAsStudent.Any())">
+                @foreach (var suggestion in companyNameSuggestionsAsStudent)
+                {
+                    <li class="list-group-item list-group-item-action" 
+                        @onclick="() => SelectCompanyNameSuggestionAsStudent(suggestion)">
+                        @suggestion
+                    </li>
+                }
+            </ul>
+        </div>
+        <div class="col-md-4">
+            <label for="searchCompanyTypeAsStudent" style="font-weight: bold;">Τύπος Εταιρείας</label>
+            <div class="input-group">
+                <select 
+                    id="searchCompanyTypeAsStudent" 
+                    class="form-control" 
+                    @bind="searchCompanyTypeAsStudentToFindCompany">
+                    <option value=""> - Επιλέξτε Τύπο - </option>
+                    @foreach (var type in ForeasType)
+                    {
+                        <option value="@type">@type</option>
+                    }
+                </select>
+                <div class="input-group-append">
+                    <span class="input-group-text">
+                        <i class="fas fa-chevron-down"></i>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Company Activity Field with Autocomplete -->
+        <div class="col-md-4 position-relative">
+            <label for="searchCompanyActivityAsStudent" class="fw-bold">Δραστηριότητα Εταιρείας</label>
+            <input 
+                type="text" 
+                id="searchCompanyActivityAsStudent"
+                class="form-control" 
+                placeholder="Αναζήτηση με δραστηριότητα" 
+                @bind="searchCompanyActivityInputAsStudentToFindCompany" 
+                @oninput="HandleCompanyActivityInputAsStudent" />
+
+            <!-- Suggestions Dropdown -->
+            <ul class="list-group position-absolute" 
+                style="z-index: 100; width: 100%; max-height: 150px; overflow-y: auto;" 
+                hidden="@(!companyActivitySuggestionsAsStudent.Any())">
+                @foreach (var suggestion in companyActivitySuggestionsAsStudent)
+                {
+                    <li class="list-group-item list-group-item-action" 
+                        @onclick="() => SelectCompanyActivitySuggestionAsStudent(suggestion)">
+                        @suggestion
+                    </li>
+                }
+            </ul>
+
+            <!-- Selected Activities -->
+            <div class="mt-3 selected-activities-container">
+                @if (selectedCompanyActivitiesAsStudent.Any())
+                {
+                    <ul class="list-group selected-activities-list">
+                        @foreach (var activity in selectedCompanyActivitiesAsStudent)
+                        {
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                @activity
+                                <button class="btn btn-danger btn-sm" @onclick="() => RemoveSelectedCompanyActivityAsStudent(activity)">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <label for="searchCompanyTownAsStudent" style="font-weight: bold;">Πόλη</label>
+            <div class="input-group">
+                <select id="searchCompanyTownAsStudent" 
+                        class="form-control" 
+                        @bind="searchCompanyTownAsStudentToFindCompany">
+                    <option value=""> - Επιλέξτε Πόλη - </option>
+                    @foreach (var region in Regions)
+                    {
+                        <optgroup label="@region">
+                            @foreach (var town in RegionToTownsMap[region])
+                            {
+                                <option value="@town">@town</option>
+                            }
+                        </optgroup>
+                    }
+                </select>
+                <div class="input-group-append">
+                    <span class="input-group-text">
+                        <i class="fas fa-chevron-down"></i>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Areas of Interest Container -->
+        <div class="col-md-4 position-relative">
+            <label for="searchCompanyAreasAsStudentToFindCompany" style="font-weight: bold;">Περιοχές Ενδιαφέροντος</label>
+            <input 
+                type="text"
+                class="form-control"
+                placeholder="Αναζήτηση με Περιοχές"
+                @bind="searchCompanyAreasAsStudentToFindCompany"
+                @oninput="HandleAreasOfInterestInput_WhenSearchForCompanyAsStudent" />
+
+            <ul class="list-group position-absolute" 
+                style="z-index: 100; width: 100%; max-height: 150px; overflow-y: auto;" 
+                hidden="@(!areasOfInterestSuggestionsAsStudent.Any())">
+                @foreach (var suggestion in areasOfInterestSuggestionsAsStudent)
+                {
+                    <li class="list-group-item list-group-item-action" 
+                        @onclick="() => SelectAreasOfInterestSuggestion_WhenSearchForCompanyAsStudent(suggestion)">
+                        @if (suggestion.Contains(" - "))
+                        {
+                            var parts = suggestion.Split(new[] { " - " }, StringSplitOptions.None);
+                            <div>
+                                <span class="text-muted">@parts[0] - </span>
+                                <span class="fw-bold">@parts[1]</span>
+                            </div>
+                        }
+                        else
+                        {
+                            <div>@suggestion</div>
+                        }
+                    </li>
+                }
+            </ul>
+
+            <div class="mt-3 selected-areas-container">
+                @if (selectedAreasOfInterestAsStudent.Any())
+                {
+                    <ul class="list-group selected-areas-list">
+                        @foreach (var area in selectedAreasOfInterestAsStudent)
+                        {
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                @if (area.Contains(" - "))
+                                {
+                                    var parts = area.Split(new[] { " - " }, StringSplitOptions.None);
+                                    <span>
+                                        <span class="text-muted">@parts[0] - </span>
+                                        <span class="fw-bold">@parts[1]</span>
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span>@area</span>
+                                }
+                                <button class="btn btn-danger btn-sm" @onclick="() => RemoveSelectedAreaOfInterest_WhenSearchForCompanyAsStudent(area)">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+
+        <!-- Company Desired Skills Field with Autocomplete -->
+        <div class="col-md-4 position-relative">
+            <label for="searchCompanyDesiredSkillsAsStudent" class="fw-bold">Επιθυμητές Δεξιότητες</label>
+            <input 
+                type="text" 
+                id="searchCompanyDesiredSkillsAsStudent"
+                class="form-control" 
+                placeholder="Αναζήτηση με δεξιότητες" 
+                @bind="searchCompanyDesiredSkillsInputAsStudentToFindCompany" 
+                @oninput="HandleCompanyDesiredSkillsInputAsStudent" />
+
+            <!-- Suggestions Dropdown -->
+            <ul class="list-group position-absolute" 
+                style="z-index: 100; width: 100%; max-height: 150px; overflow-y: auto;" 
+                hidden="@(!companyDesiredSkillsSuggestionsAsStudent.Any())">
+                @foreach (var suggestion in companyDesiredSkillsSuggestionsAsStudent)
+                {
+                    <li class="list-group-item list-group-item-action" 
+                        @onclick="() => SelectCompanyDesiredSkillSuggestionAsStudent(suggestion)">
+                        @suggestion
+                    </li>
+                }
+            </ul>
+
+            <!-- Selected Skills -->
+            <div class="mt-3 selected-skills-container">
+                @if (selectedCompanyDesiredSkillsAsStudent.Any())
+                {
+                    <ul class="list-group selected-skills-list">
+                        @foreach (var skill in selectedCompanyDesiredSkillsAsStudent)
+                        {
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                @skill
+                                <button class="btn btn-danger btn-sm" @onclick="() => RemoveSelectedCompanyDesiredSkillAsStudent(skill)">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <button class="modern-button" style="background-color: #2d3748; color: white; display: inline-flex; align-items: center;" @onclick="SearchCompaniesAsStudent">
+                <i class="fa-brands fa-searchengin" style="margin-right: 8px;"></i>Αναζήτηση
+            </button>
+            <button class="modern-button" style="background-color: #2d3748; color: white; display: inline-flex; align-items: center;" @onclick="ClearSearchFieldsAsStudentToFindCompany">
+                <i class="fa-solid fa-broom" style="margin-right: 8px;"></i>Εκκαθάριση
+            </button>
+        </div>
+    </div>
+    <br/>
+    <br/>
+}
+
+@if (searchResultsAsStudentToFindCompany != null && searchResultsAsStudentToFindCompany.Any())
+{
+    <div class="row mb-3">
+        <div class="col-md-2">
+            <label style="color: #2d3748; font-weight: bold; font-size: 15px; display: block;">Αποτελέσματα ανά Σελίδα</label>
+            <div class="input-group" style="max-width: 65px;">
+                <select class="form-control form-control-sm" 
+                        @onchange="OnPageSizeChangeForCompanySearchAsStudent" 
+                        aria-label="Items per page">
+                    @foreach (var option in companySearchPageSizeOptionsAsStudent)
+                    {
+                        <option value="@option" selected="@(CompanySearchPerPageAsStudent == option)">@option</option>
+                    }
+                </select>
+                <div class="input-group-append">
+                    <span class="input-group-text">
+                        <i class="fas fa-chevron-down"></i>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <table class="table mt-4">
+        <thead>
+            <td colspan="8" style="padding: 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; height: 24px; line-height: 24px; width: 100%;">
+                    <i class="fa-solid fa-magnifying-glass" style="font-size: 18px; color: #0d6efd;"></i>
+                    <label class="form-label" style="color: #0d6efd; font-weight: bold; font-size: 18px; margin: 0;">Αποτέλεσμα Αναζήτησης</label>
+                    <i class="fa-solid fa-magnifying-glass" style="font-size: 18px; color: #0d6efd;"></i>
+                </div>
+            </td>
+            <tr style="border: 2px solid black; background-color: lightgray;">
+                <th style="border: 2px solid black;">
+                    <i class="fa-solid fa-industry fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                    Όνομα Εταιρείας
+                </th>
+                <th style="border: 2px solid black;">
+                    <i class="fa-solid fa-tags fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                    Δραστηριότητα
+                </th>
+                <th style="border: 2px solid black;">
+                    <i class="fa-solid fa-city fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                    Πόλη
+                </th>
+                <th style="border: 2px solid black;">
+                    <i class="fa-solid fa-envelope fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                    Email
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var company in GetPaginatedCompanySearchResultsAsStudent())
+            {
+                <tr>
+                    <td>
+                        <a href="#" style="text-decoration: none; color: #0d6efd; font-weight: 500;" 
+                           @onclick="() => ShowCompanyDetailsWhenSearchAsStudent(company)" 
+                           title="Προβολή λεπτομερειών">
+                            @company.CompanyName
+                        </a>
+                    </td>
+                    <td>@company.CompanyActivity</td>
+                    <td>@company.CompanyTown</td>
+                    <td>
+                        @company.CompanyEmail
+                        <a href="mailto:@company.CompanyEmail" title="Αποστολή Email">
+                            <i class="fas fa-envelope"></i>
+                        </a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <Shared.Pagination CurrentPage="currentPage_CompanySearchAsStudent"
+                       TotalPages="totalPages_CompanySearchAsStudent"
+                       GoToFirstPage="GoToFirstPage_CompanySearchAsStudent"
+                       PreviousPage="PreviousPage_CompanySearchAsStudent"
+                       NextPage="NextPage_CompanySearchAsStudent"
+                       GoToLastPage="GoToLastPage_CompanySearchAsStudent"
+                       GoToPage="GoToPage_CompanySearchAsStudent" />
+    <br/>
+    <br/>
+}
+else if (searchResultsAsStudentToFindCompany != null)
+{
+    <div class="alert alert-warning d-flex align-items-center" role="alert">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        <div>
+            Δεν βρέθηκε κάποιο αποτέλεσμα που να πληρεί τα κριτήρια της Αναζήτησης σας.
+        </div>
+    </div>
+}
+@if (showCompanyDetailsModalAsStudent && selectedCompanyAsStudent != null)
+{
+    <div id="companyDetailsModalAsStudent" class="modal fade @(showCompanyDetailsModalAsStudent ? "show d-block" : "")" 
+         tabindex="-1" role="dialog" style="background-color: rgba(0, 0, 0, 0.5);">
+        <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+            <div class="modal-content" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);">
+                <div class="modal-header" style="border-bottom: 1px solid #e9ecef; border-radius: 12px 12px 0 0; background-color: #f8f9fa;">
+                    <h5 class="modal-title" style="color: #4682B4; font-weight: 600; font-size: 1.25rem;">
+                        @selectedCompanyAsStudent.CompanyNameENG
+                    </h5>
+                    <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" 
+                            @onclick="CloseCompanyDetailsModalWhenSearchAsStudent"
+                            onmouseover="this.style.backgroundColor='#4a5568'" 
+                            onmouseout="this.style.backgroundColor='#2d3748'">
+                        <span style="font-size: 1.2rem; line-height: 1;">×</span>
+                    </button>
+                </div>
+                <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                    <div class="form-group text-center">
+                        @if (selectedCompanyAsStudent.CompanyLogo != null)
+                        {
+                            <img src="data:image/png;base64,@Convert.ToBase64String(selectedCompanyAsStudent.CompanyLogo)" 
+                                 alt="Company Logo"
+                                 class="rounded-circle img-fluid"
+                                 style="max-width: 150px; max-height: 150px; object-fit: cover;" />
+                        }
+                        else
+                        {
+                            <p style="color: #6c757d;">Δεν είναι διαθέσιμο</p>
+                        }
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Σύντομη Ονομασία</label>
+                        <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                            <i class="fas fa-tag" style="color: #5F9EA0; margin-right: 8px;"></i>
+                            <span class="flex-grow-1">
+                                @(!string.IsNullOrWhiteSpace(selectedCompanyAsStudent.CompanyShortName)
+                                    ? selectedCompanyAsStudent.CompanyShortName
+                                    : "Δεν έχει Καθοριστεί")
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Τύπος Εταιρείας</label>
+                        <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" value="@selectedCompanyAsStudent.CompanyType" readonly />
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Email Εταιρείας</label>
+                        <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                            <i class="fas fa-envelope" style="color: #4682B4; margin-right: 8px;"></i>
+                            @if (!string.IsNullOrEmpty(selectedCompanyAsStudent.CompanyEmail))
+                            {
+                                <a href="mailto:@selectedCompanyAsStudent.CompanyEmail" 
+                                   style="color: #007bff; text-decoration: underline; word-break: break-all;">
+                                    @selectedCompanyAsStudent.CompanyEmail
+                                </a>
+                            }
+                            else
+                            {
+                                <span style="color: #6c757d;">Δεν υπάρχει email</span>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Ιστοσελίδα Εταιρείας</label>
+                        @if (!string.IsNullOrWhiteSpace(selectedCompanyAsStudent.CompanyWebsite))
+                        {
+                            <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa; cursor: pointer;" 
+                                 @onclick="() => OpenUrl(selectedCompanyAsStudent.CompanyWebsite)">
+                                <i class="fas fa-globe" style="color: #007bff; margin-right: 8px;"></i>
+                                <span style="color: #007bff; text-decoration: underline;">@selectedCompanyAsStudent.CompanyWebsite</span>
+                            </div>
+                        }
+                        else
+                        {
+                            <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" value="Δεν υπάρχει" readonly />
+                        }
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Περιγραφή Εταιρείας</label>
+                        <textarea class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" rows="3" readonly>@selectedCompanyAsStudent.CompanyDescription</textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Δραστηριότητα Εταιρείας</label>
+                        <textarea class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" readonly>@selectedCompanyAsStudent.CompanyActivity</textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Περιοχές Ενδιαφέροντος</label>
+                        <textarea class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" rows="2" readonly>@selectedCompanyAsStudent.CompanyAreas</textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Επιθυμητές Δεξιότητες</label>
+                        <textarea class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" rows="2" readonly>@selectedCompanyAsStudent.CompanyDesiredSkills</textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Χώρα</label>
+                        <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" value="@selectedCompanyAsStudent.CompanyCountry" readonly />
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Περιφέρεια</label>
+                        <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                            <i class="fas fa-map" style="color: #5F9EA0; margin-right: 8px;"></i>
+                            <span class="flex-grow-1">@selectedCompanyAsStudent.CompanyRegions</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Πόλη</label>
+                        <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                            <i class="fas fa-city" style="color: #5F9EA0; margin-right: 8px;"></i>
+                            <span class="flex-grow-1">@selectedCompanyAsStudent.CompanyTown</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Διεύθυνση</label>
+                        <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                            <i class="fas fa-map-marker-alt" style="color: #dc3545; margin-right: 8px;"></i>
+                            <span @onclick="() => OpenMap(selectedCompanyAsStudent.CompanyLocation)"
+                                  style="color: #007bff; text-decoration: underline; cursor: pointer; word-break: break-word;">
+                                @selectedCompanyAsStudent.CompanyLocation
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Ταχυδρομικός Κώδικας</label>
+                        <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                            <i class="fas fa-envelope-open-text" style="color: #5F9EA0; margin-right: 8px;"></i>
+                            <span class="flex-grow-1">@selectedCompanyAsStudent.CompanyPC</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Τηλέφωνο Εταιρείας</label>
+                        <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                            <i class="fas fa-phone" style="color: #28a745; margin-right: 8px;"></i>
+                            <span class="flex-grow-1">@selectedCompanyAsStudent.CompanyTelephone</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Ιστοσελίδα Ανακοινώσεων</label>
+                        @if (!string.IsNullOrWhiteSpace(selectedCompanyAsStudent.CompanyWebsiteAnnouncements))
+                        {
+                            <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa; cursor: pointer;" 
+                                 @onclick="() => OpenUrl(selectedCompanyAsStudent.CompanyWebsiteAnnouncements)">
+                                <i class="fas fa-bullhorn" style="color: #007bff; margin-right: 8px;"></i>
+                                <span style="color: #007bff; text-decoration: underline;">@selectedCompanyAsStudent.CompanyWebsiteAnnouncements</span>
+                            </div>
+                        }
+                        else
+                        {
+                            <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" value="Δεν υπάρχει" readonly />
+                        }
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Ιστοσελίδα Θέσεων Εργασίας</label>
+                        @if (!string.IsNullOrWhiteSpace(selectedCompanyAsStudent.CompanyWebsiteJobs))
+                        {
+                            <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa; cursor: pointer;" 
+                                 @onclick="() => OpenUrl(selectedCompanyAsStudent.CompanyWebsiteJobs)">
+                                <i class="fas fa-briefcase" style="color: #007bff; margin-right: 8px;"></i>
+                                <span style="color: #007bff; text-decoration: underline;">@selectedCompanyAsStudent.CompanyWebsiteJobs</span>
+                            </div>
+                        }
+                        else
+                        {
+                            <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" value="Δεν υπάρχει" readonly />
+                        }
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Υπεύθυνος Ανθρώπινου Δυναμικού</label>
+                        <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                            <i class="fas fa-user-tie" style="color: #5F9EA0; margin-right: 8px;"></i>
+                            <span class="flex-grow-1">@selectedCompanyAsStudent.CompanyHRName @selectedCompanyAsStudent.CompanyHRSurname</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Email Υπεύθυνου</label>
+                        <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                            <i class="fas fa-envelope" style="color: #4682B4; margin-right: 8px;"></i>
+                            @if (!string.IsNullOrEmpty(selectedCompanyAsStudent.CompanyHREmail))
+                            {
+                                <a href="mailto:@selectedCompanyAsStudent.CompanyHREmail" 
+                                   style="color: #007bff; text-decoration: underline; word-break: break-all;">
+                                    @selectedCompanyAsStudent.CompanyHREmail
+                                </a>
+                            }
+                            else
+                            {
+                                <span style="color: #6c757d;">Δεν υπάρχει email</span>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Τηλέφωνο Υπεύθυνου</label>
+                        <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                            <i class="fas fa-phone" style="color: #28a745; margin-right: 8px;"></i>
+                            <span class="flex-grow-1">@selectedCompanyAsStudent.CompanyHRTelephone</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Επικεφαλής Τμήματος Έρευνας και Ανάπτυξης</label>
+                        <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" value="@selectedCompanyAsStudent.RnD_HeadName" readonly />
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Υπεύθυνος Επικοινωνίας Τμήματος Έρευνας και Ανάπτυξης</label>
+                        <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" value="@selectedCompanyAsStudent.RnD_ContactPersonFullName" readonly />
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Email Επικοινωνίας Υπευθύνου Τμήματος Έρευνας και Ανάπτυξης</label>
+                        <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                            <i class="fas fa-envelope" style="color: #4682B4; margin-right: 8px;"></i>
+                            @if (!string.IsNullOrEmpty(selectedCompanyAsStudent.RnD_ContactPersonEmail))
+                            {
+                                <a href="mailto:@selectedCompanyAsStudent.RnD_ContactPersonEmail" 
+                                   style="color: #007bff; text-decoration: underline; word-break: break-all;">
+                                    @selectedCompanyAsStudent.RnD_ContactPersonEmail
+                                </a>
+                            }
+                            else
+                            {
+                                <span style="color: #6c757d;">Δεν υπάρχει email</span>
+                            }
+                        </div>
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+                    <button class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; padding: 8px 20px; transition: all 0.2s;" 
+                            @onclick="CloseCompanyDetailsModalWhenSearchAsStudent"
+                            onmouseover="this.style.backgroundColor='#4a5568'" 
+                            onmouseout="this.style.backgroundColor='#2d3748'">
+                        <i class="fas fa-arrow-left me-2"></i> Κλείσιμο
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
