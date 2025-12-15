@@ -27,7 +27,8 @@
                                                         id="searchResearchGroupNameAsCompanyToFindResearchGroup"
                                                         class="form-control" 
                                                         placeholder="Αναζήτηση με όνομα ομάδας" 
-                                                        @bind="searchResearchGroupNameAsCompanyToFindResearchGroup" 
+                                                        @bind="searchResearchGroupNameAsCompanyToFindResearchGroup"
+                                                        @bind:event="oninput"
                                                         @oninput="HandleResearchGroupNameInput" />
 
                                                     <!-- Suggestions dropdown -->
@@ -97,6 +98,7 @@
                                                         class="form-control" 
                                                         placeholder="Αναζήτηση με περιοχές έρευνας" 
                                                         @bind="searchResearchGroupAreasAsCompanyToFindResearchGroup" 
+                                                        @bind:event="oninput"
                                                         @oninput="HandleResearchGroupAreasInput"
                                                         @onkeydown="HandleResearchGroupAreasKeyDown" />
 
@@ -163,6 +165,7 @@
                                                         class="form-control" 
                                                         placeholder="Αναζήτηση με δεξιότητες" 
                                                         @bind="searchResearchGroupSkillsAsCompanyToFindResearchGroup" 
+                                                        @bind:event="oninput"
                                                         @oninput="HandleResearchGroupSkillsInput"
                                                         @onkeydown="HandleResearchGroupSkillsKeyDown" />
 
@@ -622,8 +625,82 @@
                             }
                        }
 
+@code {
+    // Visibility state
+    [Parameter] public bool isCompanySearchResearchGroupVisible { get; set; }
+    [Parameter] public EventCallback ToggleCompanySearchResearchGroupVisible { get; set; }
 
+    // Search fields
+    [Parameter] public string searchResearchGroupNameAsCompanyToFindResearchGroup { get; set; } = "";
+    [Parameter] public EventCallback<string> searchResearchGroupNameAsCompanyToFindResearchGroupChanged { get; set; }
+    [Parameter] public string searchResearchGroupSchoolAsCompanyToFindResearchGroup { get; set; } = "";
+    [Parameter] public EventCallback<string> searchResearchGroupSchoolAsCompanyToFindResearchGroupChanged { get; set; }
+    [Parameter] public string searchResearchGroupUniversityDepartmentAsCompanyToFindResearchGroup { get; set; } = "";
+    [Parameter] public EventCallback<string> searchResearchGroupUniversityDepartmentAsCompanyToFindResearchGroupChanged { get; set; }
+    [Parameter] public string searchResearchGroupAreasAsCompanyToFindResearchGroup { get; set; } = "";
+    [Parameter] public EventCallback<string> searchResearchGroupAreasAsCompanyToFindResearchGroupChanged { get; set; }
+    [Parameter] public string searchResearchGroupSkillsAsCompanyToFindResearchGroup { get; set; } = "";
+    [Parameter] public EventCallback<string> searchResearchGroupSkillsAsCompanyToFindResearchGroupChanged { get; set; }
+    [Parameter] public string searchResearchGroupKeywordsAsCompanyToFindResearchGroup { get; set; } = "";
+    [Parameter] public EventCallback<string> searchResearchGroupKeywordsAsCompanyToFindResearchGroupChanged { get; set; }
 
+    // Suggestions
+    [Parameter] public List<string> researchgroupNameSuggestions { get; set; } = new();
+    [Parameter] public List<string> researchGroupAreasSuggestions { get; set; } = new();
+    [Parameter] public List<string> researchGroupSkillsSuggestions { get; set; } = new();
+    [Parameter] public List<string> researchGroupKeywordsSuggestions { get; set; } = new();
 
-<div id="professors-tab-table-start"></div>
-                            else if (UserRole == "Professor")
+    // Selected items
+    [Parameter] public List<string> selectedResearchGroupAreas { get; set; } = new();
+    [Parameter] public List<string> selectedResearchGroupSkills { get; set; } = new();
+    [Parameter] public List<string> selectedResearchGroupKeywords { get; set; } = new();
+
+    // Dropdowns
+    [Parameter] public List<string> researchGroupSchools { get; set; } = new();
+    [Parameter] public List<string> filteredDepartments { get; set; } = new();
+
+    // Search state
+    [Parameter] public bool hasSearchedForResearchGroups { get; set; }
+    [Parameter] public List<ResearchGroup> searchResultsAsCompanyToFindResearchGroup { get; set; } = new();
+
+    // Pagination
+    [Parameter] public int currentResearchGroupPage_SearchForResearchGroupsAsCompany { get; set; } = 1;
+    [Parameter] public int totalResearchGroupPages_SearchForResearchGroupsAsCompany { get; set; }
+    [Parameter] public int ResearchGroupsPerPage_SearchForResearchGroupsAsCompany { get; set; } = 10;
+    [Parameter] public List<int> pageSizeOptions_SearchForResearchGroupsAsCompany { get; set; } = new() { 10, 50, 100 };
+
+    // Modal state
+    [Parameter] public bool showResearchGroupDetailsModalWhenSearchForResearchGroupsAsCompany { get; set; }
+    [Parameter] public ResearchGroup? selectedResearchGroupWhenSearchForResearchGroupsAsCompany { get; set; }
+
+    // Event handlers
+    [Parameter] public EventCallback<ChangeEventArgs> HandleResearchGroupNameInput { get; set; }
+    [Parameter] public EventCallback<string> SelectResearchGroupNameSuggestion { get; set; }
+    [Parameter] public EventCallback<ChangeEventArgs> OnSchoolSelectionChanged { get; set; }
+    [Parameter] public EventCallback<ChangeEventArgs> HandleResearchGroupAreasInput { get; set; }
+    [Parameter] public EventCallback<string> SelectResearchGroupAreasSuggestion { get; set; }
+    [Parameter] public EventCallback<string> RemoveSelectedResearchGroupArea { get; set; }
+    [Parameter] public EventCallback<ChangeEventArgs> HandleResearchGroupSkillsInput { get; set; }
+    [Parameter] public EventCallback<string> SelectResearchGroupSkillsSuggestion { get; set; }
+    [Parameter] public EventCallback<string> RemoveSelectedResearchGroupSkill { get; set; }
+    [Parameter] public EventCallback SearchResearchGroupsAsCompany { get; set; }
+    [Parameter] public EventCallback ClearSearchFieldsAsCompanyToFindResearchGroup { get; set; }
+    [Parameter] public EventCallback<ChangeEventArgs> OnPageSizeChange_SearchForResearchGroupsAsCompany { get; set; }
+    [Parameter] public EventCallback<ResearchGroup> ShowResearchGroupDetailsModal { get; set; }
+    [Parameter] public EventCallback CloseModalResearchGroupDetailsOnEyeIconWhenSearchForResearchGroupsAsCompany { get; set; }
+    [Parameter] public EventCallback<int> GoToResearchGroupPage { get; set; }
+    [Parameter] public EventCallback GoToFirstResearchGroupPage { get; set; }
+    [Parameter] public EventCallback PreviousResearchGroupPage { get; set; }
+    [Parameter] public EventCallback NextResearchGroupPage { get; set; }
+    [Parameter] public EventCallback GoToLastResearchGroupPage { get; set; }
+
+    // Helper method for pagination
+    private IEnumerable<ResearchGroup> GetPaginatedResearchGroupResults()
+    {
+        if (searchResultsAsCompanyToFindResearchGroup == null || !searchResultsAsCompanyToFindResearchGroup.Any())
+            return Enumerable.Empty<ResearchGroup>();
+
+        int skip = (currentResearchGroupPage_SearchForResearchGroupsAsCompany - 1) * ResearchGroupsPerPage_SearchForResearchGroupsAsCompany;
+        return searchResultsAsCompanyToFindResearchGroup.Skip(skip).Take(ResearchGroupsPerPage_SearchForResearchGroupsAsCompany);
+    }
+}
