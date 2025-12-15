@@ -1,0 +1,459 @@
+                                                        <div class="tab-pane fade" id="professorthesis" role="tabpanel" aria-labelledby="professorthesis-tab">
+                                                            <div class="mb-3 row-dark-gray">
+                                                                <div class="d-flex justify-content-between align-items-center" @onclick="ToggleFormVisibilityForUploadProfessorThesis" style="cursor: pointer;">
+                                                                    <label class="form-label" style="color: #FFF8DC;">• Δημιουργία Διπλωματικής Εργασίας •</label>
+                                                                    <button class="btn btn-link" @onclick="ToggleFormVisibilityForUploadProfessorThesis" @onclick:stopPropagation="true">
+                                                                        @if (isProfessorThesisFormVisible)
+                                                                        {
+                                                                            <span>&#8722;</span> <!-- Minus sign -->
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <span>&#43;</span> <!-- Plus sign -->
+                                                                        }
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                            @*UPLOAD THESIS AS PROFESSOR - PEDIA INPUTS*@  
+                                                                @if (isProfessorThesisFormVisible)
+                                                                {
+
+                                                                     <div class="row mb-3">
+                                                                        <div class="col-md-4">
+                                                                            <label for="professorthesisTitle">
+                                                                                <strong>Τίτλος Διπλωματικής Εργασίας</strong>
+                                                                                <span style="color: red;">*</span>
+                                                                            </label>
+                                                                            <input type="text" id="professorthesisTitle" class="form-control @(showErrorMessageforUploadingThesisAsProfessor && string.IsNullOrWhiteSpace(professorthesis.ThesisTitle) ? "shake error" : "")" 
+                                                                                @bind="professorthesis.ThesisTitle" 
+                                                                                @oninput="CheckCharacterLimitInThesisFieldUploadAsProfessor" 
+                                                                                maxlength="120"
+                                                                                placeholder="Πληκτρολογήστε τον Τίτλο της Διπλωματικής"/>
+                                                                            <small class="character-limit light-cadetblue-text">@remainingCharactersInThesisFieldUploadAsProfessor/120</small>
+                                                                        </div>
+                                                                        @if (showErrorMessageforUploadingThesisAsProfessor && string.IsNullOrWhiteSpace(professorthesis.ThesisTitle))
+                                                                        {
+                                                                            <div class="text-danger mt-1">Απαιτείται Τίτλος Διπλωματικής Εργασίας.</div>
+                                                                        }
+                                                                    </div>
+
+                                                                    <div class="row mb-3">
+                                                                        <div class="col-md-4">
+                                                                            <label for="ProfessorThesisDescription"><strong>Σύντομη Περιγραφή</strong> <span style="color: red;"> *</span></label>
+                                                                            <textarea id="ProfessorThesisDescription" class="form-control @(showErrorMessageforUploadingThesisAsProfessor && string.IsNullOrWhiteSpace(professorthesis.ThesisDescription) ? "shake error" : "")"
+                                                                                      @bind="professorthesis.ThesisDescription"
+                                                                                      @oninput="CheckCharacterLimitInThesisDescriptionUploadAsProfessor"
+                                                                                      maxlength="1000"
+                                                                                      placeholder="Πληκτρολογήστε την Περιγραφή της Διπλωματικής"></textarea>
+                                                                            <small class="character-limit light-cadetblue-text">@remainingCharactersInThesisDescriptionUploadAsProfessor/1000</small>
+                                                                        </div>
+                                                                        @if (showErrorMessageforUploadingThesisAsProfessor && string.IsNullOrWhiteSpace(professorthesis.ThesisDescription))
+                                                                        {
+                                                                            <div class="text-danger mt-1">Απαιτείται Περιγραφή της Διπλωματικής Εργασίας.</div>
+                                                                        }
+                                                                    </div>
+                                                                 
+                                                                    <!-- Professor Thesis Areas -->
+                                                                    <div class="row mb-3">
+                                                                        <div class="col-md-4">
+                                                                            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap;">
+                                                                                <label style="margin: 0; display: flex; align-items: center; gap: 4px;">
+                                                                                    <strong>Τομείς Διπλωματικής</strong>
+                                                                                    <span style="color: red;">*</span>
+                                                                                </label>
+            
+                                                                                <button type="button" 
+                                                                                        @onclick="ToggleCheckboxesForProfessorThesis"
+                                                                                        class="toggle-all-areas-btn @(showErrorMessageforUploadingThesisAsProfessor && !HasAnySelectionForProfessorThesis() ? "shake error" : "")"
+                                                                                        style="border: 1px solid #1565c0; background: white; border-radius: 6px; padding: 4px 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; color: #1565c0; font-size: 0.85em; transition: all 0.2s;">
+                                                                                    <span>👆</span>
+                                                                                    <span>Προβολή τομέων</span>
+                                                                                </button>
+                                                                            </div>
+
+                                                                            @if (showCheckboxesForProfessorThesis)
+                                                                            {
+                                                                                <div class="checkbox-container">
+                                                                                    @if (availableAreasForProfessorThesis == null || !availableAreasForProfessorThesis.Any())
+                                                                                    {
+                                                                                        <p>Φορτώνει...</p>
+                                                                                    }
+                                                                                    else
+                                                                                    {
+                                                                                        @foreach (var area in availableAreasForProfessorThesis)
+                                                                                        {
+                                                                                            <div class="area-container" style="margin-bottom: 8px; border: 2px solid #1565c0; border-radius: 6px; padding: 8px; background-color: #f8f9fa;">
+                                                                                                <div class="form-check area-header" style="display: flex; align-items: center; gap: 8px;">
+                                                                                                    <input type="checkbox"
+                                                                                                           id="professorthesis_area_@area.Id"
+                                                                                                           class="form-check-input"
+                                                                                                           @onchange="(e) => OnAreaCheckedChangedForProfessorThesis(e, area)"
+                                                                                                           checked="@IsAreaSelectedForProfessorThesis(area)" />
+                                                                                                    <label class="form-check-label area-label @(showErrorMessageforUploadingThesisAsProfessor && !HasAnySelectionForProfessorThesis() ? "shake error" : "")" 
+                                                                                                           for="professorthesis_area_@area.Id"
+                                                                                                           style="cursor: pointer; font-weight: bold; flex-grow: 1; color: #1565c0;">
+                                                                                                        @area.AreaName
+                                                                                                    </label>
+                                                                                                    <button type="button"
+                                                                                                            @onclick="@(() => ToggleSubFieldsForProfessorThesis(area))"
+                                                                                                            @onclick:stopPropagation="true"
+                                                                                                            class="expand-btn"
+                                                                                                            style="border: 1px solid #1565c0; background: white; border-radius: 4px; padding: 4px 8px; cursor: pointer; display: flex; align-items: center; gap: 4px; font-size: 0.8em; color: #1565c0; transition: all 0.2s;">
+                                                                                                        <span>Υποτομείς</span>
+                                                                                                        <span class="expand-icon" style="font-size: 10px; transition: transform 0.2s; transform: @(ExpandedAreasForProfessorThesis.Contains(area.Id) ? "rotate(90deg)" : "rotate(0deg)")">▶</span>
+                                                                                                    </button>
+                                                                                                </div>
+                            
+                                                                                                @if (ExpandedAreasForProfessorThesis.Contains(area.Id))
+                                                                                                {
+                                                                                                    <div class="subfields-container" style="margin-top: 12px; margin-left: 28px; padding: 12px; background: white; border: 1px solid #e0e0e0; border-radius: 4px;">
+                                                                                                        <div style="font-size: 0.85em; color: #666; margin-bottom: 8px; font-weight: 500;">
+                                                                                                            Επιλέξτε υποτομείς:
+                                                                                                        </div>
+                                                                                                        @if (!string.IsNullOrEmpty(area.AreaSubFields))
+                                                                                                        {
+                                                                                                            var subFields = area.AreaSubFields.Split(',').Select(s => s.Trim()).ToList();
+                                                                                                            @foreach (var subField in subFields)
+                                                                                                            {
+                                                                                                                <div class="form-check subfield-checkbox" style="margin-bottom: 6px;">
+                                                                                                                    <input type="checkbox"
+                                                                                                                           id="professorthesis_subfield_@(area.Id)_@(subField)"
+                                                                                                                           class="form-check-input"
+                                                                                                                           @onchange="(e) => OnSubFieldCheckedChangedForProfessorThesis(e, area, subField)"
+                                                                                                                           checked="@IsSubFieldSelectedForProfessorThesis(area, subField)" />
+                                                                                                                    <label class="form-check-label" for="professorthesis_subfield_@(area.Id)_@(subField)" style="font-weight: normal; font-size: 0.9em;">
+                                                                                                                        @subField
+                                                                                                                    </label>
+                                                                                                                </div>
+                                                                                                            }
+                                                                                                        }
+                                                                                                    </div>
+                                                                                                }
+                                                                                            </div>
+                                                                                        }
+                                                                                    }
+                                                                                </div>
+                                                                            }
+                                                                        </div>
+                                                                        @if (showErrorMessageforUploadingThesisAsProfessor && !HasAnySelectionForProfessorThesis())
+                                                                        {
+                                                                            <div class="text-danger mt-1">Πρέπει να επιλέξετε τουλάχιστον 1 Τομέα Διπλωματικής ή Υποτομέα.</div>
+                                                                        }
+                                                                    </div>
+
+
+                                                                    <div class="row mb-3">
+                                                                        <div class="col-md-4">
+                                                                            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap;">
+                                                                                <label style="margin: 0; display: flex; align-items: center; gap: 4px;">
+                                                                                    <strong>Απαιτούμενες Δεξιότητες</strong>
+                                                                                    <span style="color: red;">*</span>
+                                                                                </label>
+            
+                                                                                <button type="button" 
+                                                                                        @onclick="ToggleCheckboxesForThesisSkillsAsProfessor"
+                                                                                        class="toggle-all-areas-btn @(showErrorMessageforUploadingThesisAsProfessor && string.IsNullOrWhiteSpace(professorthesis.ThesisSkills) ? "shake error" : "")"
+                                                                                        style="border: 1px solid @(showErrorMessageforUploadingThesisAsProfessor && string.IsNullOrWhiteSpace(professorthesis.ThesisSkills) ? "#dc3545" : "#1565c0"); background: white; border-radius: 6px; padding: 4px 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; color: @(showErrorMessageforUploadingThesisAsProfessor && string.IsNullOrWhiteSpace(professorthesis.ThesisSkills) ? "#dc3545" : "#1565c0"); font-size: 0.85em; transition: all 0.2s;">
+                                                                                    <span>👆</span>
+                                                                                    <span>Προβολή δεξιοτήτων</span>
+                                                                                </button>
+                                                                            </div>
+
+                                                                            <div id="toggleCheckboxesForThesisSkillsAsProfessor" class="checkbox-containerThesisSkills" style="display: none;">
+                                                                                @if (availableSkillsForProfessorThesis == null || !availableSkillsForProfessorThesis.Any())
+                                                                                {
+                                                                                    <p>Φορτώνει...</p>
+                                                                                }
+                                                                                else
+                                                                                {
+                                                                                    <div class="d-flex flex-wrap">
+                                                                                        @foreach (var skill in availableSkillsForProfessorThesis)
+                                                                                        {
+                                                                                            <div class="form-check me-2 mb-2" style="flex-basis: 20%;">
+                                                                                                <input type="checkbox"
+                                                                                                       id="skill_@skill.Id"
+                                                                                                       class="form-check-input"
+                                                                                                       @onchange="(e) => OnCheckedChangedForThesisSkillsAsProfessor(e, skill)"
+                                                                                                       checked="@IsSelectedForThesisSkillsAsProfessor(skill)" />
+                                                                                                <label class="form-check-label @(showErrorMessageforUploadingThesisAsProfessor && string.IsNullOrWhiteSpace(professorthesis.ThesisSkills) ? "shake error" : "")"
+                                                                                                       for="skill_@skill.Id">
+                                                                                                    @skill.SkillName
+                                                                                                </label>
+                                                                                            </div>
+                                                                                        }
+                                                                                    </div>
+                                                                                }
+                                                                            </div>
+        
+                                                                            @if (showErrorMessageforUploadingThesisAsProfessor && string.IsNullOrWhiteSpace(professorthesis.ThesisSkills))
+                                                                            {
+                                                                                <div class="text-danger mt-1">Πρέπει να επιλέξετε τουλάχιστον 1 Δεξιότητα.</div>
+                                                                            }
+                                                                        </div>
+                                                                    </div>
+
+
+                                                                    <div class="row mb-3">
+                                                                        <div class="col-md-4">
+                                                                            <label for="ProfessorThesisActivePeriod"><strong>Ημερομηνία Έναρξης</strong> <span style="color: red;"> *</span></label>
+                                                                            <input type="date" id="ProfessorThesisActivePeriod" class="form-control @(showErrorMessageforUploadingThesisAsProfessor && professorthesis.ThesisActivePeriod.Date <= DateTime.Today ? "shake error" : "")" 
+                                                                                   @bind="professorthesis.ThesisActivePeriod" />
+                                                                        </div>
+                                                                        @if (showErrorMessageforUploadingThesisAsProfessor && professorthesis.ThesisActivePeriod.Date <= DateTime.Today)
+                                                                        {
+                                                                            <div class="text-danger mt-1">Η ημερομηνία πρέπει να είναι μεταγενέστερη της σημερινής ημερομηνίας.</div>
+                                                                        }
+                                                                    </div>
+
+                                                                    <!-- Open Slots Field -->
+                                                                    <div class="row mb-3">
+                                                                        <div class="col-md-4">
+                                                                            <label for="professorThesisOpenSlots">
+                                                                                <strong>Διαθέσιμες Θέσεις</strong>
+                                                                                <span style="color: red;">*</span>
+                                                                            </label>
+                                                                            <input type="number" 
+                                                                                   id="professorThesisOpenSlots" 
+                                                                                   class="form-control @(showErrorMessageforUploadingThesisAsProfessor && professorthesis.OpenSlots_ProfessorThesis < 3 ? "shake error" : "")" 
+                                                                                   @bind="professorthesis.OpenSlots_ProfessorThesis" 
+                                                                                   min="3" 
+                                                                                   step="1" />
+                                                                            @if (showErrorMessageforUploadingThesisAsProfessor && professorthesis.OpenSlots_ProfessorThesis < 3)
+                                                                            {
+                                                                                <div class="text-danger mt-1">Ο αριθμός των διαθέσιμων θέσεων πρέπει να είναι τουλάχιστον 3.</div>
+                                                                            }
+                                                                            <small class="form-text text-muted">Αριθμός ανοιχτών θέσεων για αυτή τη Διπλωματική εργασία (ελάχιστο 3)</small>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div class="row mb-3">
+                                                                        <div class="col-md-4">
+                                                                            <label for="ProfessorThesisAttachment">Συνημμένο Αρχείο Διπλωματικής<span style="font-style: italic; color: gray;"> (Προαιρετικό)</span></label>
+                                                                            <InputFile id="ProfessorThesisAttachment" class="form-control" OnChange="HandleFileSelectedForThesisAttachmentAsProfessor" />
+                                                                            <small class="form-text text-muted">Όριο 10MB - Μόνο αρχεία PDF</small>
+                                                                            @if (!string.IsNullOrEmpty(ProfessorThesisAttachmentErrorMessage))
+                                                                            {
+                                                                                <div class="text-danger mt-2">@ProfessorThesisAttachmentErrorMessage</div>
+                                                                            }
+                                                                        </div>
+                                                                    </div>
+
+
+                                                                    <!-- SAVE THESIS AS PROFESSOR -->
+                                                                    <div class="mb-3">
+                                                                        <button class="modern-button"
+                                                                                style="background-color: #818589; color: white; display: inline-flex; align-items: center;"
+                                                                                @onclick="SaveThesisAsUnpublishedAsProfessor">
+                                                                            <i class="fa-regular fa-floppy-disk" style="margin-right: 8px;"></i>
+                                                                            Προσωρινή Αποθήκευση Διπλωματικής
+                                                                        </button>      
+                                                                        <button class="modern-button"
+                                                                                style="background-color: #2d3748; color: white; display: inline-flex; align-items: center;"
+                                                                                @onclick="SaveThesisAsPublishedAsProfessor">
+                                                                            <i class="fa-solid fa-floppy-disk" style="margin-right: 8px;"></i>
+                                                                            Δημοσίευση Διπλωματικής
+                                                                        </button>
+                                                                    </div>
+                                                                    <!-- Loading Modal for Professor Thesis -->
+                                                                    @if (showLoadingModalForProfessorThesis)
+                                                                    {
+                                                                        <div class="loading-modal">
+                                                                            <div class="loading-modal-content">
+                                                                                <div class="loading-spinner"></div>
+                                                                                <p>Αποθήκευση Διπλωματικής Εργασίας...</p>
+                                                                                <div class="progress-bar">
+                                                                                    <div class="progress-bar-fill" style="width: @loadingProgress%"></div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    }
+                                                                    @if (!string.IsNullOrEmpty(saveThesisAsProfessorMessage))
+                                                                    {
+                                                                        <div class="alert @(isSaveThesisAsProfessorSuccessful ? "alert-success" : "alert-danger")" role="alert">
+                                                                            @saveThesisAsProfessorMessage
+                                                                        </div>
+                                                                    }
+                                                                }            
+
+
+                                                            <!-- VIEW UPLOADED THESES AS PROFESSOR -->
+                                                            <div class="mb-3 row-dark-gray mt-4">
+                                                                <div class="d-flex justify-content-between align-items-center" @onclick="ToggleUploadedThesesVisibilityAsProfessor" style="cursor: pointer;">
+                                                                    <label class="form-label" style="color: #FFF8DC;">
+                                                                        @if (isLoadingUploadedThesesAsProfessor)
+                                                                        {
+                                                                            <span>
+                                                                                <i class="fas fa-spinner fa-spin me-2"></i>
+                                                                                Φόρτωση Διπλωματικών...
+                                                                            </span>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <span>• Οι Διπλωματικές μου Εργασίες •</span>
+                                                                        }
+                                                                    </label>
+                                                                    <button class="btn btn-link" @onclick="ToggleUploadedThesesVisibilityAsProfessor" @onclick:stopPropagation="true">
+                                                                        @if (isUploadedThesesVisibleAsProfessor && !isLoadingUploadedThesesAsProfessor)
+                                                                        {
+                                                                            <span>&#8722;</span> <!-- Minus sign -->
+                                                                        }
+                                                                        else if (!isLoadingUploadedThesesAsProfessor)
+                                                                        {
+                                                                            <span>&#43;</span> <!-- Plus sign -->
+                                                                        }
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+
+                                                            @if (isUploadedThesesVisibleAsProfessor)
+                                                            {
+                                                                <div class="row mb-3">
+                                                                    <div class="col-md-2">
+                                                                        <label for="statusFilterForThesesAsProfessor" style="color: #2d3748;"><strong>Φίλτρο Εμφάνισης</strong></label>
+                                                                        <div class="input-group">
+                                                                            <select id="statusFilterForThesesAsProfessor" class="form-control form-control-sm" 
+                                                                                    @onchange="HandleStatusFilterChangeForThesesAsProfessor">
+                                                                                <option value="Όλα">Όλες</option>
+                                                                                <option value="Δημοσιευμένη">Δημοσιευμένες</option>
+                                                                                <option value="Μη Δημοσιευμένη">Μη Δημοσιευμένες</option>
+                                                                                <option value="Αποσυρμένη">Αποσυρμένες</option>
+                                                                            </select>
+                                                                            <div class="input-group-append">
+                                                                                <span class="input-group-text">
+                                                                                    <i class="fas fa-chevron-down"></i>
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="col-md-2">
+                                                                        <label style="color: #2d3748;"><strong>Αποτελέσματα ανά Σελίδα</strong></label>
+                                                                        <div class="input-group" style="max-width: 65px;">
+                                                                            <select class="form-control form-control-sm" @onchange="OnPageSizeChange_SeeMyUploadedThesesAsProfessor" aria-label="Items per page">
+                                                                                @foreach (var option in pageSizeOptions_SeeMyUploadedThesesAsProfessor)
+                                                                                {
+                                                                                    <option value="@option" selected="@(ProfessorThesesPerPage == option)">@option</option>
+                                                                                }
+                                                                            </select>
+                                                                            <div class="input-group-append">
+                                                                                <span class="input-group-text">
+                                                                                    <i class="fas fa-chevron-down"></i>
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="col-md-2">
+                                                                        @if (selectedStatusFilterForThesesAsProfessor == "Όλα")
+                                                                        {
+                                                                            <span><strong>Σύνολο: </strong>@totalCountThesesAsProfessor</span>
+                                                                        }
+                                                                        else if (selectedStatusFilterForThesesAsProfessor == "Δημοσιευμένη")
+                                                                        {
+                                                                            <span><strong>Σύνολο: </strong>@publishedCountThesesAsProfessor</span>
+                                                                        }
+                                                                        else if (selectedStatusFilterForThesesAsProfessor == "Μη Δημοσιευμένη")
+                                                                        {
+                                                                            <span><strong>Σύνολο: </strong>@unpublishedCountThesesAsProfessor</span>
+                                                                        }
+                                                                        else if (selectedStatusFilterForThesesAsProfessor == "Αποσυρμένη")
+                                                                        {
+                                                                            <span><strong>Σύνολο: </strong>@withdrawnCountThesesAsProfessor</span>
+                                                                        }
+                                                                    </div>
+                                                                </div>
+
+                                                                <!-- Bulk Edit Section for Professor Theses - Only show when there are theses -->
+                                                                @if (FilteredThesesAsProfessor != null && FilteredThesesAsProfessor.Any())
+                                                                {
+                                                                    <div class="row mb-3">
+                                                                        <div class="col-md-12">
+                                                                            <!-- Bulk Edit Button - Show when NOT in bulk edit mode -->
+                                                                            @if (!isBulkEditModeForProfessorTheses)
+                                                                            {
+                                                                                <div class="mb-2" style="margin-left: -10px;">
+                                                                                    <button class="modern-button" style="background-color: #2d3748; color: white; display: inline-flex; align-items: center;" 
+                                                                                            @onclick="EnableBulkEditModeForProfessorTheses"
+                                                                                            onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                                            onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                                        <i class="fas fa-edit" style="margin-right: 8px;"></i>Μαζική Επεξεργασία Θέσεων Διπλωματικής
+                                                                                    </button>
+                                                                                </div>
+                                                                            }
+
+                                                                            <!-- Bulk Action Controls - Show when in bulk edit mode -->
+                                                                            @if (isBulkEditModeForProfessorTheses)
+                                                                            {
+                                                                                <div class="mb-2" style="margin-left: -10px;">
+                                                                                    <div class="d-flex gap-2 align-items-center flex-wrap">
+                                                                                        <button class="modern-button" style="background-color: #2d3748; color: white; display: inline-flex; align-items: center;" 
+                                                                                                @onclick='() => ExecuteBulkStatusChangeForProfessorTheses("Δημοσιευμένη")'
+                                                                                                disabled="@(selectedProfessorThesisIds.Count == 0)"
+                                                                                                onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                                                onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                                            <i class="fas fa-arrow-up me-2"></i>Αλλαγή σε Δημοσιευμένη
+                                                                                        </button>
+                                                                                        <button class="modern-button" style="background-color: #2d3748; color: white; display: inline-flex; align-items: center;" 
+                                                                                                @onclick='() => ExecuteBulkStatusChangeForProfessorTheses("Μη Δημοσιευμένη")'
+                                                                                                disabled="@(selectedProfessorThesisIds.Count == 0)"
+                                                                                                onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                                                onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                                            <i class="fas fa-arrow-down me-2"></i>Αλλαγή σε Μη Δημοσιευμένη
+                                                                                        </button>
+                                                                                        <button class="modern-button" style="background-color: #2d3748; color: white; display: inline-flex; align-items: center;" 
+                                                                                                @onclick='() => ExecuteBulkStatusChangeForProfessorTheses("Αποσυρμένη")'
+                                                                                                disabled="@(selectedProfessorThesisIds.Count == 0)"
+                                                                                                onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                                                onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                                            <i class="fas fa-times me-2"></i>Αλλαγή σε Αποσυρμένη
+                                                                                        </button>
+                                                                                        <button class="modern-button" style="background-color: #2d3748; color: white; display: inline-flex; align-items: center;" 
+                                                                                                @onclick="ExecuteBulkCopyForProfessorTheses"
+                                                                                                disabled="@(selectedProfessorThesisIds.Count == 0)"
+                                                                                                onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                                                onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                                            <i class="fas fa-copy me-2"></i>Κλωνοποίηση
+                                                                                        </button>
+                                                                                        <button class="modern-button" style="background-color: #6c757d; color: white; display: inline-flex; align-items: center;" 
+                                                                                                @onclick="CancelBulkEditForProfessorTheses"
+                                                                                                onmouseover="this.style.backgroundColor='#5a6268'" 
+                                                                                                onmouseout="this.style.backgroundColor='#6c757d'">
+                                                                                            <i class="fas fa-times me-2"></i>Ακύρωση
+                                                                                        </button>
+                                                                                    </div>
+
+                                                                                    <!-- Selected count badge -->
+                                                                                    @if (selectedProfessorThesisIds.Count > 0)
+                                                                                    {
+                                                                                        <div class="mt-2">
+                                                                                            <span class="badge bg-primary">
+                                                                                                Επιλεγμένες Διπλωματικές: @selectedProfessorThesisIds.Count
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    }
+
+                                                                                    <!-- Instruction text - ALWAYS show when in bulk edit mode -->
+                                                                                    <div class="mt-2">
+                                                                                        <div class="alert alert-info" style="background-color: #e7f3ff; border: 1px solid #b3d9ff; color: #004085; border-radius: 6px; padding: 8px 12px;">
+                                                                                            <i class="fas fa-info-circle me-2"></i>
+                                                                                            <strong>Επιλέξτε Διπλωματικές Εργασίες στον Πίνακα</strong>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            }
+
+                                                                            <!-- Add the legend here - right before the table -->
+                                                                            <div class="d-flex justify-content-end mb-2">
+                                                                                <div class="status-legend" style="display: flex; align-items: center; gap: 15px; background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; padding: 6px 12px;">
+                                                                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                                                                        <div style="display: flex; align-items: center;">
+                                                                                            <div style="width: 16px; height: 16px; background-color: lightblue; border: 1px solid #ccc; border-radius: 3px; margin-right: 5px;"></div>
+                                                                                            <span>Δημοσιευμένη</span>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
