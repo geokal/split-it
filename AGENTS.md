@@ -4,12 +4,12 @@ This project refactors a very large and historically grown Blazor MainLayout.raz
 
 ## Task History
 
-### 1. Splitting `New_MainLayout.razor` into Role-Specific Components
+### 1. Splitting `MainLayout.razor` into Role-Specific Components
 
-**Goal:** Deconstruct the monolithic `New_MainLayout.razor` file into smaller, more manageable components based on user roles.
+**Goal:** Deconstruct the monolithic `MainLayout.razor` file into smaller, more manageable components based on user roles.
 
 **Method:**
-- Identify blocks of code within `New_MainLayout.razor` that are specific to a user role (e.g., `Student`, `Company`, `Professor`, `Admin`). These are typically enclosed in `@if (UserRole == "...")` statements.
+- Identify blocks of code within `MainLayout.razor` that are specific to a user role (e.g., `Student`, `Company`, `Professor`, `Admin`). These are typically enclosed in `@if (UserRole == "...")` statements.
 - Extract the content of each role-specific `if` block into a new `.razor` file named after the corresponding role (e.g., `Student.razor`, `Company.razor`).
 - To aid in this process, specific comments in the original file were designated as anchors and replaced with `div` elements with unique IDs.
 
@@ -43,7 +43,7 @@ This project refactors a very large and historically grown Blazor MainLayout.raz
 
 **Goal:** Analyze the four newly created Razor files (`Student.razor`, `Company.razor`, `Professor.razor`, and `Admin.razor`) and identify common, reusable code that can be extracted into shared Blazor components within a `Shared/` folder.
 
-**Motivation:** This will reduce code duplication and improve the maintainability of the application, following the principles of .NET 8 Blazor server development. After refactoring and placing common markup code to `/Shared`, we will add the code-behind code for the monolithic `MainLayout.razor` (which will be `New_MainLayout.razor` renamed).
+**Motivation:** This will reduce code duplication and improve the maintainability of the application, following the principles of .NET 8 Blazor server development. After refactoring and placing common markup code to `/Shared`, we will wire the code-behind (`MainLayout.razor.cs`, which contains the extracted `@code{}` section from the original ~780000 line MainLayout.razor) to the refactored Razor components.
 
 For completed tasks and progress updates, see [PROGRESS.md](PROGRESS.md).
 

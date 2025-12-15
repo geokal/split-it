@@ -1,4 +1,6 @@
-public class NewMonolith
+using Microsoft.AspNetCore.Components;
+
+public partial class MainLayout : LayoutComponentBase
 {
     private ResearchGroup currentResearchGroup;
 
