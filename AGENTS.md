@@ -150,6 +150,69 @@ For completed tasks and progress updates, see [PROGRESS.md](PROGRESS.md).
 
 ## Operational Guidelines
 
+### Component Wiring Verification Process (MANDATORY)
+
+**CRITICAL**: After wiring ANY component to MainLayout.razor.cs, you MUST perform complete symbol verification using Serena tools.
+
+**When to Perform:**
+- After adding `@code` section with `[Parameter]` declarations
+- After updating component markup to use parameters
+- Before marking component as "complete"
+- Before moving to the next component
+
+**Verification Steps:**
+
+1. **Symbol Existence Verification**
+   - Use Serena's `find_symbol` tool to verify ALL symbols referenced in component markup exist in `MainLayout.razor.cs`
+   - Check properties, fields, methods, EventCallbacks, and computed properties
+   - Verify line numbers and signatures match
+
+2. **Casing Verification and Fix (CRITICAL)**
+   - MainLayout.razor.cs uses **camelCase** for all properties/fields
+   - Component markup MUST match exactly (camelCase, not PascalCase)
+   - Common fixes: `IsLoadingUploadedAnnouncements` → `isLoadingUploadedAnnouncements`
+   - Search for PascalCase patterns: `grep -n "[A-Z][a-z]*[A-Z]" ComponentName.razor`
+
+3. **Parameter Completeness Check**
+   - Verify ALL symbols used in markup have corresponding `[Parameter]` declarations
+   - Check direct property references, method calls, computed properties, collections
+
+4. **EventCallback Verification**
+   - Verify methods exist in MainLayout.razor.cs
+   - Verify method signatures match (parameters, return type)
+   - Verify markup uses `.InvokeAsync()` correctly
+
+5. **Create Verification Report**
+   - Document all verified symbols with line numbers
+   - Document all casing fixes applied
+   - Note any missing symbols or issues
+   - Save as `WIRING_VERIFICATION_ComponentName.md`
+
+**Verification Checklist for EACH component:**
+- [ ] All properties/fields exist in MainLayout.razor.cs
+- [ ] All methods/EventCallbacks exist in MainLayout.razor.cs
+- [ ] All casing matches (camelCase, not PascalCase)
+- [ ] All `[Parameter]` declarations match actual usage
+- [ ] No missing symbols in markup
+- [ ] EventCallbacks use correct syntax
+- [ ] Verification report created
+
+**Tools:**
+- `mcp_serena_find_symbol` - Verify symbol existence
+- `grep` - Find casing issues
+- `read_lints` - Check for compilation errors
+
+**Reference:** See Serena memory `component_wiring_verification_process.md` for detailed process and examples.
+
+**Apply to ALL components in:**
+- `Shared/Company/*.razor` (9 components)
+- `Shared/Professor/*.razor` (7 components)
+- `Shared/Student/*.razor` (6 components)
+- `Shared/ResearchGroup/*.razor` (5 components)
+- `Shared/Admin/*.razor` (1 component)
+
+**Total: 28 components requiring verification**
+
 ### Command Line Tools for File Manipulation
 
 **Recommendation:** For robust and efficient text processing and file manipulation tasks, especially for replacements and pattern matching, prefer command-line utilities such as `grep`, `sed`, and `rg` (ripgrep).
@@ -168,3 +231,4 @@ For completed tasks and progress updates, see [PROGRESS.md](PROGRESS.md).
 - Always update AGENTS.md and PROGRESS.md and keep them updated after changes or tasks being completed.
 - Only place code in the Shared/ folder if it is exactly the same for all user roles that will use it. If the code is not exactly the same, it should not be a shared component.
 - if a component is only in one user role create a folder under Shared with that user-role name and place there the extracted component
+- **MANDATORY**: After wiring ANY component, perform complete symbol verification using Serena tools (see "Component Wiring Verification Process" section above and Serena memory `component_wiring_verification_process.md`). This includes verifying all symbols exist in MainLayout.razor.cs, fixing all casing mismatches (camelCase), and creating a verification report.

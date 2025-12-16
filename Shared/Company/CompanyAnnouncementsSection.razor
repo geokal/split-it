@@ -2,7 +2,7 @@
 
                                                 <!-- VIEW UPLOADED ANNOUNCEMENTS AS COMPANY -->
                                                 <div class="mb-3 row-dark-gray mt-4">
-                                                    <div class="d-flex justify-content-between align-items-center" @onclick="ToggleUploadedAnnouncementsVisibility" style="cursor: pointer;">
+                                                    <div class="d-flex justify-content-between align-items-center" @onclick="@(() => ToggleUploadedAnnouncementsVisibility.InvokeAsync())" style="cursor: pointer;">
                                                         <label class="form-label" style="color: #FFF8DC;">
                                                             @if (isLoadingUploadedAnnouncements)
                                                             {
@@ -16,7 +16,7 @@
                                                                 <span>• Οι Ανακοινώσεις μου •</span>
                                                             }
                                                         </label>
-                                                        <button class="btn btn-link" @onclick="ToggleUploadedAnnouncementsVisibility" @onclick:stopPropagation="true">
+                                                        <button class="btn btn-link" @onclick="@(() => ToggleUploadedAnnouncementsVisibility.InvokeAsync())" @onclick:stopPropagation="true">
                                                             @if (isUploadedAnnouncementsVisible && !isLoadingUploadedAnnouncements)
                                                             {
                                                                 <span>&#8722;</span> <!-- Minus sign -->
@@ -34,7 +34,7 @@
                                                         <label for="statusFilterForAnnouncements" style="color: #2d3748;"><strong>Φίλτρο Εμφάνισης</strong></label>
                                                         <div class="input-group">
                                                             <select id="statusFilterForAnnouncements" class="form-control form-control-sm" 
-                                                                    @onchange="HandleStatusFilterChange">
+                                                                    @onchange="@((e) => HandleStatusFilterChange.InvokeAsync(e))">
                                                                 <option value="Όλα">Όλες</option>
                                                                 <option value="Δημοσιευμένη">Δημοσιευμένες</option>
                                                                 <option value="Μη Δημοσιευμένη">Μη Δημοσιευμένες</option>
@@ -50,7 +50,7 @@
                                                     <div class="col-md-2">
                                                         <label style="color: #2d3748;"><strong>Αποτελέσματα ανά Σελίδα</strong></label>
                                                         <div class="input-group" style="max-width: 65px;">
-                                                            <select class="form-control form-control-sm" @onchange="OnPageSizeChange_SeeMyUploadedAnnouncementsAsCompany">
+                                                            <select class="form-control form-control-sm" @onchange="@((e) => OnPageSizeChange_SeeMyUploadedAnnouncementsAsCompany.InvokeAsync(e))">
                                                                 @foreach (var option in pageSizeOptions_SeeMyUploadedAnnouncementsAsCompany)
                                                                 {
                                                                     <option value="@option" selected="@(pageSizeForAnnouncements == option)">@option</option>
@@ -89,7 +89,7 @@
                                                                 {
                                                                     <div class="mb-2" style="margin-left: -10px;">
                                                                         <button class="modern-button" style="background-color: #2d3748; color: white; display: inline-flex; align-items: center;" 
-                                                                                @onclick="EnableBulkEditModeForAnnouncements"
+                                                                                @onclick="@(() => EnableBulkEditModeForAnnouncements.InvokeAsync())"
                                                                                 onmouseover="this.style.backgroundColor='#4a5568'" 
                                                                                 onmouseout="this.style.backgroundColor='#2d3748'">
                                                                             <i class="fas fa-edit" style="margin-right: 8px;"></i>Μαζική Επεξεργασία Ανακοινώσεων
@@ -113,25 +113,25 @@
                                                                 {
                                                                     <div class="d-flex gap-2 align-items-center flex-wrap mb-2">
                                                                         <button class="modern-button" style="background-color: #2d3748; color: white; display: inline-flex; align-items: center;" 
-                                                                                @onclick='() => ExecuteBulkStatusChange("Δημοσιευμένη")'
+                                                                                @onclick='@(() => ExecuteBulkStatusChange.InvokeAsync("Δημοσιευμένη"))'
                                                                                 onmouseover="this.style.backgroundColor='#4a5568'" 
                                                                                 onmouseout="this.style.backgroundColor='#2d3748'">
                                                                             <i class="fas fa-arrow-up me-2"></i>Αλλαγή σε Δημοσιευμένη
                                                                         </button>
                                                                         <button class="modern-button" style="background-color: #2d3748; color: white; display: inline-flex; align-items: center;" 
-                                                                                @onclick='() => ExecuteBulkStatusChange("Μη Δημοσιευμένη")'
+                                                                                @onclick='@(() => ExecuteBulkStatusChange.InvokeAsync("Μη Δημοσιευμένη"))'
                                                                                 onmouseover="this.style.backgroundColor='#4a5568'" 
                                                                                 onmouseout="this.style.backgroundColor='#2d3748'">
                                                                             <i class="fas fa-arrow-down me-2"></i>Αλλαγή σε Μη Δημοσιευμένη
                                                                         </button>
                                                                         <button class="modern-button" style="background-color: #2d3748; color: white; display: inline-flex; align-items: center;" 
-                                                                                @onclick="ExecuteBulkCopy"
+                                                                                @onclick="@(() => ExecuteBulkCopy.InvokeAsync())"
                                                                                 onmouseover="this.style.backgroundColor='#4a5568'" 
                                                                                 onmouseout="this.style.backgroundColor='#2d3748'">
                                                                             <i class="fas fa-copy me-2"></i>Κλωνοποίηση
                                                                         </button>
                                                                         <button class="modern-button" style="background-color: #6c757d; color: white; display: inline-flex; align-items: center;" 
-                                                                                @onclick="CancelBulkEditForAnnouncements"
+                                                                                @onclick="@(() => CancelBulkEditForAnnouncements.InvokeAsync())"
                                                                                 onmouseover="this.style.backgroundColor='#5a6268'" 
                                                                                 onmouseout="this.style.backgroundColor='#6c757d'">
                                                                             <i class="fas fa-times me-2"></i>Ακύρωση
@@ -206,7 +206,7 @@
                                                                                 {
                                                                                     <td style="border: 1px solid black; text-align: center;">
                                                                                         <input type="checkbox" 
-                                                                                               @onchange="@((e) => ToggleAnnouncementSelection(announcement.Id, e))" 
+                                                                                               @onchange="@((e) => ToggleAnnouncementSelection.InvokeAsync(announcement.Id, e))" 
                                                                                                checked="@selectedAnnouncementIds.Contains(announcement.Id)" />
                                                                                     </td>
                                                                                 }
@@ -230,7 +230,7 @@
                                                                                     <div class="dropdown">
                                                                                         <!-- Options menu button with cog icon -->
                                                                                         <button class="btn btn-action btn-menu" 
-                                                                                                @onclick="() => ToggleAnnouncementMenu(announcement.Id)" 
+                                                                                                @onclick="@(() => ToggleAnnouncementMenu.InvokeAsync(announcement.Id))" 
                                                                                                 title="Ενέργειες"
                                                                                                 @onclick:stopPropagation="true">
                                                                                                 <i class="fas fa-ellipsis-h icon-button"></i>
@@ -240,17 +240,17 @@
                                                                                         @if (activeAnnouncementMenuId == announcement.Id)
                                                                                         {
                                                                                             <!-- Invisible backdrop that covers entire screen -->
-                                                                                            <div class="dropdown-backdrop" @onclick="() => ToggleAnnouncementMenu(0)"></div>
+                                                                                            <div class="dropdown-backdrop" @onclick="@(() => ToggleAnnouncementMenu.InvokeAsync(0))"></div>
             
                                                                                             <div class="dropdown-menu show" @onclick:stopPropagation="true">
                                                                                                 <!-- Delete option -->
-                                                                                                <button class="dropdown-item" @onclick="() => { DeleteAnnouncement(announcement.Id); ToggleAnnouncementMenu(0); }">
+                                                                                                <button class="dropdown-item" @onclick="@(async () => { await DeleteAnnouncement.InvokeAsync(announcement.Id); await ToggleAnnouncementMenu.InvokeAsync(0); })">
                                                                                                     <i class="fas fa-trash me-2" style="color: #f56565;"></i>
                                                                                                     <span>Διαγραφή</span>
                                                                                                 </button>
                 
                                                                                                 <!-- View details option -->
-                                                                                                <button class="dropdown-item" @onclick="() => { OpenCompanyAnnouncementDetailsModal(announcement); ToggleAnnouncementMenu(0); }">
+                                                                                                <button class="dropdown-item" @onclick="@(async () => { await OpenCompanyAnnouncementDetailsModal.InvokeAsync(announcement); await ToggleAnnouncementMenu.InvokeAsync(0); })">
                                                                                                     <i class="fas fa-eye me-2" style="color: #63b3ed;"></i>
                                                                                                     <span>Προβολή</span>
                                                                                                 </button>
@@ -258,20 +258,20 @@
                                                                                                 <!-- Status change options -->
                                                                                                 @if (announcement.CompanyAnnouncementStatus == "Δημοσιευμένη")
                                                                                                 {
-                                                                                                    <button class="dropdown-item" @onclick='async () => { await ChangeAnnouncementStatus(announcement.Id, "Μη Δημοσιευμένη"); ToggleAnnouncementMenu(0); }'>
+                                                                                                    <button class="dropdown-item" @onclick='@(async () => { await ChangeAnnouncementStatus.InvokeAsync(announcement.Id, "Μη Δημοσιευμένη"); await ToggleAnnouncementMenu.InvokeAsync(0); })'>
                                                                                                         <i class="fas fa-arrow-down text-warning me-2"></i>
                                                                                                         <span>Αποδημοσίευση</span>
                                                                                                     </button>
                                                                                                 }
                                                                                                 else if (announcement.CompanyAnnouncementStatus == "Μη Δημοσιευμένη")
                                                                                                 {
-                                                                                                    <button class="dropdown-item" @onclick='async () => { await ChangeAnnouncementStatus(announcement.Id, "Δημοσιευμένη"); ToggleAnnouncementMenu(0); }'>
+                                                                                                    <button class="dropdown-item" @onclick='@(async () => { await ChangeAnnouncementStatus.InvokeAsync(announcement.Id, "Δημοσιευμένη"); await ToggleAnnouncementMenu.InvokeAsync(0); })'>
                                                                                                         <i class="fas fa-arrow-up text-success me-2"></i>
                                                                                                         <span>Δημοσίευση</span>
                                                                                                     </button>
                     
                                                                                                     <!-- Edit option (only for unpublished) -->
-                                                                                                    <button class="dropdown-item" @onclick="() => { OpenEditModal(announcement); ToggleAnnouncementMenu(0); }">
+                                                                                                    <button class="dropdown-item" @onclick="@(async () => { await OpenEditModal.InvokeAsync(announcement); await ToggleAnnouncementMenu.InvokeAsync(0); })">
                                                                                                         <i class="fas fa-pencil-alt text-info me-2"></i>
                                                                                                         <span>Επεξεργασία</span>
                                                                                                     </button>
@@ -318,13 +318,13 @@
                                                                 <div class="d-flex justify-content-center align-items-center mt-3 gap-1">
                                                                     <!-- First Page (<<) -->
                                                                     <span class="pagination-item @(currentPageForAnnouncements == 1 ? "disabled" : "")" 
-                                                                          @onclick="@(() => GoToFirstPageForAnnouncements())">
+                                                                          @onclick="@(() => GoToFirstPageForAnnouncements.InvokeAsync())">
                                                                         &lt;&lt;
                                                                     </span>
     
                                                                     <!-- Previous Page (<) -->
                                                                     <span class="pagination-item @(currentPageForAnnouncements == 1 ? "disabled" : "")" 
-                                                                          @onclick="@(() => PreviousPageForAnnouncements())">
+                                                                          @onclick="@(() => PreviousPageForAnnouncements.InvokeAsync())">
                                                                         &lt;
                                                                     </span>
     
@@ -338,7 +338,7 @@
                                                                         else
                                                                         {
                                                                             <span class="pagination-item @(pageNum == currentPageForAnnouncements ? "active" : "")" 
-                                                                                  @onclick="@(() => GoToPageForAnnouncements(pageNum))">
+                                                                                  @onclick="@(() => GoToPageForAnnouncements.InvokeAsync(pageNum))">
                                                                                 @pageNum
                                                                             </span>
                                                                         }
@@ -346,13 +346,13 @@
     
                                                                     <!-- Next Page (>) -->
                                                                     <span class="pagination-item @(currentPageForAnnouncements == totalPagesForAnnouncements ? "disabled" : "")" 
-                                                                          @onclick="@(() => NextPageForAnnouncements())">
+                                                                          @onclick="@(() => NextPageForAnnouncements.InvokeAsync())">
                                                                         &gt;
                                                                     </span>
     
                                                                     <!-- Last Page (>>) -->
                                                                     <span class="pagination-item @(currentPageForAnnouncements == totalPagesForAnnouncements ? "disabled" : "")" 
-                                                                          @onclick="@(() => GoToLastPageForAnnouncements())">
+                                                                          @onclick="@(() => GoToLastPageForAnnouncements.InvokeAsync())">
                                                                         &gt;&gt;
                                                                     </span>
     
@@ -605,28 +605,75 @@
                                                             </div>
                                                         </div>
                                                     </div>
-                                                }                                                                             
-                                                </div>
+                                                }
 
+@code {
+    // Visibility & Loading
+    [Parameter] public bool isLoadingUploadedAnnouncements { get; set; }
+    [Parameter] public bool isUploadedAnnouncementsVisible { get; set; }
+    [Parameter] public EventCallback ToggleUploadedAnnouncementsVisibility { get; set; }
 
-                                            <!-- CREATE JOBS TAB AS COMPANY -->
-                                            <div class="tab-pane fade" id="jobs" role="tabpanel" aria-labelledby="jobs-tab">
-                                                @*iNPUT FIELDS FOR UPLOAD JOB AS COMPANY*@
-                                            <div class="tab-pane" id="jobs" role="tabpanel" aria-labelledby="jobs-tab">
-                                                <div class="mb-3 row-dark-gray">
-                                                    <div class="d-flex justify-content-between align-items-center" @onclick="ToggleFormVisibilityForUploadCompanyJobs" style="cursor: pointer;">
-                                                        <label class="form-label" style="color: #FFF8DC;">• Δημιουργία Θέσης Εργασίας •</label>
-                                                        <button class="btn btn-link" @onclick="ToggleFormVisibilityForUploadCompanyJobs" @onclick:stopPropagation="true">
-                                                            @if (isForm1Visible)
-                                                            {
-                                                                <span>&#8722;</span> <!-- Minus sign -->
-                                                            }
-                                                            else
-                                                            {
-                                                                <span>&#43;</span> <!-- Plus sign -->
-                                                            }
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                                   
-                                                @if (isForm1Visible)
+    // Filtering
+    [Parameter] public string selectedStatusFilterForAnnouncements { get; set; } = "Όλα";
+    [Parameter] public EventCallback<ChangeEventArgs> HandleStatusFilterChange { get; set; }
+
+    // Pagination
+    [Parameter] public int[] pageSizeOptions_SeeMyUploadedAnnouncementsAsCompany { get; set; } = new[] { 10, 50, 100 };
+    [Parameter] public EventCallback<ChangeEventArgs> OnPageSizeChange_SeeMyUploadedAnnouncementsAsCompany { get; set; }
+    [Parameter] public int totalPagesForAnnouncements { get; set; }
+    [Parameter] public EventCallback GoToFirstPageForAnnouncements { get; set; }
+    [Parameter] public EventCallback PreviousPageForAnnouncements { get; set; }
+    [Parameter] public EventCallback<int> GoToPageForAnnouncements { get; set; }
+    [Parameter] public EventCallback NextPageForAnnouncements { get; set; }
+    [Parameter] public EventCallback GoToLastPageForAnnouncements { get; set; }
+
+    // Counts
+    [Parameter] public int totalCountAnnouncements { get; set; }
+    [Parameter] public int publishedCountAnnouncements { get; set; }
+    [Parameter] public int unpublishedCountAnnouncements { get; set; }
+
+    // Data
+    [Parameter] public IEnumerable<AnnouncementAsCompany> FilteredAnnouncements { get; set; }
+    [Parameter] public int currentPageForAnnouncements { get; set; } = 1;
+    [Parameter] public int pageSizeForAnnouncements { get; set; } = 10;
+    
+    // Computed property for paginated announcements
+    private IEnumerable<AnnouncementAsCompany> GetPaginatedAnnouncements()
+    {
+        return FilteredAnnouncements?
+            .Skip((currentPageForAnnouncements - 1) * pageSizeForAnnouncements)
+            .Take(pageSizeForAnnouncements) ?? Enumerable.Empty<AnnouncementAsCompany>();
+    }
+
+    // Bulk Operations
+    [Parameter] public bool isBulkEditModeForAnnouncements { get; set; }
+    [Parameter] public HashSet<int> selectedAnnouncementIds { get; set; } = new HashSet<int>();
+    [Parameter] public EventCallback EnableBulkEditModeForAnnouncements { get; set; }
+    [Parameter] public EventCallback<string> ExecuteBulkStatusChange { get; set; }
+    [Parameter] public EventCallback ExecuteBulkCopy { get; set; }
+    [Parameter] public EventCallback CancelBulkEditForAnnouncements { get; set; }
+    [Parameter] public EventCallback<int, ChangeEventArgs> ToggleAnnouncementSelection { get; set; }
+    [Parameter] public string bulkActionForAnnouncements { get; set; } = "";
+    [Parameter] public string newStatusForBulkActionForAnnouncements { get; set; } = "Μη Δημοσιευμένη";
+    [Parameter] public EventCallback ExecuteBulkActionForAnnouncements { get; set; }
+    [Parameter] public EventCallback CloseBulkActionModalForAnnouncements { get; set; }
+
+    // Individual Operations
+    [Parameter] public int activeAnnouncementMenuId { get; set; }
+    [Parameter] public EventCallback<int> ToggleAnnouncementMenu { get; set; }
+    [Parameter] public EventCallback<int> DeleteAnnouncement { get; set; }
+    [Parameter] public EventCallback<AnnouncementAsCompany> OpenCompanyAnnouncementDetailsModal { get; set; }
+    [Parameter] public EventCallback CloseCompanyAnnouncementDetailsModal { get; set; }
+    [Parameter] public EventCallback<int, string> ChangeAnnouncementStatus { get; set; }
+    [Parameter] public EventCallback<AnnouncementAsCompany> OpenEditModal { get; set; }
+    [Parameter] public EventCallback CloseEditModal { get; set; }
+    [Parameter] public AnnouncementAsCompany currentAnnouncement { get; set; }
+    [Parameter] public EventCallback<AnnouncementAsCompany> UpdateAnnouncement { get; set; }
+    [Parameter] public AnnouncementAsCompany? selectedCompanyAnnouncementToSeeDetailsAsCompany { get; set; }
+    [Parameter] public bool isEditModalVisible { get; set; }
+    [Parameter] public EventCallback<InputFileChangeEventArgs> HandleFileUploadToEditCompanyAnnouncementAttachment { get; set; }
+    [Parameter] public bool showBulkActionModalForAnnouncements { get; set; }
+    [Parameter] public bool showLoadingModalForDeleteAnnouncement { get; set; }
+    [Parameter] public int loadingProgress { get; set; }
+    [Parameter] public Func<List<int>> GetVisiblePagesForAnnouncements { get; set; }
+}
