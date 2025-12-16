@@ -237,6 +237,56 @@ The refactoring extracted large sections from role-specific Razor files into reu
 
 **Status**: ✅ Extracted - ❌ Not wired - needs parameter extraction
 
+### 6. ResearchGroup Role Components ✅ EXTRACTED (2025-12-16)
+
+#### ResearchGroupAnnouncementsSection.razor
+**Location**: `Shared/ResearchGroup/ResearchGroupAnnouncementsSection.razor` (525 lines)
+**Parameters Required**: 
+- ⚠️ **NEEDS ANALYSIS** - Announcements display and management
+- Likely needs: announcements list, visibility toggles, pagination, form state, etc.
+
+**Status**: ✅ Extracted - ❌ Not wired - needs parameter extraction
+
+#### ResearchGroupThesesSection.razor
+**Location**: `Shared/ResearchGroup/ResearchGroupThesesSection.razor` (495 lines)
+**Parameters Required**: 
+- ⚠️ **NEEDS ANALYSIS** - Theses management
+- Likely needs: theses list, form state, save/update methods, pagination, etc.
+
+**Status**: ✅ Extracted - ❌ Not wired - needs parameter extraction
+
+#### ResearchGroupJobsSection.razor
+**Location**: `Shared/ResearchGroup/ResearchGroupJobsSection.razor` (500 lines)
+**Parameters Required**: 
+- ⚠️ **NEEDS ANALYSIS** - Jobs management
+- Likely needs: jobs list, form state, save/update methods, pagination, etc.
+
+**Status**: ✅ Extracted - ❌ Not wired - needs parameter extraction
+
+#### ResearchGroupInternshipsSection.razor
+**Location**: `Shared/ResearchGroup/ResearchGroupInternshipsSection.razor` (500 lines)
+**Parameters Required**: 
+- ⚠️ **NEEDS ANALYSIS** - Internships management
+- Likely needs: internships list, form state, save/update methods, pagination, etc.
+
+**Status**: ✅ Extracted - ❌ Not wired - needs parameter extraction
+
+#### ResearchGroupEventsSection.razor
+**Location**: `Shared/ResearchGroup/ResearchGroupEventsSection.razor` (500 lines)
+**Parameters Required**: 
+- ⚠️ **NEEDS ANALYSIS** - Events management
+- Likely needs: events list, calendar state, event creation/management methods, etc.
+
+**Status**: ✅ Extracted - ❌ Not wired - needs parameter extraction
+
+#### ResearchGroupSearchSection.razor
+**Location**: `Shared/ResearchGroup/ResearchGroupSearchSection.razor` (1,286 lines)
+**Parameters Required**: 
+- ⚠️ **NEEDS ANALYSIS** - Company and Professor search functionality
+- Likely needs: search properties, results list, pagination, modal state, etc.
+
+**Status**: ✅ Extracted - ❌ Not wired - needs parameter extraction
+
 ---
 
 ## Next Steps
