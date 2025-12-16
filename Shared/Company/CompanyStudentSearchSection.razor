@@ -1,322 +1,3 @@
-                                                                                <i class="fas fa-globe me-2"></i>
-                                                                                @selectedProfessorToShowDetailsForInterestinCompanyEvent.ProfPersonalWebsite
-                                                                            </a>
-                                                                        </div>
-                                                                    }
-
-                                                                    @if (!string.IsNullOrWhiteSpace(selectedProfessorToShowDetailsForInterestinCompanyEvent.ProfScholarProfile))
-                                                                    {
-                                                                        <div class="form-group">
-                                                                            <label style="font-weight: bold;">Scholar</label>
-                                                                            <a class="form-control text-primary" style="border-radius: 8px; background-color: #f8f9fa; text-decoration: underline;" 
-                                                                               href="@selectedProfessorToShowDetailsForInterestinCompanyEvent.ProfScholarProfile" target="_blank">
-                                                                                <i class="fas fa-graduation-cap me-2"></i>
-                                                                                @selectedProfessorToShowDetailsForInterestinCompanyEvent.ProfScholarProfile
-                                                                            </a>
-                                                                        </div>
-                                                                    }
-
-                                                                    <!-- Professor ORCID Profile -->
-                                                                    <div class="form-group">
-                                                                        <label style="font-weight: bold;">ORCID Profile</label>
-                                                                        <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
-                                                                            <i class="fas fa-id-card" style="color: #A6CE39; margin-right: 8px;"></i>
-                                                                            @if (!string.IsNullOrWhiteSpace(selectedProfessorToShowDetailsForInterestinCompanyEvent.ProfOrchidProfile))
-                                                                            {
-                                                                                <a href="@selectedProfessorToShowDetailsForInterestinCompanyEvent.ProfOrchidProfile" target="_blank" class="flex-grow-1 text-truncate" style="text-decoration:none; color:#A6CE39;">
-                                                                                    @selectedProfessorToShowDetailsForInterestinCompanyEvent.ProfOrchidProfile
-                                                                                </a>
-                                                                            }
-                                                                            else
-                                                                            {
-                                                                                <span class="flex-grow-1 text-muted">Δεν Διατίθεται</span>
-                                                                            }
-                                                                        </div>
-                                                                    </div>
-
-                                                                    <!-- Text Areas -->
-                                                                    <div class="form-group">
-                                                                        <label style="font-weight: bold;">Πεδίο Εργασίας</label>
-                                                                        <textarea class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" readonly>
-                                                                            @(selectedProfessorToShowDetailsForInterestinCompanyEvent.ProfGeneralFieldOfWork ?? "Δεν έχει Καθοριστεί")
-                                                                        </textarea>
-                                                                    </div>
-
-                                                                    <div class="form-group">
-                                                                        <label style="font-weight: bold;">Προσωπική Περιγραφή</label>
-                                                                        <textarea class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" rows="3" readonly>@selectedProfessorToShowDetailsForInterestinCompanyEvent.ProfPersonalDescription</textarea>
-                                                                    </div>
-                                                                </div>
-
-                                                                <div class="modal-footer">
-                                                                    <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; padding: 8px 20px; transition: all 0.2s;" 
-                                                                            @onclick="CloseProfessorDetailsModal"
-                                                                            onmouseover="this.style.backgroundColor='#4a5568'" 
-                                                                            onmouseout="this.style.backgroundColor='#2d3748'">
-                                                                        <i class="fas fa-times mr-2"></i> Κλείσιμο
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                }
-
-                                                <!-- Modal for editing company event -->
-                                                @if (isEditModalVisibleForEventsAsCompany)
-                                                {
-                                                    <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0, 0, 0, 0.5);">
-                                                        <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
-                                                            <div class="modal-content" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);">
-                                                                <div class="modal-header" style="border-bottom: 1px solid #e9ecef; border-radius: 12px 12px 0 0; background-color: #f8f9fa;">
-                                                                    <h5 class="modal-title" style="color: #007BFF; font-weight: 600; font-size: 1.25rem;">Επεξεργασία Εκδήλωσης</h5>
-                                                                    <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" 
-                                                                            @onclick="CloseEditModalForCompanyEvent"
-                                                                            onmouseover="this.style.backgroundColor='#4a5568'" 
-                                                                            onmouseout="this.style.backgroundColor='#2d3748'">
-                                                                        <span style="font-size: 1.2rem; line-height: 1;">×</span>
-                                                                    </button>
-                                                                </div>
-                                                                <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
-                                                                    <!-- Τίτλος Εκδήλωσης -->
-                                                                    <div class="form-group">
-                                                                        <label><strong>Τίτλος Εκδήλωσης</strong></label>
-                                                                        <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" @bind="currentCompanyEvent.CompanyEventTitle" />
-                                                                    </div>
-
-                                                                    <!-- Περιγραφή Εκδήλωσης -->
-                                                                    <div class="form-group">
-                                                                        <label><strong>Περιγραφή Εκδήλωσης</strong></label>
-                                                                        <textarea class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" @bind="currentCompanyEvent.CompanyEventDescription"></textarea>
-                                                                    </div>
-
-                                                                    <!-- Τύπος Εκδήλωσης -->
-                                                                    <div class="form-group">
-                                                                        <label><strong>Τύπος Εκδήλωσης</strong></label>
-                                                                        <select class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" @bind="currentCompanyEvent.CompanyEventType">
-                                                                            <option value="">-- Επιλέξτε Τύπο Εκδήλωσης --</option>
-                                                                            <option value="Έκθεση">Έκθεση</option>
-                                                                            <option value="Hackathon">Hackathon</option>
-                                                                            <option value="Career Day">Career Day</option>
-                                                                            <option value="Seminar">Σεμινάριο</option>
-                                                                            <option value="Επίσκεψη">Επίσκεψη</option>
-                                                                            <option value="Άλλο">Άλλο</option>
-                                                                        </select>
-                                                                    </div>
-
-                                                                    <!-- Υπεύθυνος Εκδήλωσης -->
-                                                                    <div class="form-group">
-                                                                        <label><strong>Υπεύθυνος Εκδήλωσης</strong></label>
-                                                                        <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" @bind="currentCompanyEvent.CompanyEventResponsiblePerson" />
-                                                                    </div>
-
-                                                                    <!-- Email Υπευθύνου -->
-                                                                    <div class="form-group">
-                                                                        <label><strong>Email Υπευθύνου</strong></label>
-                                                                        <input type="email" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" @bind="currentCompanyEvent.CompanyEventResponsiblePersonEmail" />
-                                                                    </div>
-
-                                                                    <!-- Τηλέφωνο Υπευθύνου -->
-                                                                    <div class="form-group">
-                                                                        <label><strong>Τηλέφωνο Υπευθύνου</strong></label>
-                                                                        <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" @bind="currentCompanyEvent.CompanyEventResponsiblePersonTelephone" />
-                                                                    </div>
-
-                                                                    <!-- Τμήμα Εταιρείας -->
-                                                                    <div class="form-group">
-                                                                        <label><strong>Τμήμα Εταιρείας</strong></label>
-                                                                        <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" @bind="currentCompanyEvent.CompanyEventCompanyDepartment" />
-                                                                    </div>
-
-                                                                    <!--Περιφέρεια Εκδήλωσης (Region) -->
-                                                                    <div class="form-group">
-                                                                        <label for="CompanyEventDimosLocation"><strong>Περιφέρεια Εκδήλωσης</strong></label>
-                                                                        <select id="CompanyEventPerifereiaLocation" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;"
-                                                                                @bind="currentCompanyEvent.CompanyEventPerifereiaLocation"
-                                                                                @bind:event="onchange">
-                                                                            <option value="">-- Επιλέξτε Περιφέρεια --</option>
-                                                                            @foreach (var region in Regions)
-                                                                            {
-                                                                                <option value="@region">@region</option>
-                                                                            }
-                                                                        </select>
-                                                                    </div>
-
-                                                                    <!-- Δήμος Εκδήλωσης (Town) -->
-                                                                    <div class="form-group">
-                                                                        <label for="CompanyEventDimosLocation"><strong>Δήμος Εκδήλωσης</strong></label>
-                                                                        <select id="CompanyEventDimosLocation" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;"
-                                                                                @bind="currentCompanyEvent.CompanyEventDimosLocation">
-                                                                            <option value="">-- Επιλέξτε Δήμο --</option>
-                                                                            @if (!string.IsNullOrEmpty(currentCompanyEvent.CompanyEventPerifereiaLocation) &&
-                                                                                 RegionToTownsMap.ContainsKey(currentCompanyEvent.CompanyEventPerifereiaLocation))
-                                                                            {
-                                                                                foreach (var town in RegionToTownsMap[currentCompanyEvent.CompanyEventPerifereiaLocation])
-                                                                                {
-                                                                                    <option value="@town">@town</option>
-                                                                                }
-                                                                            }
-                                                                        </select>
-                                                                    </div>
-
-                                                                    <!-- Χώρος Εκδήλωσης -->
-                                                                    <div class="form-group">
-                                                                        <label><strong>Χώρος Εκδήλωσης</strong></label>
-                                                                        <input type="text" id="autocomplete" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" @bind="currentCompanyEvent.CompanyEventPlaceLocation" />
-                                                                    </div>
-
-                                                                    <!-- Ταχυδρομικός Κώδικας -->
-                                                                    <div class="form-group">
-                                                                        <label><strong>Ταχυδρομικός Κώδικας</strong></label>
-                                                                        <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" @bind="currentCompanyEvent.CompanyEventPostalCodeLocation" />
-                                                                    </div>
-
-                                                                    <!-- Ημερομηνία Εκδήλωσης -->
-                                                                    <div class="form-group">
-                                                                        <label><strong>Ημερομηνία Εκδήλωσης</strong></label>
-                                                                        <input type="date" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" @bind="currentCompanyEvent.CompanyEventActiveDate" />
-                                                                    </div>
-
-                                                                    <!-- Ώρα Εκδήλωσης -->
-                                                                    <div class="form-group">
-                                                                        <label><strong>Ώρα Εκδήλωσης</strong></label>
-                                                                        <input type="time" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" @bind="currentCompanyEvent.CompanyEventTimeOnly" />
-                                                                    </div>
-
-                                                                    <br/>
-                                                                    <!-- UPDATED: Areas with Subfields for Events -->
-                                                                    <div class="form-group">
-                                                                        <label @onclick="ToggleCheckboxesForEditCompanyEvent" style="cursor: pointer; display: flex; align-items: center;">
-                                                                            <strong>Περιοχές Ενδιαφέροντος</strong>
-                                                                            <span style="color: #1565c0; font-size: 0.9em; margin-left: 8px; display: flex; align-items: center;">
-                                                                                <i class="fas @(showCheckboxesForEditCompanyEvent ? "fa-chevron-up" : "fa-chevron-down")" style="margin-right: 4px;"></i>
-                                                                                @(showCheckboxesForEditCompanyEvent ? "Κλείσιμο" : "Άνοιγμα")
-                                                                            </span>
-                                                                        </label>
-                                                                        @if (showCheckboxesForEditCompanyEvent)
-                                                                        {
-                                                                            <div id="toggleCheckboxes" class="checkbox-container">
-                                                                                @foreach (var area in Areas)
-                                                                                {
-                                                                                    <div class="area-container" style="margin-bottom: 8px; border: 2px solid #1565c0; border-radius: 4px; padding: 8px; background-color: #f8f9fa;">
-                                                                                        <div class="form-check area-header">
-                                                                                            <input type="checkbox"
-                                                                                                   id="edit_event_area_@area.Id"
-                                                                                                   class="form-check-input"
-                                                                                                   @onchange="(e) => OnAreaCheckedChangedForEditCompanyEvent(e, area)"
-                                                                                                   checked="@IsAreaSelectedForEditCompanyEvent(area)" />
-                                                                                            <label class="form-check-label area-label" 
-                                                                                                   for="edit_event_area_@area.Id"
-                                                                                                   @onclick="@(() => ToggleSubFieldsForEditCompanyEvent(area))"
-                                                                                                   @onclick:stopPropagation="true"
-                                                                                                   style="cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: space-between; width: 100%; color: #1565c0;">
-                                                                                                @area.AreaName
-                                                                                                <span class="expand-icon" style="font-size: 10px; transition: transform 0.2s; margin-left: 8px;">▶</span>
-                                                                                            </label>
-                                                                                        </div>
-                                       
-                                                                                        @if (ExpandedAreasForEditCompanyEvent.Contains(area.Id))
-                                                                                        {
-                                                                                            <div class="subfields-container" style="margin-top: 8px; margin-left: 20px; padding-left: 15px; border-left: 2px solid #1565c0;">
-                                                                                                @if (!string.IsNullOrEmpty(area.AreaSubFields))
-                                                                                                {
-                                                                                                    var subFields = area.AreaSubFields.Split(',').Select(s => s.Trim()).ToList();
-                                                                                                    @foreach (var subField in subFields)
-                                                                                                    {
-                                                                                                        <div class="form-check subfield-checkbox" style="margin-bottom: 4px;">
-                                                                                                            <input type="checkbox"
-                                                                                                                   id="edit_event_subfield_@(area.Id)_@(subField)"
-                                                                                                                   class="form-check-input"
-                                                                                                                   @onchange="(e) => OnSubFieldCheckedChangedForEditCompanyEvent(e, area, subField)"
-                                                                                                                   checked="@IsSubFieldSelectedForEditCompanyEvent(area, subField)" />
-                                                                                                            <label class="form-check-label" for="edit_event_subfield_@(area.Id)_@(subField)" style="font-weight: normal; font-size: 0.9em;">
-                                                                                                                @subField
-                                                                                                            </label>
-                                                                                                        </div>
-                                                                                                    }
-                                                                                                }
-                                                                                            </div>
-                                                                                        }
-                                                                                    </div>
-                                                                                }
-                                                                            </div>
-                                                                        }
-                                                                    </div>
-
-                                                                    <br/>
-                                                                    <!-- Προσφορά Μεταφοράς προς/από Εκδήλωση -->
-                                                                    <div class="form-group">
-                                                                        <label><strong>Προσφορά Μεταφοράς προς/από Εκδήλωση</strong></label>
-                                                                        <br />
-                                                                        <input type="checkbox" @bind="currentCompanyEvent.CompanyEventOfferingTransportToEventLocation" />
-                                                                        <span>Παρέχεται μεταφορά προς την εκδήλωση</span>
-                                                                    </div>
-                                                                    <br/>
-                                                                    <!-- Σημεία Εκκίνησης Μεταφοράς (Starting Points for Transport) -->
-                                                                    <div class="form-group">
-                                                                        <label><strong>Σημεία Εκκίνησης Μεταφοράς</strong></label>
-                                                                        <div class="input-group" style="position: relative;">
-                                                                            <input type="text" id="autocomplete4" class="form-control mt-2" style="border-radius: 8px; background-color: #f8f9fa;"
-                                                                                   @bind="currentCompanyEvent.CompanyEventStartingPointLocationToTransportPeopleToEvent1" 
-                                                                                   placeholder="Σημείο Εκκίνησης 1" />
-                                                                            @if (!string.IsNullOrEmpty(currentCompanyEvent.CompanyEventStartingPointLocationToTransportPeopleToEvent1))
-                                                                            {
-                                                                                <button type="button" class="btn-close" @onclick="() => ClearField(1)" style="position: absolute; right: 10px; top: 70%; transform: translateY(-50%);"></button>
-                                                                            }
-                                                                        </div>
-                                                                        <div class="input-group" style="position: relative;">
-                                                                            <input type="text" id="autocomplete2" class="form-control mt-2" style="border-radius: 8px; background-color: #f8f9fa;"
-                                                                                   @bind="currentCompanyEvent.CompanyEventStartingPointLocationToTransportPeopleToEvent2" 
-                                                                                   placeholder="Σημείο Εκκίνησης 2" />
-                                                                            @if (!string.IsNullOrEmpty(currentCompanyEvent.CompanyEventStartingPointLocationToTransportPeopleToEvent2))
-                                                                            {
-                                                                                <button type="button" class="btn-close" @onclick="() => ClearField(2)" style="position: absolute; right: 10px; top: 70%; transform: translateY(-40%);"></button>
-                                                                            }
-                                                                        </div>
-                                                                        <div class="input-group" style="position: relative;">
-                                                                            <input type="text" id="autocomplete3" class="form-control mt-2" style="border-radius: 8px; background-color: #f8f9fa;"
-                                                                                   @bind="currentCompanyEvent.CompanyEventStartingPointLocationToTransportPeopleToEvent3" 
-                                                                                   placeholder="Σημείο Εκκίνησης 3" />
-                                                                            @if (!string.IsNullOrEmpty(currentCompanyEvent.CompanyEventStartingPointLocationToTransportPeopleToEvent3))
-                                                                            {
-                                                                                <button type="button" class="btn-close" @onclick="() => ClearField(3)" style="position: absolute; right: 10px; top: 70%; transform: translateY(-50%);"></button>
-                                                                            }
-                                                                        </div>
-                                                                    </div>
-
-                                                                    <!-- Επισυναπτόμενο Αρχείο -->
-                                                                    <div class="form-group">
-                                                                        <label><strong>Επισυναπτόμενο Αρχείο</strong></label>
-                                                                        <input type="file" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" @onchange="UploadFileToUpdateCompanyEventAttachment" />
-                                                                    </div>
-                                                                </div>
-                                                                <div class="modal-footer">
-                                                                    <button class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; padding: 8px 20px; transition: all 0.2s;" 
-                                                                            @onclick="() => UpdateCompanyEvent(currentCompanyEvent)"
-                                                                            onmouseover="this.style.backgroundColor='#4a5568'" 
-                                                                            onmouseout="this.style.backgroundColor='#2d3748'">
-                                                                        <i class="fas fa-save me-2"></i> Αποθήκευση
-                                                                    </button>
-                                                                    <button class="modern-button" style="background-color: #6c757d; color: white; border: none; border-radius: 6px; padding: 8px 20px; transition: all 0.2s;" 
-                                                                            @onclick="CloseEditModalForCompanyEvent"
-                                                                            onmouseover="this.style.backgroundColor='#5a6268'" 
-                                                                            onmouseout="this.style.backgroundColor='#6c757d'">
-                                                                        <i class="fas fa-times me-2"></i> Κλείσιμο
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                }
-
-
-                                                                                            
-                                            </div>
-
-<div id="company-events-end"></div>
-
-
-
-
 <div id="company-student-search-start"></div>
 
 
@@ -669,3 +350,323 @@
                                                                             <a href="#" style="text-decoration: none; color: #0d6efd; font-weight: 500;" 
                                                                                @onclick="() => ShowStudentDetailsOnEyeIconWhenSearchForStudentsAsCompany(student)" 
                                                                                title="Αναλυτική Επισκόπηση">
+                                                                                @student.Name @student.Surname
+                                                                            </a>
+                                                                        </td>
+                                                                        <td>@student.Department</td>
+                                                                        <td>
+                                                                            @student.Email
+                                                                            <a href="mailto:@student.Email" title="Αποστολή Email">
+                                                                                <i class="fas fa-envelope"></i>
+                                                                            </a>
+                                                                        </td>
+                                                                        <td>
+                                                                            @(student.PhoneVisibility ? student.Telephone : "Μη Ορατό")
+                                                                            <span class="ml-2">
+                                                                                <i class="fas fa-phone"></i>
+                                                                            </span>
+                                                                        </td>
+                                                                        <td>
+                                                                            @if (student.Attachment != null)
+                                                                            {
+                                                                                <div class="text-center">
+                                                                                    <i class="fas fa-download" 
+                                                                                       style="cursor: pointer; font-size: 1.5rem;" 
+                                                                                       @onclick="() => DownloadStudentAttachmentAsCompanyInSearchForStudents(student.Id)">
+                                                                                    </i>
+                                                                                </div>
+                                                                            }
+                                                                            else
+                                                                            {
+                                                                                <span style="display: block; text-align: center; font-weight: bold; font-style: italic;">
+                                                                                        Δεν Διατίθεται
+                                                                                </span>
+                                                                            }
+                                                                        </td>
+                                                                    </tr>
+                                                                }
+                                                            </tbody>
+                                                        </table>
+                                                        <br/>
+                                                        <!-- Pagination Controls -->
+                                                        <div class="d-flex justify-content-center align-items-center mt-3 gap-1">
+                                                            <!-- First Page (<<) -->
+                                                            <span class="pagination-item @(currentPageForStudents_SearchForStudentsAsCompany == 1 ? "disabled" : "")" 
+                                                                  @onclick="@(() => GoToFirstPageForStudents_SearchForStudentsAsCompany())">
+                                                                &lt;&lt;
+                                                            </span>
+            
+                                                            <!-- Previous Page (<) -->
+                                                            <span class="pagination-item @(currentPageForStudents_SearchForStudentsAsCompany == 1 ? "disabled" : "")" 
+                                                                  @onclick="@(() => PreviousPageForStudents_SearchForStudentsAsCompany())">
+                                                                &lt;
+                                                            </span>
+            
+                                                            <!-- Page Numbers -->
+                                                            @foreach (var pageNum in GetVisiblePagesForStudents_SearchForStudentsAsCompany())
+                                                            {
+                                                                @if (pageNum == -1)
+                                                                {
+                                                                    <span class="pagination-ellipsis">...</span>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="pagination-item @(pageNum == currentPageForStudents_SearchForStudentsAsCompany ? "active" : "")" 
+                                                                          @onclick="@(() => GoToPageForStudents_SearchForStudentsAsCompany(pageNum))">
+                                                                        @pageNum
+                                                                    </span>
+                                                                }
+                                                            }
+            
+                                                            <!-- Next Page (>) -->
+                                                            <span class="pagination-item @(currentPageForStudents_SearchForStudentsAsCompany == totalPagesForStudents_SearchForStudentsAsCompany ? "disabled" : "")" 
+                                                                  @onclick="@(() => NextPageForStudents_SearchForStudentsAsCompany())">
+                                                                &gt;
+                                                            </span>
+            
+                                                            <!-- Last Page (>>) -->
+                                                            <span class="pagination-item @(currentPageForStudents_SearchForStudentsAsCompany == totalPagesForStudents_SearchForStudentsAsCompany ? "disabled" : "")" 
+                                                                  @onclick="@(() => GoToLastPageForStudents_SearchForStudentsAsCompany())">
+                                                                &gt;&gt;
+                                                            </span>
+            
+                                                            <!-- Page counter -->
+                                                            <span class="ms-3">Σελίδα @currentPageForStudents_SearchForStudentsAsCompany από @totalPagesForStudents_SearchForStudentsAsCompany</span>
+                                                        </div>
+                                                        <br/>
+                                                        <br/>
+                                                    }
+                                                    else if (searchResultsAsCompanyToFindStudent != null)
+                                                    {
+                                                        <div class="alert alert-warning d-flex align-items-center" role="alert">
+                                                          <i class="fas fa-exclamation-triangle me-2"></i>
+                                                          <div>Δεν βρέθηκε κάποιο αποτέλεσμα που να πληρεί τα κριτήρια της Αναζήτησης σας.</div>
+                                                        </div>
+                                                        <br/>
+                                                        <br/>
+                                                    }
+
+                                                }
+                                            </div>
+
+                                            <!-- Modal for displaying student details FOR SEARCH AS COMPANY -->
+                                            @if (showStudentDetailsModalWhenSearchForStudentsAsCompany && selectedStudentWhenSearchForStudentsAsCompany != null)
+                                            {
+                                                <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0, 0, 0, 0.5);">
+                                                    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+                                                        <div class="modal-content" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);">
+                                                            <div class="modal-header" style="border-bottom: 1px solid #e9ecef; border-radius: 12px 12px 0 0; background-color: #f8f9fa;">
+                                                                <h5 class="modal-title" style="color: #4682B4; font-weight: 600; font-size: 1.25rem;">
+                                                                    @selectedStudentWhenSearchForStudentsAsCompany.Name @selectedStudentWhenSearchForStudentsAsCompany.Surname
+                                                                </h5>
+                                                                <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" 
+                                                                        @onclick="CloseModalStudentDetailsOnEyeIconWhenSearchForStudentsAsCompany"
+                                                                        onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                        onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                    <span style="font-size: 1.2rem; line-height: 1;">×</span>
+                                                                </button>
+                                                            </div>
+                                                            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                                                                <!-- Profile Picture -->
+                                                                <div class="text-center mb-4">
+                                                                    @if (selectedStudentWhenSearchForStudentsAsCompany.Image != null && selectedStudentWhenSearchForStudentsAsCompany.Image.Length > 0)
+                                                                    {
+                                                                        var base64Image = Convert.ToBase64String(selectedStudentWhenSearchForStudentsAsCompany.Image);
+                                                                        <img src="data:image/jpeg;base64,@base64Image" alt="Φωτογραφία Προφίλ Σπουδαστή" 
+                                                                             style="max-width: 150px; max-height: 150px; border-radius: 50%; object-fit: cover; border: 3px solid #ddd;" />
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <div style="width: 150px; height: 150px; border-radius: 50%; background-color: #f8f9fa; display: flex; align-items: center; justify-content: center; margin: 0 auto; border: 3px solid #ddd;">
+                                                                            <i class="fas fa-user" style="font-size: 3rem; color: #6c757d;"></i>
+                                                                        </div>
+                                                                    }
+                                                                </div>
+
+                                                                <!-- Student Details -->
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Αριθμός Μητρώου</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-id-card mr-2 text-info"></i>
+                                                                        <span>@selectedStudentWhenSearchForStudentsAsCompany.RegNumber</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Πανεπιστήμιο</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-university mr-2 text-primary"></i>
+                                                                        <span>@selectedStudentWhenSearchForStudentsAsCompany.University</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Τμήμα</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-building mr-2"></i>
+                                                                        <span>@selectedStudentWhenSearchForStudentsAsCompany.Department</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Επίπεδο Σπουδών</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-graduation-cap mr-2"></i>
+                                                                        <span>@selectedStudentWhenSearchForStudentsAsCompany.LevelOfDegree</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Τεχνικές Ικανότητες</label>
+                                                                    <textarea class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" readonly rows="3">@selectedStudentWhenSearchForStudentsAsCompany.Keywords</textarea>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Περιοχές Εξειδίκευσης</label>
+                                                                    <textarea class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" readonly rows="3">@selectedStudentWhenSearchForStudentsAsCompany.AreasOfExpertise</textarea>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Επικοινωνία</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-envelope mr-2 text-primary"></i>
+                                                                        <span>@selectedStudentWhenSearchForStudentsAsCompany.Email</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Τηλέφωνο</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-phone mr-2 text-success"></i>
+                                                                        <span>@(selectedStudentWhenSearchForStudentsAsCompany.PhoneVisibility ? selectedStudentWhenSearchForStudentsAsCompany.Telephone : "N/A")</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Περιφέρεια (Μόνιμης Διαμονής)</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-map-marked-alt mr-2"></i>
+                                                                        <span>@selectedStudentWhenSearchForStudentsAsCompany.PermanentRegion</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Πόλη (Μόνιμης Διαμονής)</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-city mr-2"></i>
+                                                                        <span>@selectedStudentWhenSearchForStudentsAsCompany.PermanentTown</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Διεύθυνση</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-map-marker-alt mr-2 text-danger"></i>
+                                                                        @if (!string.IsNullOrEmpty(selectedStudentWhenSearchForStudentsAsCompany.PermanentAddress))
+                                                                        {
+                                                                            <a href="https://www.google.com/maps/search/?api=1&query=@Uri.EscapeDataString(selectedStudentWhenSearchForStudentsAsCompany.PermanentAddress)"
+                                                                               target="_blank"
+                                                                               class="text-primary text-decoration-underline">
+                                                                                @selectedStudentWhenSearchForStudentsAsCompany.PermanentAddress
+                                                                            </a>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <span style="color: #6c757d;">Δεν έχει οριστεί διεύθυνση</span>
+                                                                        }
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Προτιμώμενη Περιφέρεια</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-map-marked-alt mr-2"></i>
+                                                                        <span>@selectedStudentWhenSearchForStudentsAsCompany.PreferedRegions</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Προτιμώμενη Πόλη</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-map-marker mr-2"></i>
+                                                                        <span>@selectedStudentWhenSearchForStudentsAsCompany.PreferredTowns</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Διαθέτει Μέσο Μεταφοράς</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;
+                                                                         @(selectedStudentWhenSearchForStudentsAsCompany.Transport == true ? "color: #28a745;" : "color: #dc3545;")">
+                                                                        <i class="fas fa-car mr-2"></i>
+                                                                        <span>@(selectedStudentWhenSearchForStudentsAsCompany.Transport == true ? "Ναι" : "Όχι")</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Κατάσταση Πρακτικής</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-briefcase mr-2"></i>
+                                                                        <span>@selectedStudentWhenSearchForStudentsAsCompany.InternshipStatus</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Κατάσταση Διπλωματικής</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-file-alt mr-2"></i>
+                                                                        <span>@selectedStudentWhenSearchForStudentsAsCompany.ThesisStatus</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">LinkedIn Προφίλ</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fab fa-linkedin mr-2" style="color: #0077b5;"></i>
+                                                                        @if (!string.IsNullOrEmpty(selectedStudentWhenSearchForStudentsAsCompany.LinkedInProfile))
+                                                                        {
+                                                                            <a href="@selectedStudentWhenSearchForStudentsAsCompany.LinkedInProfile" target="_blank" 
+                                                                               class="text-decoration-underline" style="color: #0077b5;">
+                                                                                @selectedStudentWhenSearchForStudentsAsCompany.LinkedInProfile
+                                                                            </a>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <span style="color: #6c757d;">Δεν έχει οριστεί προφίλ LinkedIn ακόμη..</span>
+                                                                        }
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Προσωπική Ιστοσελίδα</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-globe mr-2 text-info"></i>
+                                                                        @if (!string.IsNullOrEmpty(selectedStudentWhenSearchForStudentsAsCompany.PersonalWebsite))
+                                                                        {
+                                                                            <a href="@selectedStudentWhenSearchForStudentsAsCompany.PersonalWebsite" target="_blank" 
+                                                                               class="text-primary text-decoration-underline">
+                                                                                @selectedStudentWhenSearchForStudentsAsCompany.PersonalWebsite
+                                                                            </a>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <span style="color: #6c757d;">Δεν έχει οριστεί ιστοσελίδα ακόμη..</span>
+                                                                        }
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div class="modal-footer">
+                                                                <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; padding: 8px 20px; transition: all 0.2s;" 
+                                                                        @onclick="CloseModalStudentDetailsOnEyeIconWhenSearchForStudentsAsCompany"
+                                                                        onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                        onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                    <i class="fas fa-arrow-left me-2"></i> Κλείσιμο
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            }
+
+
+                                        
+<div id="company-student-search-end"></div>
