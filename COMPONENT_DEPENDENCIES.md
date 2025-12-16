@@ -187,31 +187,55 @@ The refactoring extracted large sections from role-specific Razor files into reu
 
 ---
 
-### 4. Student Role Components
+### 4. Student Role Components ✅ EXTRACTED (2025-12-16)
+
+#### StudentCompanySearchSection.razor
+**Location**: `Shared/Student/StudentCompanySearchSection.razor` (680 lines)
+**Parameters Required**: 
+- ⚠️ **NEEDS ANALYSIS** - Company search functionality
+- Likely needs: search properties, results list, pagination, modal state, etc.
+
+**Status**: ✅ Extracted - ❌ Not wired - needs parameter extraction
+
+#### StudentAnnouncementsSection.razor
+**Location**: `Shared/Student/StudentAnnouncementsSection.razor` (513 lines)
+**Parameters Required**: 
+- ⚠️ **NEEDS ANALYSIS** - Announcements display
+- Likely needs: announcements list, visibility toggles, pagination, etc.
+
+**Status**: ✅ Extracted - ❌ Not wired - needs parameter extraction
 
 #### StudentThesisDisplaySection.razor
-**Location**: `Shared/Student/StudentThesisDisplaySection.razor`
+**Location**: `Shared/Student/StudentThesisDisplaySection.razor` (2,372 lines)
 **Parameters Required**: 
 - ⚠️ **NEEDS ANALYSIS** - Thesis display and filtering
-**Status**: ❌ Not wired - needs parameter extraction
+- Likely needs: theses list, filters, pagination, search functionality, etc.
+
+**Status**: ✅ Extracted - ❌ Not wired - needs parameter extraction
 
 #### StudentJobsDisplaySection.razor
-**Location**: `Shared/Student/StudentJobsDisplaySection.razor`
+**Location**: `Shared/Student/StudentJobsDisplaySection.razor` (614 lines)
 **Parameters Required**: 
 - ⚠️ **NEEDS ANALYSIS** - Job display and filtering
-**Status**: ❌ Not wired - needs parameter extraction
+- Likely needs: jobs list, filters, pagination, search functionality, etc.
 
-#### StudentInternshipsDisplaySection.razor
-**Location**: `Shared/Student/StudentInternshipsDisplaySection.razor`
-**Parameters Required**: 
-- ⚠️ **NEEDS ANALYSIS** - Internship display and filtering
-**Status**: ❌ Not wired - needs parameter extraction
+**Status**: ✅ Extracted - ❌ Not wired - needs parameter extraction
 
-#### StudentAppliedInternshipsSection.razor
-**Location**: `Shared/Student/StudentAppliedInternshipsSection.razor`
+#### StudentInternshipsSection.razor
+**Location**: `Shared/Student/StudentInternshipsSection.razor` (2,423 lines)
 **Parameters Required**: 
-- ⚠️ **NEEDS ANALYSIS** - Applied internships display
-**Status**: ❌ Not wired - needs parameter extraction
+- ⚠️ **NEEDS ANALYSIS** - Internships display and applied internships
+- Likely needs: internships list, applied internships list, filters, pagination, search functionality, etc.
+
+**Status**: ✅ Extracted - ❌ Not wired - needs parameter extraction
+
+#### StudentEventsSection.razor
+**Location**: `Shared/Student/StudentEventsSection.razor` (2,328 lines)
+**Parameters Required**: 
+- ⚠️ **NEEDS ANALYSIS** - Events calendar and display
+- Likely needs: events list, calendar state, date handling, modal state, etc.
+
+**Status**: ✅ Extracted - ❌ Not wired - needs parameter extraction
 
 ---
 
