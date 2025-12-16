@@ -1,326 +1,3 @@
-                                                                                @student.Name @student.Surname
-                                                                            </a>
-                                                                        </td>
-                                                                        <td>@student.Department</td>
-                                                                        <td>
-                                                                            @student.Email
-                                                                            <a href="mailto:@student.Email" title="Αποστολή Email">
-                                                                                <i class="fas fa-envelope"></i>
-                                                                            </a>
-                                                                        </td>
-                                                                        <td>
-                                                                            @(student.PhoneVisibility ? student.Telephone : "Μη Ορατό")
-                                                                            <span class="ml-2">
-                                                                                <i class="fas fa-phone"></i>
-                                                                            </span>
-                                                                        </td>
-                                                                        <td>
-                                                                            @if (student.Attachment != null)
-                                                                            {
-                                                                                <div class="text-center">
-                                                                                    <i class="fas fa-download" 
-                                                                                       style="cursor: pointer; font-size: 1.5rem;" 
-                                                                                       @onclick="() => DownloadStudentAttachmentAsCompanyInSearchForStudents(student.Id)">
-                                                                                    </i>
-                                                                                </div>
-                                                                            }
-                                                                            else
-                                                                            {
-                                                                                <span style="display: block; text-align: center; font-weight: bold; font-style: italic;">
-                                                                                        Δεν Διατίθεται
-                                                                                </span>
-                                                                            }
-                                                                        </td>
-                                                                    </tr>
-                                                                }
-                                                            </tbody>
-                                                        </table>
-                                                        <br/>
-                                                        <!-- Pagination Controls -->
-                                                        <div class="d-flex justify-content-center align-items-center mt-3 gap-1">
-                                                            <!-- First Page (<<) -->
-                                                            <span class="pagination-item @(currentPageForStudents_SearchForStudentsAsCompany == 1 ? "disabled" : "")" 
-                                                                  @onclick="@(() => GoToFirstPageForStudents_SearchForStudentsAsCompany())">
-                                                                &lt;&lt;
-                                                            </span>
-            
-                                                            <!-- Previous Page (<) -->
-                                                            <span class="pagination-item @(currentPageForStudents_SearchForStudentsAsCompany == 1 ? "disabled" : "")" 
-                                                                  @onclick="@(() => PreviousPageForStudents_SearchForStudentsAsCompany())">
-                                                                &lt;
-                                                            </span>
-            
-                                                            <!-- Page Numbers -->
-                                                            @foreach (var pageNum in GetVisiblePagesForStudents_SearchForStudentsAsCompany())
-                                                            {
-                                                                @if (pageNum == -1)
-                                                                {
-                                                                    <span class="pagination-ellipsis">...</span>
-                                                                }
-                                                                else
-                                                                {
-                                                                    <span class="pagination-item @(pageNum == currentPageForStudents_SearchForStudentsAsCompany ? "active" : "")" 
-                                                                          @onclick="@(() => GoToPageForStudents_SearchForStudentsAsCompany(pageNum))">
-                                                                        @pageNum
-                                                                    </span>
-                                                                }
-                                                            }
-            
-                                                            <!-- Next Page (>) -->
-                                                            <span class="pagination-item @(currentPageForStudents_SearchForStudentsAsCompany == totalPagesForStudents_SearchForStudentsAsCompany ? "disabled" : "")" 
-                                                                  @onclick="@(() => NextPageForStudents_SearchForStudentsAsCompany())">
-                                                                &gt;
-                                                            </span>
-            
-                                                            <!-- Last Page (>>) -->
-                                                            <span class="pagination-item @(currentPageForStudents_SearchForStudentsAsCompany == totalPagesForStudents_SearchForStudentsAsCompany ? "disabled" : "")" 
-                                                                  @onclick="@(() => GoToLastPageForStudents_SearchForStudentsAsCompany())">
-                                                                &gt;&gt;
-                                                            </span>
-            
-                                                            <!-- Page counter -->
-                                                            <span class="ms-3">Σελίδα @currentPageForStudents_SearchForStudentsAsCompany από @totalPagesForStudents_SearchForStudentsAsCompany</span>
-                                                        </div>
-                                                        <br/>
-                                                        <br/>
-                                                    }
-                                                    else if (searchResultsAsCompanyToFindStudent != null)
-                                                    {
-                                                        <div class="alert alert-warning d-flex align-items-center" role="alert">
-                                                          <i class="fas fa-exclamation-triangle me-2"></i>
-                                                          <div>Δεν βρέθηκε κάποιο αποτέλεσμα που να πληρεί τα κριτήρια της Αναζήτησης σας.</div>
-                                                        </div>
-                                                        <br/>
-                                                        <br/>
-                                                    }
-
-                                                }
-                                            </div>
-
-                                            <!-- Modal for displaying student details FOR SEARCH AS COMPANY -->
-                                            @if (showStudentDetailsModalWhenSearchForStudentsAsCompany && selectedStudentWhenSearchForStudentsAsCompany != null)
-                                            {
-                                                <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0, 0, 0, 0.5);">
-                                                    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
-                                                        <div class="modal-content" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);">
-                                                            <div class="modal-header" style="border-bottom: 1px solid #e9ecef; border-radius: 12px 12px 0 0; background-color: #f8f9fa;">
-                                                                <h5 class="modal-title" style="color: #4682B4; font-weight: 600; font-size: 1.25rem;">
-                                                                    @selectedStudentWhenSearchForStudentsAsCompany.Name @selectedStudentWhenSearchForStudentsAsCompany.Surname
-                                                                </h5>
-                                                                <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" 
-                                                                        @onclick="CloseModalStudentDetailsOnEyeIconWhenSearchForStudentsAsCompany"
-                                                                        onmouseover="this.style.backgroundColor='#4a5568'" 
-                                                                        onmouseout="this.style.backgroundColor='#2d3748'">
-                                                                    <span style="font-size: 1.2rem; line-height: 1;">×</span>
-                                                                </button>
-                                                            </div>
-                                                            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
-                                                                <!-- Profile Picture -->
-                                                                <div class="text-center mb-4">
-                                                                    @if (selectedStudentWhenSearchForStudentsAsCompany.Image != null && selectedStudentWhenSearchForStudentsAsCompany.Image.Length > 0)
-                                                                    {
-                                                                        var base64Image = Convert.ToBase64String(selectedStudentWhenSearchForStudentsAsCompany.Image);
-                                                                        <img src="data:image/jpeg;base64,@base64Image" alt="Φωτογραφία Προφίλ Σπουδαστή" 
-                                                                             style="max-width: 150px; max-height: 150px; border-radius: 50%; object-fit: cover; border: 3px solid #ddd;" />
-                                                                    }
-                                                                    else
-                                                                    {
-                                                                        <div style="width: 150px; height: 150px; border-radius: 50%; background-color: #f8f9fa; display: flex; align-items: center; justify-content: center; margin: 0 auto; border: 3px solid #ddd;">
-                                                                            <i class="fas fa-user" style="font-size: 3rem; color: #6c757d;"></i>
-                                                                        </div>
-                                                                    }
-                                                                </div>
-
-                                                                <!-- Student Details -->
-                                                                <div class="form-group">
-                                                                    <label style="font-weight: bold;">Αριθμός Μητρώου</label>
-                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
-                                                                        <i class="fas fa-id-card mr-2 text-info"></i>
-                                                                        <span>@selectedStudentWhenSearchForStudentsAsCompany.RegNumber</span>
-                                                                    </div>
-                                                                </div>
-
-                                                                <div class="form-group">
-                                                                    <label style="font-weight: bold;">Πανεπιστήμιο</label>
-                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
-                                                                        <i class="fas fa-university mr-2 text-primary"></i>
-                                                                        <span>@selectedStudentWhenSearchForStudentsAsCompany.University</span>
-                                                                    </div>
-                                                                </div>
-
-                                                                <div class="form-group">
-                                                                    <label style="font-weight: bold;">Τμήμα</label>
-                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
-                                                                        <i class="fas fa-building mr-2"></i>
-                                                                        <span>@selectedStudentWhenSearchForStudentsAsCompany.Department</span>
-                                                                    </div>
-                                                                </div>
-
-                                                                <div class="form-group">
-                                                                    <label style="font-weight: bold;">Επίπεδο Σπουδών</label>
-                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
-                                                                        <i class="fas fa-graduation-cap mr-2"></i>
-                                                                        <span>@selectedStudentWhenSearchForStudentsAsCompany.LevelOfDegree</span>
-                                                                    </div>
-                                                                </div>
-
-                                                                <div class="form-group">
-                                                                    <label style="font-weight: bold;">Τεχνικές Ικανότητες</label>
-                                                                    <textarea class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" readonly rows="3">@selectedStudentWhenSearchForStudentsAsCompany.Keywords</textarea>
-                                                                </div>
-
-                                                                <div class="form-group">
-                                                                    <label style="font-weight: bold;">Περιοχές Εξειδίκευσης</label>
-                                                                    <textarea class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" readonly rows="3">@selectedStudentWhenSearchForStudentsAsCompany.AreasOfExpertise</textarea>
-                                                                </div>
-
-                                                                <div class="form-group">
-                                                                    <label style="font-weight: bold;">Επικοινωνία</label>
-                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
-                                                                        <i class="fas fa-envelope mr-2 text-primary"></i>
-                                                                        <span>@selectedStudentWhenSearchForStudentsAsCompany.Email</span>
-                                                                    </div>
-                                                                </div>
-
-                                                                <div class="form-group">
-                                                                    <label style="font-weight: bold;">Τηλέφωνο</label>
-                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
-                                                                        <i class="fas fa-phone mr-2 text-success"></i>
-                                                                        <span>@(selectedStudentWhenSearchForStudentsAsCompany.PhoneVisibility ? selectedStudentWhenSearchForStudentsAsCompany.Telephone : "N/A")</span>
-                                                                    </div>
-                                                                </div>
-
-                                                                <div class="form-group">
-                                                                    <label style="font-weight: bold;">Περιφέρεια (Μόνιμης Διαμονής)</label>
-                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
-                                                                        <i class="fas fa-map-marked-alt mr-2"></i>
-                                                                        <span>@selectedStudentWhenSearchForStudentsAsCompany.PermanentRegion</span>
-                                                                    </div>
-                                                                </div>
-
-                                                                <div class="form-group">
-                                                                    <label style="font-weight: bold;">Πόλη (Μόνιμης Διαμονής)</label>
-                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
-                                                                        <i class="fas fa-city mr-2"></i>
-                                                                        <span>@selectedStudentWhenSearchForStudentsAsCompany.PermanentTown</span>
-                                                                    </div>
-                                                                </div>
-
-                                                                <div class="form-group">
-                                                                    <label style="font-weight: bold;">Διεύθυνση</label>
-                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
-                                                                        <i class="fas fa-map-marker-alt mr-2 text-danger"></i>
-                                                                        @if (!string.IsNullOrEmpty(selectedStudentWhenSearchForStudentsAsCompany.PermanentAddress))
-                                                                        {
-                                                                            <a href="https://www.google.com/maps/search/?api=1&query=@Uri.EscapeDataString(selectedStudentWhenSearchForStudentsAsCompany.PermanentAddress)"
-                                                                               target="_blank"
-                                                                               class="text-primary text-decoration-underline">
-                                                                                @selectedStudentWhenSearchForStudentsAsCompany.PermanentAddress
-                                                                            </a>
-                                                                        }
-                                                                        else
-                                                                        {
-                                                                            <span style="color: #6c757d;">Δεν έχει οριστεί διεύθυνση</span>
-                                                                        }
-                                                                    </div>
-                                                                </div>
-
-                                                                <div class="form-group">
-                                                                    <label style="font-weight: bold;">Προτιμώμενη Περιφέρεια</label>
-                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
-                                                                        <i class="fas fa-map-marked-alt mr-2"></i>
-                                                                        <span>@selectedStudentWhenSearchForStudentsAsCompany.PreferedRegions</span>
-                                                                    </div>
-                                                                </div>
-
-                                                                <div class="form-group">
-                                                                    <label style="font-weight: bold;">Προτιμώμενη Πόλη</label>
-                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
-                                                                        <i class="fas fa-map-marker mr-2"></i>
-                                                                        <span>@selectedStudentWhenSearchForStudentsAsCompany.PreferredTowns</span>
-                                                                    </div>
-                                                                </div>
-
-                                                                <div class="form-group">
-                                                                    <label style="font-weight: bold;">Διαθέτει Μέσο Μεταφοράς</label>
-                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;
-                                                                         @(selectedStudentWhenSearchForStudentsAsCompany.Transport == true ? "color: #28a745;" : "color: #dc3545;")">
-                                                                        <i class="fas fa-car mr-2"></i>
-                                                                        <span>@(selectedStudentWhenSearchForStudentsAsCompany.Transport == true ? "Ναι" : "Όχι")</span>
-                                                                    </div>
-                                                                </div>
-
-                                                                <div class="form-group">
-                                                                    <label style="font-weight: bold;">Κατάσταση Πρακτικής</label>
-                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
-                                                                        <i class="fas fa-briefcase mr-2"></i>
-                                                                        <span>@selectedStudentWhenSearchForStudentsAsCompany.InternshipStatus</span>
-                                                                    </div>
-                                                                </div>
-
-                                                                <div class="form-group">
-                                                                    <label style="font-weight: bold;">Κατάσταση Διπλωματικής</label>
-                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
-                                                                        <i class="fas fa-file-alt mr-2"></i>
-                                                                        <span>@selectedStudentWhenSearchForStudentsAsCompany.ThesisStatus</span>
-                                                                    </div>
-                                                                </div>
-
-                                                                <div class="form-group">
-                                                                    <label style="font-weight: bold;">LinkedIn Προφίλ</label>
-                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
-                                                                        <i class="fab fa-linkedin mr-2" style="color: #0077b5;"></i>
-                                                                        @if (!string.IsNullOrEmpty(selectedStudentWhenSearchForStudentsAsCompany.LinkedInProfile))
-                                                                        {
-                                                                            <a href="@selectedStudentWhenSearchForStudentsAsCompany.LinkedInProfile" target="_blank" 
-                                                                               class="text-decoration-underline" style="color: #0077b5;">
-                                                                                @selectedStudentWhenSearchForStudentsAsCompany.LinkedInProfile
-                                                                            </a>
-                                                                        }
-                                                                        else
-                                                                        {
-                                                                            <span style="color: #6c757d;">Δεν έχει οριστεί προφίλ LinkedIn ακόμη..</span>
-                                                                        }
-                                                                    </div>
-                                                                </div>
-
-                                                                <div class="form-group">
-                                                                    <label style="font-weight: bold;">Προσωπική Ιστοσελίδα</label>
-                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
-                                                                        <i class="fas fa-globe mr-2 text-info"></i>
-                                                                        @if (!string.IsNullOrEmpty(selectedStudentWhenSearchForStudentsAsCompany.PersonalWebsite))
-                                                                        {
-                                                                            <a href="@selectedStudentWhenSearchForStudentsAsCompany.PersonalWebsite" target="_blank" 
-                                                                               class="text-primary text-decoration-underline">
-                                                                                @selectedStudentWhenSearchForStudentsAsCompany.PersonalWebsite
-                                                                            </a>
-                                                                        }
-                                                                        else
-                                                                        {
-                                                                            <span style="color: #6c757d;">Δεν έχει οριστεί ιστοσελίδα ακόμη..</span>
-                                                                        }
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <div class="modal-footer">
-                                                                <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; padding: 8px 20px; transition: all 0.2s;" 
-                                                                        @onclick="CloseModalStudentDetailsOnEyeIconWhenSearchForStudentsAsCompany"
-                                                                        onmouseover="this.style.backgroundColor='#4a5568'" 
-                                                                        onmouseout="this.style.backgroundColor='#2d3748'">
-                                                                    <i class="fas fa-arrow-left me-2"></i> Κλείσιμο
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            }
-
-
-                                        
-<div id="company-student-search-end"></div>
- 
-
-
 <div id="company-for-professor-search-tab-start"></div>
 
 
@@ -671,3 +348,181 @@
                                                                         var base64Image = Convert.ToBase64String(selectedProfessorWhenSearchForProfessorsAsCompany.ProfImage);
                                                                         <img src="data:image/jpeg;base64,@base64Image" alt="Φωτογραφία Προφίλ Καθηγητή" 
                                                                              style="max-width: 150px; max-height: 150px; border-radius: 50%; object-fit: cover; border: 3px solid #ddd;" />
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <div style="width: 150px; height: 150px; border-radius: 50%; background-color: #f8f9fa; display: flex; align-items: center; justify-content: center; margin: 0 auto; border: 3px solid #ddd;">
+                                                                            <i class="fas fa-user-tie" style="font-size: 3rem; color: #6c757d;"></i>
+                                                                        </div>
+                                                                    }
+                                                                </div>
+
+                                                                <!-- Professor Email -->
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Email</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-envelope mr-2 text-primary"></i>
+                                                                        <span>@selectedProfessorWhenSearchForProfessorsAsCompany.ProfEmail</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <!-- Professor University and Department -->
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Πανεπιστήμιο</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-university mr-2 text-primary"></i>
+                                                                        <span>@selectedProfessorWhenSearchForProfessorsAsCompany.ProfUniversity</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Τμήμα</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-building mr-2"></i>
+                                                                        <span>@selectedProfessorWhenSearchForProfessorsAsCompany.ProfDepartment</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <!-- Professor Vahmida Department -->
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Βαθμίδα ΔΕΠ</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-user-tie mr-2"></i>
+                                                                        <span>@selectedProfessorWhenSearchForProfessorsAsCompany.ProfVahmidaDEP</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <!-- Professor Work and Personal Telephone -->
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Τηλέφωνο Εργασίας</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-phone mr-2 text-success"></i>
+                                                                        <span>@selectedProfessorWhenSearchForProfessorsAsCompany.ProfWorkTelephone</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Προσωπικό Τηλέφωνο</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-phone mr-2 text-success"></i>
+                                                                        @if (selectedProfessorWhenSearchForProfessorsAsCompany.ProfPersonalTelephoneVisibility)
+                                                                        {
+                                                                            <span>@selectedProfessorWhenSearchForProfessorsAsCompany.ProfPersonalTelephone</span>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <span style="color: #6c757d;">Δεν Διατίθεται</span>
+                                                                        }
+                                                                    </div>
+                                                                </div>
+
+                                                                <!-- Professor Personal Website -->
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Ιστότοπος</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-globe mr-2 text-info"></i>
+                                                                        @if (!string.IsNullOrWhiteSpace(selectedProfessorWhenSearchForProfessorsAsCompany.ProfPersonalWebsite))
+                                                                        {
+                                                                            <a href="@selectedProfessorWhenSearchForProfessorsAsCompany.ProfPersonalWebsite" target="_blank" 
+                                                                               class="text-primary text-decoration-underline">
+                                                                                @selectedProfessorWhenSearchForProfessorsAsCompany.ProfPersonalWebsite
+                                                                            </a>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <span style="color: #6c757d;">Δεν Διατίθεται</span>
+                                                                        }
+                                                                    </div>
+                                                                </div>
+
+                                                                <!-- Professor LinkedIn Site -->
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">LinkedIn</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fab fa-linkedin mr-2" style="color: #0A66C2;"></i>
+                                                                        @if (!string.IsNullOrWhiteSpace(selectedProfessorWhenSearchForProfessorsAsCompany.ProfLinkedInSite))
+                                                                        {
+                                                                            <a href="@selectedProfessorWhenSearchForProfessorsAsCompany.ProfLinkedInSite" target="_blank" 
+                                                                               class="text-decoration-underline" style="color: #0A66C2;">
+                                                                                @selectedProfessorWhenSearchForProfessorsAsCompany.ProfLinkedInSite
+                                                                            </a>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <span style="color: #6c757d;">Δεν Διατίθεται</span>
+                                                                        }
+                                                                    </div>
+                                                                </div>
+
+                                                                <!-- Professor Scholar Profile -->
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Scholar Profile</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-graduation-cap mr-2" style="color: #4285F4;"></i>
+                                                                        @if (!string.IsNullOrWhiteSpace(selectedProfessorWhenSearchForProfessorsAsCompany.ProfScholarProfile))
+                                                                        {
+                                                                            <a href="@selectedProfessorWhenSearchForProfessorsAsCompany.ProfScholarProfile" target="_blank" 
+                                                                               class="text-decoration-underline" style="color: #4285F4;">
+                                                                                @selectedProfessorWhenSearchForProfessorsAsCompany.ProfScholarProfile
+                                                                            </a>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <span style="color: #6c757d;">Δεν Διατίθεται</span>
+                                                                        }
+                                                                    </div>
+                                                                </div>
+
+                                                                <!-- Professor ORCID Profile -->
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">ORCID Profile</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-id-card mr-2" style="color: #A6CE39;"></i>
+                                                                        @if (!string.IsNullOrWhiteSpace(selectedProfessorWhenSearchForProfessorsAsCompany.ProfOrchidProfile))
+                                                                        {
+                                                                            <a href="@selectedProfessorWhenSearchForProfessorsAsCompany.ProfOrchidProfile" target="_blank" 
+                                                                               class="text-decoration-underline" style="color: #A6CE39;">
+                                                                                @selectedProfessorWhenSearchForProfessorsAsCompany.ProfOrchidProfile
+                                                                            </a>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <span style="color: #6c757d;">Δεν Διατίθεται</span>
+                                                                        }
+                                                                    </div>
+                                                                </div>
+
+                                                                <!-- Professor General Field of Work (Areas) -->
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Γενικός Τομέας Εργασίας</label>
+                                                                    <textarea class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" readonly rows="3">@selectedProfessorWhenSearchForProfessorsAsCompany.ProfGeneralFieldOfWork</textarea>
+                                                                </div>
+
+                                                                <!-- Professor General Skills -->
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Γενικές Δεξιότητες</label>
+                                                                    <textarea class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" readonly rows="3">@selectedProfessorWhenSearchForProfessorsAsCompany.ProfGeneralSkills</textarea>
+                                                                </div>
+
+                                                                <!-- Professor Personal Description -->
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Προσωπική Περιγραφή</label>
+                                                                    <textarea class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" readonly rows="4">@selectedProfessorWhenSearchForProfessorsAsCompany.ProfPersonalDescription</textarea>
+                                                                </div>
+                                                            </div>
+                                                            <div class="modal-footer">
+                                                                <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; padding: 8px 20px; transition: all 0.2s;" 
+                                                                        @onclick="CloseModalProfessorDetailsOnEyeIconWhenSearchForProfessorsAsCompany"
+                                                                        onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                        onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                    <i class="fas fa-arrow-left me-2"></i> Κλείσιμο
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+
+                                    @*SEARCH RESEARCH GROUP AS COMPANY - START - *@
