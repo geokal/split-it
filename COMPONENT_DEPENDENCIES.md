@@ -51,73 +51,79 @@ The refactoring extracted large sections from role-specific Razor files into reu
 
 ---
 
-### 2. Company Role Components
-
-#### CompanyAnnouncementsSection.razor
-**Location**: `Shared/Company/CompanyAnnouncementsSection.razor`
-**Parameters Required**:
-- `Announcements` (List<CompanyAnnouncement>)
-- `pageSize` (int)
-- `currentPageForCompanyAnnouncements` (int)
-- `totalPagesForCompanyAnnouncements` (int)
-- `GoToFirstPageForCompanyAnnouncements` (EventCallback<int>)
-- `PreviousPageForCompanyAnnouncements` (EventCallback<int>)
-- `NextPageForCompanyAnnouncements` (EventCallback<int>)
-- `GoToLastPageForCompanyAnnouncements` (EventCallback<int>)
-- `GoToPageForCompanyAnnouncements` (EventCallback<int>)
-- `isCompanyAnnouncementsVisible` (bool)
-- `ToggleCompanyAnnouncementsVisibility` (EventCallback)
-- `expandedAnnouncementId` (int)
-- `ToggleDescription` (EventCallback<int>)
-- `DownloadAnnouncementAttachmentFrontPage` (EventCallback<byte[], string>)
-
-**Status**: ✅ Already wired in Company.razor
+### 2. Company Role Components ✅ EXTRACTED (2025-12-16)
 
 #### CompanyAnnouncementsManagementSection.razor
-**Location**: `Shared/Company/CompanyAnnouncementsManagementSection.razor`
+**Location**: `Shared/Company/CompanyAnnouncementsManagementSection.razor` (638 lines)
 **Parameters Required**: 
-- ⚠️ **NEEDS ANALYSIS** - This component was extracted with inline code that references many properties/methods
-- Likely needs: announcement creation form properties, file upload handlers, save methods, etc.
+- ⚠️ **NEEDS ANALYSIS** - Announcement creation form
+- Likely needs: form state, announcement model, file upload handlers, save methods, validation properties
 
-**Status**: ❌ Not wired - needs parameter extraction
+**Status**: ✅ Extracted - ❌ Not wired - needs parameter extraction
+
+#### CompanyAnnouncementsSection.razor
+**Location**: `Shared/Company/CompanyAnnouncementsSection.razor` (609 lines)
+**Parameters Required**: 
+- ⚠️ **NEEDS ANALYSIS** - View uploaded announcements
+- Likely needs: announcements list, pagination, visibility toggles, expand/collapse handlers
+
+**Status**: ✅ Extracted - ❌ Not wired - needs parameter extraction
+
+#### CompanyJobsSection.razor
+**Location**: `Shared/Company/CompanyJobsSection.razor` (1,658 lines)
+**Parameters Required**: 
+- ⚠️ **NEEDS ANALYSIS** - Job creation and management
+- Likely needs: job model, form properties, save/update methods, pagination, etc.
+
+**Status**: ✅ Extracted - ❌ Not wired - needs parameter extraction
 
 #### CompanyInternshipsSection.razor
-**Location**: `Shared/Company/CompanyInternshipsSection.razor`
+**Location**: `Shared/Company/CompanyInternshipsSection.razor` (1,978 lines)
 **Parameters Required**: 
-- ⚠️ **NEEDS ANALYSIS** - Large component with forms and management sections
+- ⚠️ **NEEDS ANALYSIS** - Internship creation and management
 - Likely needs: internship model, form visibility toggles, save/update methods, pagination, etc.
 
-**Status**: ❌ Not wired - needs parameter extraction
+**Status**: ✅ Extracted - ❌ Not wired - needs parameter extraction
+
+#### CompanyThesesSection.razor
+**Location**: `Shared/Company/CompanyThesesSection.razor` (2,914 lines)
+**Parameters Required**: 
+- ⚠️ **NEEDS ANALYSIS** - Thesis creation and management
+- Likely needs: thesis model, form properties, save methods, professor search, etc.
+
+**Status**: ✅ Extracted - ❌ Not wired - needs parameter extraction
 
 #### CompanyEventsSection.razor
-**Location**: `Shared/Company/CompanyEventsSection.razor`
+**Location**: `Shared/Company/CompanyEventsSection.razor` (2,602 lines)
 **Parameters Required**: 
 - ⚠️ **NEEDS ANALYSIS** - Calendar and event management
 - Likely needs: events list, calendar state, event creation/management methods
 
-**Status**: ❌ Not wired - needs parameter extraction
+**Status**: ✅ Extracted - ❌ Not wired - needs parameter extraction
 
-#### CompanyThesesSection.razor
-**Location**: `Shared/Company/CompanyThesesSection.razor`
+#### CompanyStudentSearchSection.razor
+**Location**: `Shared/Company/CompanyStudentSearchSection.razor` (671 lines)
 **Parameters Required**: 
-- ⚠️ **NEEDS ANALYSIS** - Thesis creation and management
-- Likely needs: thesis model, form properties, save methods, etc.
+- ⚠️ **NEEDS ANALYSIS** - Student search functionality
+- Likely needs: search properties, results list, pagination, modal state, etc.
 
-**Status**: ❌ Not wired - needs parameter extraction
+**Status**: ✅ Extracted - ❌ Not wired - needs parameter extraction
 
-#### CompanyJobsSection.razor
-**Location**: `Shared/Company/CompanyJobsSection.razor`
+#### CompanyProfessorSearchSection.razor
+**Location**: `Shared/Company/CompanyProfessorSearchSection.razor` (528 lines)
 **Parameters Required**: 
-- ⚠️ **NEEDS ANALYSIS**
-**Status**: ❌ Not wired - needs parameter extraction
+- ⚠️ **NEEDS ANALYSIS** - Professor search functionality
+- Likely needs: search properties, results list, pagination, modal state, etc.
 
-#### ResearchGroupSearchSection.razor
-**Location**: `Shared/Company/ResearchGroupSearchSection.razor`
+**Status**: ✅ Extracted - ❌ Not wired - needs parameter extraction
+
+#### CompanyResearchGroupSearchSection.razor
+**Location**: `Shared/Company/CompanyResearchGroupSearchSection.razor` (692 lines)
 **Parameters Required**: 
-- ⚠️ **NEEDS ANALYSIS** - Search functionality
-- Likely needs: search properties, results list, pagination, etc.
+- ⚠️ **NEEDS ANALYSIS** - Research group search functionality
+- Likely needs: search properties, results list, pagination, modal state, etc.
 
-**Status**: ❌ Not wired - needs parameter extraction
+**Status**: ✅ Extracted - ❌ Not wired - needs parameter extraction
 
 ---
 

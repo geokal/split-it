@@ -1,0 +1,1658 @@
+                                            <div class="tab-pane fade" id="jobs" role="tabpanel" aria-labelledby="jobs-tab">
+                                                @*iNPUT FIELDS FOR UPLOAD JOB AS COMPANY*@
+                                            <div class="tab-pane" id="jobs" role="tabpanel" aria-labelledby="jobs-tab">
+                                                <div class="mb-3 row-dark-gray">
+                                                    <div class="d-flex justify-content-between align-items-center" @onclick="ToggleFormVisibilityForUploadCompanyJobs" style="cursor: pointer;">
+                                                        <label class="form-label" style="color: #FFF8DC;">• Δημιουργία Θέσης Εργασίας •</label>
+                                                        <button class="btn btn-link" @onclick="ToggleFormVisibilityForUploadCompanyJobs" @onclick:stopPropagation="true">
+                                                            @if (isForm1Visible)
+                                                            {
+                                                                <span>&#8722;</span> <!-- Minus sign -->
+                                                            }
+                                                            else
+                                                            {
+                                                                <span>&#43;</span> <!-- Plus sign -->
+                                                            }
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                   
+                                                @if (isForm1Visible)
+                                                {
+                                                        <div class="row mb-3">
+                                                            <div class="col-md-4">
+                                                                <label for="positionType">
+                                                                    <strong>Τύπος Θέσης</strong>
+                                                                    <span style="color: red;">*</span>
+                                                                </label>
+                                                                <div class="input-group">
+                                                                    <select id="positionType" class="form-control @(showErrorMessageforUploadingjobsAsCompany && string.IsNullOrWhiteSpace(job.PositionType) ? "shake error" : "")" @bind="job.PositionType">
+                                                                        <option value="">-- Επιλέξτε --</option>
+                                                                        <option value="Full-Time">Αορίστου Χρόνου</option>
+                                                                        <option value="Part-Time">Περιορισμένου Χρόνου</option>
+                                                                        <option value="Simvasi-Ergou">Σύμβαση Έργου</option>
+                                                                    </select>
+                                                                    <div class="input-group-append">
+                                                                        <span class="input-group-text">
+                                                                            <i class="fas fa-chevron-down"></i>
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            @if (showErrorMessageforUploadingjobsAsCompany && string.IsNullOrWhiteSpace(job.PositionType))
+                                                            {
+                                                                <div class="text-danger mt-1">Απαιτείται Τύπος Θέσης.</div>
+                                                            }
+                                                        </div>
+
+
+
+                                                        <div class="row mb-3">
+                                                            <div class="col-md-4 position-relative">
+                                                                <label for="positionTitle">
+                                                                    <strong>Τίτλος Θέσης</strong>
+                                                                    <span style="color: red;">*</span>
+                                                                </label>
+                                                                <input type="text" id="positionTitle" class="form-control @(showErrorMessageforUploadingjobsAsCompany && string.IsNullOrWhiteSpace(job.PositionTitle) ? "shake error" : "")" @bind="job.PositionTitle" @oninput="CheckCharacterLimitInJobFieldUploadAsCompany" maxlength="120" />
+                                                                <small class="character-limit light-cadetblue-text">@remainingCharactersInJobFieldUploadAsCompany/120</small>
+                                                            </div>
+                                                            @if (showErrorMessageforUploadingjobsAsCompany && string.IsNullOrWhiteSpace(job.PositionTitle))
+                                                            {
+                                                                <div class="text-danger mt-1">Απαιτείται Περιγραφή της Θέσης Εργασίας.</div>
+                                                            }
+                                                        </div>
+
+                                                        @*
+                                                        <div class="row mb-3">
+                                                            <div class="col-md-4">
+                                                                <label for="positionTitle">Φορέας</label>
+                                                                <input type="text" id="positionTitle" class="form-control" @bind="job.PositionForeas" />
+                                                            </div>
+                                                        </div>
+                                                        *@
+                                                        <div class="row mb-3">
+                                                            <div class="col-md-4">
+                                                                <label for="positionTitle">Υπεύθυνο Τμήμα <span style="font-style: italic; color: gray;"> (Προαιρετικό)</span></label>
+                                                                <input type="text" id="positionTitle" class="form-control" @bind="job.PositionDepartment" />
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="row mb-3">
+                                                            <div class="col-md-4">
+                                                                <label for="PositionContactPerson">
+                                                                    <strong>Email Υπευθύνου</strong>
+                                                                    <span style="color: red;">*</span>
+                                                                </label>
+                                                                <input type="email" id="PositionContactPerson" 
+                                                                       class="form-control @(showErrorMessageforUploadingjobsAsCompany && !IsValidEmailForCompanyJobs(job.PositionContactPerson) ? "shake error" : "")" 
+                                                                       @bind="job.PositionContactPerson" 
+                                                                       placeholder="example@mail.com" />
+                                                                @if (showErrorMessageforUploadingjobsAsCompany && !IsValidEmailForCompanyJobs(job.PositionContactPerson))
+                                                                {
+                                                                    <small style="color: red;">Παρακαλώ εισάγετε ένα έγκυρο email.</small>
+                                                                }
+                                                            </div>
+                                                        </div>
+
+
+
+                                                        <div class="row mb-3">
+                                                            <div class="col-md-4">
+                                                                <label for="PositionContactTelephonePerson">
+                                                                    Τηλέφωνο Υπευθύνου
+                                                                    <span style="font-style: italic; color: gray;"> (Προαιρετικό)</span>
+                                                                </label>
+                                                                <div class="input-group">
+                                                                    <div class="input-group-prepend">
+                                                                        <span class="input-group-textfortelephone">+30</span>
+                                                                    </div>
+                                                                    <input type="tel" id="PositionContactTelephonePerson"
+                                                                           class="form-control @(showErrorMessageforUploadingjobsAsCompany && !IsValidPhoneNumber(job.PositionContactTelephonePerson) ? "shake error" : "")"
+                                                                           @bind="job.PositionContactTelephonePerson"
+                                                                           @oninput="OnPhoneNumberInput"
+                                                                           placeholder="Τηλέφωνο Υπευθύνου"
+                                                                           maxlength="10" />
+                                                                </div>
+                                                                @if (showErrorMessageforUploadingjobsAsCompany && !IsValidPhoneNumber(job.PositionContactTelephonePerson) && !string.IsNullOrWhiteSpace(job.PositionContactTelephonePerson))
+                                                                {
+                                                                    <small style="color: red;">Παρακαλώ εισάγετε έγκυρο αριθμό τηλεφώνου...</small>
+                                                                }
+                                                            </div>
+                                                        </div>
+
+
+                                                        <!-- Address -->
+                                                        <div class="row mb-3">
+                                                            <div class="col-md-4">
+                                                                <label for="PositionAddressLocation">Διεύθυνση Εργασίας<span style="font-style: italic; color: gray;"> (Προαιρετικό)</span></label>
+                                                                <div class="input-group">
+                                                                    <input type="tel" id="PositionAddressLocation"
+                                                                           class="form-control @(showErrorMessageforUploadingjobsAsCompany && string.IsNullOrWhiteSpace(job.PositionAddressLocation) ? "" : "")"
+                                                                           @bind="job.PositionAddressLocation"/>
+                                                                </div>
+                                                            </div>
+                                                        </div
+
+                                                        <!-- Region Dropdown -->
+                                                        <div class="row mb-3">
+                                                            <div class="col-md-4">
+                                                                <label for="CompanyInternshipPerifereiaLocation">
+                                                                    <strong>Περιφέρεια</strong>
+                                                                    <span style="color: red;">*</span>
+                                                                </label>
+                                                                <div class="input-group">
+                                                                    <select id="CompanyInternshipPerifereiaLocation" class="form-control @(showErrorMessageforUploadingjobsAsCompany && string.IsNullOrWhiteSpace(job.PositionPerifereiaLocation) ? "shake error" : "")" @bind="job.PositionPerifereiaLocation">
+                                                                        <option value="">-- Επιλέξτε Περιφέρεια --</option>
+                                                                        @foreach (var region in Regions)
+                                                                        {
+                                                                            <option value="@region">@region</option>
+                                                                        }
+                                                                    </select>
+                                                                    <div class="input-group-append">
+                                                                        <span class="input-group-text">
+                                                                            <i class="fas fa-chevron-down"></i>
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            @if (showErrorMessageforUploadingjobsAsCompany && string.IsNullOrWhiteSpace(job.PositionPerifereiaLocation))
+                                                            {
+                                                                <div class="text-danger mt-1">Απαιτείται Επιλογή Περιφέρειας.</div>
+                                                            }
+                                                        </div>
+
+
+
+                                                       <!-- Town Dropdown -->
+                                                        <div class="row mb-3">
+                                                            <div class="col-md-4">
+                                                                <label for="CompanyInternshipDimosLocation">
+                                                                    <strong>Δήμος</strong>
+                                                                    <span style="color: red;">*</span>
+                                                                </label>
+                                                                <div class="input-group">
+                                                                    <select id="CompanyInternshipDimosLocation" class="form-control @(showErrorMessageforUploadingjobsAsCompany && string.IsNullOrWhiteSpace(job.PositionDimosLocation) ? "shake error" : "")" @bind="job.PositionDimosLocation">
+                                                                        <option value="">-- Επιλέξτε Δήμο --</option>
+                                                                        @foreach (var town in GetTownsForRegion(job.PositionPerifereiaLocation))
+                                                                        {
+                                                                            <option value="@town">@town</option>
+                                                                        }
+                                                                    </select>
+                                                                    <div class="input-group-append">
+                                                                        <span class="input-group-text">
+                                                                            <i class="fas fa-chevron-down"></i>
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+
+
+                                                        <div class="row mb-3">
+                                                            <div class="col-md-4">
+                                                                <label for="positionPostalCode">
+                                                                    Ταχυδρομικός Κώδικας
+                                                                    <span style="font-style: italic; color: gray;"> (Προαιρετικό)</span>
+                                                                </label>
+                                                                <input type="text" id="positionPostalCode"
+                                                                       class="form-control @(showErrorMessageforPostalCode ? "shake error" : "")"
+                                                                       @bind="job.PositionPostalCodeLocation"
+                                                                       @oninput="ValidatePostalCode"
+                                                                       placeholder="Π.χ. 12345"
+                                                                       maxlength="5"
+                                                                       pattern="\d{5}" />
+                                                                @if (showErrorMessageforPostalCode)
+                                                                {
+                                                                    <small style="color: red;">Παρακαλώ εισάγετε έναν έγκυρο Ταχυδρομικό Κώδικα (5 ψηφία).</small>
+                                                                }
+                                                            </div>
+                                                        </div>
+
+
+
+                                                        <div class="row mb-3">
+                                                            <div class="col-md-4">
+                                                                <label><strong>Δυνατότητα Μετακίνησης</strong> <span style="color: red;">*</span> <span style="font-style: italic; color: gray;"> (Προσφέρεται από την εταιρία)</span></label>
+                                                                <div class="form-check">
+                                                                    <input type="radio" id="PositionTransportOfferYes" class="form-check-input" name="PositionTransportOffer" value="true" checked="@(job.PositionTransportOffer ? "checked" : "")" @onchange="() => UpdateTransportOffer(true)" />
+                                                                    <label for="PositionTransportOfferYes" class="form-check-label">Ναι</label>
+                                                                </div>
+                                                                <div class="form-check">
+                                                                    <input type="radio" id="PositionTransportOfferNo" class="form-check-input" name="PositionTransportOffer" value="false" checked="@(job.PositionTransportOffer ? "" : "checked")" @onchange="() => UpdateTransportOffer(false)" />
+                                                                    <label for="PositionTransportOfferNo" class="form-check-label">Όχι</label>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+
+                                                        <div class="row mb-3">
+                                                            <div class="col-md-4">
+                                                                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap;">
+                                                                    <label style="margin: 0; display: flex; align-items: center; gap: 4px;">
+                                                                        <strong>Τομείς Θέσης</strong>
+                                                                        <span style="color: red;">*</span>
+                                                                    </label>
+            
+                                                                    <button type="button" 
+                                                                            @onclick="ToggleCheckboxesForCompanyJob"
+                                                                            class="toggle-all-areas-btn @(showErrorMessageforUploadingjobsAsCompany && string.IsNullOrWhiteSpace(job.PositionAreas) ? "shake error" : "")"
+                                                                            style="border: 1px solid #2d3748; background: white; border-radius: 6px; padding: 4px 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; color: #2d3748; font-size: 0.85em; transition: all 0.2s;">
+                                                                        <span>👆</span>
+                                                                        <span>Προβολή τομέων</span>
+                                                                    </button>
+                                                                </div>
+
+                                                                @if (showCheckboxesForCompanyJob)
+                                                                {
+                                                                    <div id="toggleCheckboxes" class="checkbox-container">
+                                                                        @if (Areas == null || !Areas.Any())
+                                                                        {
+                                                                            <p>Φορτώνει...</p>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            @foreach (var area in Areas)
+                                                                            {
+                                                                                <div class="area-container" style="margin-bottom: 8px; border: 2px solid #1565c0; border-radius: 6px; padding: 8px; background-color: #f8f9fa;">
+                                                                                    <div class="form-check area-header" style="display: flex; align-items: center; gap: 8px;">
+                                                                                        <input type="checkbox"
+                                                                                               id="area_@area.Id"
+                                                                                               class="form-check-input"
+                                                                                               @onchange="(e) => OnAreaCheckedChangedForCompanyJob(e, area)"
+                                                                                               checked="@IsAreaSelectedForCompanyJob(area)" />
+                                                                                        <label class="form-check-label area-label @(showErrorMessageforUploadingjobsAsCompany && string.IsNullOrWhiteSpace(job.PositionAreas) ? "shake error" : "")" 
+                                                                                               for="area_@area.Id"
+                                                                                               style="cursor: pointer; font-weight: bold; flex-grow: 1; color: #1565c0;">
+                                                                                            @area.AreaName
+                                                                                        </label>
+                                                                                        <button type="button"
+                                                                                                @onclick="@(() => ToggleSubFieldsForCompanyJob(area))"
+                                                                                                @onclick:stopPropagation="true"
+                                                                                                class="expand-btn"
+                                                                                                style="border: 1px solid #1565c0; background: white; border-radius: 4px; padding: 4px 8px; cursor: pointer; display: flex; align-items: center; gap: 4px; font-size: 0.8em; color: #1565c0; transition: all 0.2s;">
+                                                                                            <span>Υποτομείς</span>
+                                                                                            <span class="expand-icon" style="font-size: 10px; transition: transform 0.2s; transform: @(ExpandedAreasForCompanyJob.Contains(area.Id) ? "rotate(90deg)" : "rotate(0deg)")">▶</span>
+                                                                                        </button>
+                                                                                    </div>
+                            
+                                                                                    @if (ExpandedAreasForCompanyJob.Contains(area.Id))
+                                                                                    {
+                                                                                        <div class="subfields-container" style="margin-top: 12px; margin-left: 28px; padding: 12px; background: white; border: 1px solid #e0e0e0; border-radius: 4px;">
+                                                                                            <div style="font-size: 0.85em; color: #666; margin-bottom: 8px; font-weight: 500;">
+                                                                                                Επιλέξτε υποτομείς:
+                                                                                            </div>
+                                                                                            @if (!string.IsNullOrEmpty(area.AreaSubFields))
+                                                                                            {
+                                                                                                var subFields = area.AreaSubFields.Split(',').Select(s => s.Trim()).ToList();
+                                                                                                @foreach (var subField in subFields)
+                                                                                                {
+                                                                                                    <div class="form-check subfield-checkbox" style="margin-bottom: 6px;">
+                                                                                                        <input type="checkbox"
+                                                                                                               id="subfield_@(area.Id)_@(subField)"
+                                                                                                               class="form-check-input"
+                                                                                                               @onchange="(e) => OnSubFieldCheckedChangedForCompanyJob(e, area, subField)"
+                                                                                                               checked="@IsSubFieldSelectedForCompanyJob(area, subField)" />
+                                                                                                        <label class="form-check-label" for="subfield_@(area.Id)_@(subField)" style="font-weight: normal; font-size: 0.9em;">
+                                                                                                            @subField
+                                                                                                        </label>
+                                                                                                    </div>
+                                                                                                }
+                                                                                            }
+                                                                                        </div>
+                                                                                    }
+                                                                                </div>
+                                                                            }
+                                                                        }
+                                                                    </div>
+                                                                }
+                                                            </div>
+                                                            @if (showErrorMessageforUploadingjobsAsCompany && !HasAnySelectionForCompanyJob())
+                                                            {
+                                                                <div class="text-danger mt-1">Πρέπει να επιλέξετε τουλάχιστον 1 Τομέα Θέσης ή Υποτομέα.</div>
+                                                            }
+                                                        </div>
+
+                                                    <div class="row mb-3">
+                                                        <div class="col-md-4">
+                                                            <label for="CompanyJobActivePeriod"><strong>Διαθέσιμη Από</strong> <span style="color: red;">*</span></label>
+                                                            <input type="date" id="CompanyJobActivePeriod" 
+                                                                   class="form-control @(showErrorMessageforUploadingjobsAsCompany && ( job.PositionActivePeriod.Date == DateTime.Today) ? "shake error" : "")" 
+                                                                   @bind="job.PositionActivePeriod" />
+                                                        </div>
+                                                        @if (showErrorMessageforUploadingjobsAsCompany && job.PositionActivePeriod.Date <= DateTime.Today)
+                                                        {
+                                                            <div class="text-danger mt-1">Η ημερομηνία πρέπει να είναι μεταγενέστερη της σημερινής ημερομηνίας.</div>
+                                                        }
+                                                    </div>
+
+
+
+                                                        @*
+                                                        <div class="row mb-3">
+                                                            <div class="col-md-4">
+                                                                <label for="positionTitle">Κατάσταση Θέσης</label>
+                                                                <input type="text" id="positionTitle" class="form-control" @bind="job.PositionStatus" />
+                                                            </div>
+                                                        </div>
+                                                        *@
+                                                    <div class="row mb-3">
+                                                        <div class="col-md-4 position-relative">
+                                                            <label for="CompanyJobDescription"><strong>Περιγραφή Θέσης</strong> <span style="color: red;">*</span></label>
+                                                            <textarea id="CompanyJobDescription" class="form-control @(showErrorMessageforUploadingjobsAsCompany && string.IsNullOrWhiteSpace(job.PositionDescription) ? "shake error" : "")"
+                                                                      @bind="job.PositionDescription"
+                                                                      @oninput="CheckCharacterLimitInJobDescriptionUploadAsCompany"
+                                                                      maxlength="1000"
+                                                                      placeholder="Περιγραφή Θέσης"></textarea>
+                                                            <small class="character-limit light-cadetblue-text">@remainingCharactersInJobDescriptionUploadAsCompany/1000</small>
+                                                        </div>
+                                                        @if (showErrorMessageforUploadingjobsAsCompany && string.IsNullOrWhiteSpace(job.PositionDescription))
+                                                        {
+                                                                <div class="text-danger mt-1">Απαιτείται Περιγραφή της Θέσης Εργασίας.</div>
+                                                        }
+                                                    </div>
+
+                                                    <!-- Open Slots Field -->
+                                                    <div class="row mb-3">
+                                                        <div class="col-md-4">
+                                                            <label for="openSlots">
+                                                                <strong>Διαθέσιμες Θέσεις</strong>
+                                                                <span style="color: red;">*</span>
+                                                            </label>
+                                                            <input type="number" 
+                                                                   id="openSlots" 
+                                                                   class="form-control @(showErrorMessageforUploadingjobsAsCompany && job.OpenSlots < 3 ? "shake error" : "")" 
+                                                                   @bind="job.OpenSlots" 
+                                                                   min="3" 
+                                                                   step="1" />
+                                                            @if (showErrorMessageforUploadingjobsAsCompany && job.OpenSlots < 3)
+                                                            {
+                                                                <div class="text-danger mt-1">Ο αριθμός των διαθέσιμων θέσεων πρέπει να είναι τουλάχιστον 3.</div>
+                                                            }
+                                                            <small class="form-text text-muted">Αριθμός ανοιχτών θέσεων για αυτή τη θέση εργασίας (ελάχιστο 3)</small>
+                                                        </div>
+                                                    </div>
+
+
+                                                    <div class="row mb-3">
+                                                        <div class="col-md-4">
+                                                            <label for="positionAttachment">Συνημμένο Αρχείο Θέσης Εργασίας 
+                                                                <span style="font-style: italic; color: gray;"> (Προαιρετικό)</span>
+                                                            </label>
+                                                            <InputFile id="positionAttachment" class="form-control" OnChange="HandleFileSelected" />
+                                                            <small class="form-text text-muted">Όριο 10MB - Μόνο αρχεία PDF</small>
+                                                            @if (!string.IsNullOrEmpty(PositionAttachmentErrorMessage))
+                                                            {
+                                                                <div class="text-danger mt-2">@PositionAttachmentErrorMessage</div>
+                                                            }
+                                                        </div>
+                                                    </div>
+
+
+                                                    <!-- Save Buttons -->
+                                                    <div class="row mb-3">
+                                                        <div class="col-md-12">
+                                                            <button class="modern-button" style="background-color: #818589; color: white; display: inline-flex; align-items: center;" @onclick="HandleTemporarySaveJobAsCompany">
+                                                                <i class="fa-regular fa-floppy-disk" style="margin-right: 8px;"></i>Προσωρινή Αποθήκευση Θέσης Εργασίας
+                                                            </button>
+                                                            <button class="modern-button" style="background-color: #2d3748; color: white; display: inline-flex; align-items: center;" @onclick="HandlePublishSaveJobAsCompany">
+                                                                <i class="fa-solid fa-floppy-disk" style="margin-right: 8px;"></i>Δημοσίευση Θέσης Εργασίας
+                                                            </button>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Loading Modal for Company Job -->
+                                                    @if (showLoadingModalForJob)
+                                                    {
+                                                        <div class="loading-modal">
+                                                            <div class="loading-modal-content">
+                                                                <div class="loading-spinner"></div>
+                                                                <p>Αποθήκευση Θέσης Εργασίας...</p>
+                                                                <div class="progress-bar">
+                                                                    <div class="progress-bar-fill" style="width: @loadingProgress%"></div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    }
+                                                    
+                                                        @if (showSuccessMessage)
+                                                        {
+                                                            <div class="good-message">
+                                                                Η Νέα Θέση Εργασίας υποβλήθηκε με επιτυχία!
+                                                            </div>
+                                                        }
+                                                        @if (showErrorMessageforUploadingjobsAsCompany)
+                                                        {
+                                                            <div class="alert alert-danger" role="alert">
+                                                                Συμπληρώστε Όλα Τα Υποχρεωτικά Πεδία και Προσπαθήστε Ξανά
+                                                            </div>
+                                                        }
+                                                }
+                                                    <div id="energes-theseis-ergasias-company"></div>
+                                                    <!-- VIEW UPLOADED JOBS AS COMPANY -->
+                                                    <div class="mb-3 row-dark-gray">
+                                                        <div class="d-flex justify-content-between align-items-center" @onclick="ToggleFormVisibilityToShowMyActiveJobsAsCompany" style="cursor: pointer;">
+                                                            <label class="form-label" style="color: #FFF8DC;">
+                                                                @if (isLoadingJobsHistory)
+                                                                {
+                                                                    <span>
+                                                                        <i class="fas fa-spinner fa-spin me-2"></i>
+                                                                        Φόρτωση Ιστορικού...
+                                                                    </span>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span>• Ιστορικό Θέσεων Εργασίας •</span>
+                                                                }
+                                                            </label>
+                                                            <button class="btn btn-link" @onclick="ToggleFormVisibilityToShowMyActiveJobsAsCompany" @onclick:stopPropagation="true">
+                                                                @if (isForm2Visible && !isLoadingJobsHistory)
+                                                                {
+                                                                    <span>&#8722;</span> <!-- Minus sign -->
+                                                                }
+                                                                else if (!isLoadingJobsHistory)
+                                                                {
+                                                                    <span>&#43;</span> <!-- Plus sign -->
+                                                                }
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    @if (isForm2Visible && !isLoadingJobsHistory)
+                                                    {                                                       
+                                                        <div class="col-md-2">
+                                                            <label for="statusFilterForJobs" style="color: #2d3748;"><strong>Φίλτρο Εμφάνισης</strong></label>
+                                                            <div class="input-group">
+                                                                <select id="statusFilterForJobs" class="form-control form-control-sm" @bind="selectedStatusFilterForJobs">
+                                                                    <option value="Όλα">Όλες</option>
+                                                                    <option value="Δημοσιευμένη">Δημοσιευμένες</option>
+                                                                    <option value="Μη Δημοσιευμένη">Μη Δημοσιευμένες</option>
+                                                                    <option value="Αποσυρμένη">Αποσυρμένες</option>
+                                                                </select>
+                                                                <div class="input-group-append">
+                                                                    <span class="input-group-text">
+                                                                        <i class="fas fa-chevron-down"></i>
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-2">
+                                                            <label style="color: #2d3748;"><strong>Αποτελέσματα ανά Σελίδα</strong></label>
+                                                            <div class="input-group" style="max-width: 65px;">
+                                                                <select class="form-control form-control-sm" @onchange="OnPageSizeChange_SeeMyUploadedJobsAsCompany">
+                                                                    @foreach (var option in pageSizeOptions_SeeMyUploadedJobsAsCompany)
+                                                                    {
+                                                                        <option value="@option" selected="@(JobsPerPage == option)">@option</option>
+                                                                    }
+                                                                </select>
+                                                                <div class="input-group-append">
+                                                                    <span class="input-group-text">
+                                                                        <i class="fas fa-chevron-down"></i>
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <br/>
+                                                        <div class="col-md-2">
+                                                            @if (selectedStatusFilterForJobs == "Όλα")
+                                                            {
+                                                                <span><strong>Σύνολο: </strong>@totalCountJobs</span>
+                                                            }
+                                                            else if (selectedStatusFilterForJobs == "Δημοσιευμένη")
+                                                            {
+                                                                <span><strong>Σύνολο: </strong>@publishedCountJobs</span>
+                                                            }
+                                                            else if (selectedStatusFilterForJobs == "Μη Δημοσιευμένη")
+                                                            {
+                                                                <span><strong>Σύνολο: </strong>@unpublishedCountJobs</span>
+                                                            }
+                                                            else if (selectedStatusFilterForJobs == "Αποσυρμένη")
+                                                            {
+                                                                <span><strong>Σύνολο: </strong>@withdrawnCountJobs</span>
+                                                            }
+                                                        </div>                                                    
+
+                                                        <!-- Bulk Edit Section for Jobs - Only show when there are jobs -->
+                                                        @if (jobs != null && jobs.Any())
+                                                        {
+                                                            <div class="row mb-3">
+                                                                <div class="col-md-12">
+                                                                    <!-- Bulk Edit Button - Show when NOT in bulk edit mode -->
+                                                                    @if (!isBulkEditMode)
+                                                                    {
+                                                                        <div class="mb-2" style="margin-left: -10px;">
+                                                                            <button class="modern-button" style="background-color: #2d3748; color: white; display: inline-flex; align-items: center;" 
+                                                                                    @onclick="EnableBulkEditMode"
+                                                                                    onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                                    onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                                <i class="fas fa-edit" style="margin-right: 8px;"></i>Μαζική Επεξεργασία Θέσεων Εργασίας
+                                                                            </button>
+                                                                        </div>
+                                                                    }
+
+                                                                    <!-- Bulk Action Controls - Show when in bulk edit mode -->
+                                                                    @if (isBulkEditMode)
+                                                                    {
+                                                                        <div class="mb-2" style="margin-left: -10px;">
+                                                                            <div class="d-flex gap-2 align-items-center flex-wrap">
+                                                                                <button class="modern-button" style="background-color: #2d3748; color: white; display: inline-flex; align-items: center;" 
+                                                                                        @onclick='() => ExecuteBulkStatusChangeForJobs("Δημοσιευμένη")'
+                                                                                        disabled="@(selectedJobIds.Count == 0)"
+                                                                                        onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                                        onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                                    <i class="fas fa-arrow-up me-2"></i>Αλλαγή σε Δημοσιευμένη
+                                                                                </button>
+                                                                                <button class="modern-button" style="background-color: #2d3748; color: white; display: inline-flex; align-items: center;" 
+                                                                                        @onclick='() => ExecuteBulkStatusChangeForJobs("Μη Δημοσιευμένη")'
+                                                                                        disabled="@(selectedJobIds.Count == 0)"
+                                                                                        onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                                        onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                                    <i class="fas fa-arrow-down me-2"></i>Αλλαγή σε Μη Δημοσιευμένη
+                                                                                </button>
+                                                                                <button class="modern-button" style="background-color: #2d3748; color: white; display: inline-flex; align-items: center;" 
+                                                                                        @onclick='() => ExecuteBulkStatusChangeForJobs("Αποσυρμένη")'
+                                                                                        disabled="@(selectedJobIds.Count == 0)"
+                                                                                        onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                                        onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                                    <i class="fas fa-times me-2"></i>Αλλαγή σε Αποσυρμένη
+                                                                                </button>
+                                                                                <button class="modern-button" style="background-color: #2d3748; color: white; display: inline-flex; align-items: center;" 
+                                                                                        @onclick="ExecuteBulkCopyForJobs"
+                                                                                        disabled="@(selectedJobIds.Count == 0)"
+                                                                                        onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                                        onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                                    <i class="fas fa-copy me-2"></i>Κλωνοποίηση 
+                                                                                </button>
+                                                                                <button class="modern-button" style="background-color: #6c757d; color: white; display: inline-flex; align-items: center;" 
+                                                                                        @onclick="CancelBulkEdit"
+                                                                                        onmouseover="this.style.backgroundColor='#5a6268'" 
+                                                                                        onmouseout="this.style.backgroundColor='#6c757d'">
+                                                                                    <i class="fas fa-times me-2"></i>Ακύρωση
+                                                                                </button>
+                                                                            </div>
+
+                                                                            <!-- Selected count badge -->
+                                                                            @if (selectedJobIds.Count > 0)
+                                                                            {
+                                                                                <div class="mt-2">
+                                                                                    <span class="badge bg-primary">
+                                                                                        Επιλεγμένες Θέσεις: @selectedJobIds.Count
+                                                                                    </span>
+                                                                                </div>
+                                                                            }
+
+                                                                            <!-- Instruction text - ALWAYS show when in bulk edit mode -->
+                                                                            <div class="mt-2">
+                                                                                <div class="alert alert-info" style="background-color: #e7f3ff; border: 1px solid #b3d9ff; color: #004085; border-radius: 6px; padding: 8px 12px;">
+                                                                                    <i class="fas fa-info-circle me-2"></i>
+                                                                                    <strong>Επιλέξτε Θέσεις Εργασίας στον Πίνακα</strong>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    }
+                                                                </div>
+                                                            </div>
+                                                        }
+
+                                                        <!-- Add the legend here - right before the table -->
+                                                        <div class="d-flex justify-content-end mb-2">
+                                                            <div class="status-legend" style="display: flex; align-items: center; gap: 15px; background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; padding: 6px 12px;">
+                                                                <div style="display: flex; align-items: center; gap: 8px;">
+                                                                    <div style="display: flex; align-items: center;">
+                                                                        <div style="width: 16px; height: 16px; background-color: lightblue; border: 1px solid #ccc; border-radius: 3px; margin-right: 5px;"></div>
+                                                                        <span>Δημοσιευμένη</span>
+                                                                    </div>
+                                                                    <div style="display: flex; align-items: center;">
+                                                                        <div style="width: 16px; height: 16px; background-color: lightcoral; border: 1px solid #ccc; border-radius: 3px; margin-right: 5px;"></div>
+                                                                        <span>Μη Δημοσιευμένη</span>
+                                                                    </div>
+                                                                    <div style="display: flex; align-items: center;">
+                                                                        <div style="width: 16px; height: 16px; background-color: lightyellow; border: 1px solid #ccc; border-radius: 3px; margin-right: 5px;"></div>
+                                                                        <span>Αποσυρμένη</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div style="max-width: auto; margin-left: 0;">
+                                                            <div class="table-responsive">
+                                                                <table class="table table-striped">
+                                                                    <thead>
+                                                                        <tr style="border: 2px solid black; background-color: lightgray;">
+                                                                            @if (isBulkEditMode && jobs != null && jobs.Any())
+                                                                            {
+                                                                                <th style="border: 2px solid black; width: 40px;">
+                                                                                    #
+                                                                                </th>
+                                                                            }
+                                                                            <th style="border: 2px solid black;"><i class="fa-solid fa-key fa-sm" style="color: #0d6efd;"></i> Κωδικός Θέσης</th>
+                                                                            <th style="border: 2px solid black;">
+                                                                              <i class="fa-solid fa-font fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                              Τίτλος
+                                                                            </th>
+                                                                            <th style="border: 2px solid black;">
+                                                                              <i class="fa-solid fa-arrows-up-down fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                              Κατάσταση Θέσης
+                                                                            </th>
+                                                                            <th style="border: 2px solid black;">
+                                                                              <i class="fa-solid fa-calendar-days fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                              Δημιουργία Θέσης
+                                                                            </th>
+                                                                            <th style="border: 2px solid black;">
+                                                                              <i class="fa-solid fa-hand fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                              Ενέργειες
+                                                                            </th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        @if (jobs != null && jobs.Any())
+                                                                        {
+                                                                            @foreach (var job in GetPaginatedJobs().Where(j => selectedStatusFilterForJobs == "Όλα" || j.PositionStatus == selectedStatusFilterForJobs))
+                                                                            {
+                                                                                <!-- Main Job Row -->
+                                                                                <tr style="background-color: @(job.PositionStatus == "Δημοσιευμένη" ? "lightblue" : (job.PositionStatus == "Μη Δημοσιευμένη" ? "lightcoral" : "lightyellow")); border: 2px solid black;">
+                                                                                    @if (isBulkEditMode)
+                                                                                    {
+                                                                                        <td style="border: 1px solid black; text-align: center;">
+                                                                                            <input type="checkbox" 
+                                                                                                   @onchange="@((e) => ToggleJobSelection(job.Id, e))" 
+                                                                                                   checked="@selectedJobIds.Contains(job.Id)" />
+                                                                                        </td>
+                                                                                    }
+                                                                                    <td style="color: #2d3748; border: 1px solid black;">
+                                                                                        @job.RNGForPositionUploaded_HashedAsUniqueID
+                                                                                    </td>
+                                                                                    <td style="border: 1px solid black;">@job.PositionTitle</td>
+                                                                                    <td style="border: 1px solid black;">@job.PositionStatus</td>
+                                                                                    <td style="border: 1px solid black;">@job.UploadDateTime</td>
+                                                                                    <td style="border: 1px solid black; position: relative;" class="actions-cell">
+                                                                                        <div class="dropdown">
+                                                                                            <!-- Options menu button with ellipsis-h icon -->
+                                                                                            <button class="btn btn-action btn-menu" 
+                                                                                                    @onclick="() => ToggleJobMenu(job.Id)" 
+                                                                                                    title="Ενέργειες"
+                                                                                                    @onclick:stopPropagation="true">
+                                                                                                <i class="fas fa-ellipsis-h icon-button"></i>
+                                                                                            </button>
+        
+                                                                                            <!-- Dropdown menu -->
+                                                                                            @if (activeJobMenuId == job.Id)
+                                                                                            {
+                                                                                                <!-- Invisible backdrop that covers entire screen -->
+                                                                                                <div class="dropdown-backdrop" @onclick="() => ToggleJobMenu(0)"></div>
+            
+                                                                                                <div class="dropdown-menu show" @onclick:stopPropagation="true">
+                                                                                                    <!-- Delete option -->
+                                                                                                    <button class="dropdown-item" @onclick="() => { DeleteJobPosition(job.Id); ToggleJobMenu(0); }">
+                                                                                                        <i class="fas fa-trash me-2" style="color: #f56565;"></i>
+                                                                                                        <span>Διαγραφή</span>
+                                                                                                    </button>
+                
+                                                                                                    <!-- View details option -->
+                                                                                                    <button class="dropdown-item" @onclick="() => { ShowJobDetails(job); ToggleJobMenu(0); }">
+                                                                                                        <i class="fas fa-eye me-2" style="color: #63b3ed;"></i>
+                                                                                                        <span>Προβολή</span>
+                                                                                                    </button>
+
+                                                                                                    <!-- Download attachment option (only if attachment exists) -->
+                                                                                                    @if (job.PositionAttachment != null && job.PositionAttachment.Length > 0)
+                                                                                                    {
+                                                                                                        <button class="dropdown-item" @onclick="() => { DownloadAttachmentForCompanyJobs(job.Id); ToggleJobMenu(0); }">
+                                                                                                            <i class="fas fa-download me-2" style="color: #48bb78;"></i>
+                                                                                                            <span>Λήψη Αρχείου</span>
+                                                                                                        </button>
+                                                                                                    }
+
+                                                                                                    <!-- View applicants option -->
+                                                                                                    <button class="dropdown-item" @onclick="() => { ToggleJobsExpanded(job.RNGForPositionUploaded); ToggleJobMenu(0); }">
+                                                                                                        <i class="fa-solid fa-graduation-cap me-2" style="color: #63b3ed;"></i>
+                                                                                                        <span>Αιτούντες</span>
+                                                                                                    </button>
+
+                                                                                                    <!-- Status change options -->
+                                                                                                    @if (job.PositionStatus != "Δημοσιευμένη")
+                                                                                                    {
+                                                                                                        <!-- Edit option (only for non-published) -->
+                                                                                                        <button class="dropdown-item" @onclick="() => { EditJobDetails(job); ToggleJobMenu(0); }">
+                                                                                                            <i class="fas fa-pencil-alt me-2" style="color: #8b5cf6;"></i>
+                                                                                                            <span>Επεξεργασία</span>
+                                                                                                        </button>
+                    
+                                                                                                        <!-- Publish option -->
+                                                                                                        <button class="dropdown-item" @onclick='async () => { await UpdateJobStatusAsCompany(job.Id, "Δημοσιευμένη"); ToggleJobMenu(0); }'>
+                                                                                                            <i class="fas fa-arrow-up me-2" style="color: #68d391;"></i>
+                                                                                                            <span>Δημοσίευση</span>
+                                                                                                        </button>
+                                                                                                    }
+                                                                                                    else
+                                                                                                    {
+                                                                                                        <!-- Withdraw option (only for published) -->
+                                                                                                        <button class="dropdown-item" @onclick='async () => { await UpdateJobStatusAsCompany(job.Id, "Αποσυρμένη"); ToggleJobMenu(0); }'>
+                                                                                                            <i class="fas fa-times me-2" style="color: #f56565;"></i>
+                                                                                                            <span>Απόσυρση</span>
+                                                                                                        </button>
+                                                                                                    }
+
+                                                                                                    @if (job.PositionStatus != "Μη Δημοσιευμένη")
+                                                                                                    {
+                                                                                                        <!-- Unpublish option -->
+                                                                                                        <button class="dropdown-item" @onclick='() => { ChangeJobStatusToUnpublished(job.Id); ToggleJobMenu(0); }'>
+                                                                                                            <i class="fas fa-arrow-down me-2" style="color: #f6e05e;"></i>
+                                                                                                            <span>Αποδημοσίευση</span>
+                                                                                                        </button>
+                                                                                                    }
+                                                                                                </div>
+                                                                                            }
+                                                                                        </div>
+    
+                                                                                        <!-- Loading Modal for Delete Job Position -->
+                                                                                        @if (showLoadingModalForDeleteJob)
+                                                                                        {
+                                                                                            <div class="loading-modal">
+                                                                                                <div class="loading-modal-content">
+                                                                                                    <div class="loading-spinner"></div>
+                                                                                                    <p>Διαγραφή Θέσης Εργασίας...</p>
+                                                                                                    <div class="progress-bar">
+                                                                                                        <div class="progress-bar-fill" style="width: @loadingProgress%"></div>
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        }
+                                                                                    </td>
+                                                                                </tr>
+
+                                                                                <!-- Applicants Section - Connected to the main row -->
+                                                                                @if (currentlyExpandedJobId == job.RNGForPositionUploaded)
+                                                                                {
+                                                                                    <tr style="background-color: #e8f4f8; border-left: 4px solid #0d6efd;">
+                                                                                        <td colspan="@(isBulkEditMode ? "6" : "5")" style="padding: 0; border: 1px solid #0d6efd;">
+                                                                                            <div style="background: linear-gradient(135deg, #e8f4f8 0%, #d1ecf1 100%); padding: 15px; border-radius: 0 0 5px 5px;">
+                                                                                                <!-- Loading State for Applicants -->
+                                                                                                @if (isLoadingJobApplicants && loadingJobPositionId == job.RNGForPositionUploaded)
+                                                                                                {
+                                                                                                    <div class="text-center" style="padding: 40px;">
+                                                                                                        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+                                                                                                            <span class="sr-only">Φόρτωση...</span>
+                                                                                                        </div>
+                                                                                                        <p style="color: #0d6efd; font-weight: bold; margin-top: 15px; font-size: 16px;">
+                                                                                                            Φόρτωση αιτούντων...
+                                                                                                        </p>
+                                                                                                    </div>
+                                                                                                }
+                                                                                                else
+                                                                                                {
+                                                                                                    <!-- BULK ACTIONS SECTION FOR APPLICANTS -->
+                                                                                                    @if (jobApplicantsMap.ContainsKey(job.RNGForPositionUploaded) && jobApplicantsMap[job.RNGForPositionUploaded].Any())
+                                                                                                    {
+                                                                                                        <div class="row mb-3">
+                                                                                                            <div class="col-md-12">
+                                                                                                                <!-- Bulk Edit Button for Applicants - Show when NOT in bulk edit mode -->
+                                                                                                                @if (!isBulkEditModeForApplicants)
+                                                                                                                {
+                                                                                                                    <div class="mb-2" style="text-align: left; margin-left: -15px;">
+                                                                                                                        <button class="modern-button" style="background-color: #2d3748; color: white; display: inline-flex; align-items: center;" 
+                                                                                                                                @onclick="() => EnableBulkEditModeForApplicants(job.RNGForPositionUploaded)"
+                                                                                                                                onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                                                                                onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                                                                            <i class="fas fa-edit" style="margin-right: 8px;"></i>Μαζική Επεξεργασία Αιτούντων
+                                                                                                                        </button>
+                                                                                                                    </div>
+                                                                                                                }
+
+                                                                                                                <!-- Bulk Action Controls - Show when in bulk edit mode -->
+                                                                                                                @if (isBulkEditModeForApplicants)
+                                                                                                                {
+                                                                                                                    <div class="mb-2" style="text-align: left; margin-left: -15px;">
+                                                                                                                        <div class="d-flex gap-2 align-items-center flex-wrap">
+                                                                                                                            <button class="modern-button" style="background-color: #2d3748; color: white; display: inline-flex; align-items: center;" 
+                                                                                                                                    @onclick='() => ShowEmailConfirmationModalForApplicants("accept")'
+                                                                                                                                    disabled="@(selectedApplicantIds.Count == 0)"
+                                                                                                                                    onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                                                                                    onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                                                                                <i class="fas fa-check me-2"></i>Μαζική Αποδοχή
+                                                                                                                            </button>
+                                                                                                                            <button class="modern-button" style="background-color: #2d3748; color: white; display: inline-flex; align-items: center;" 
+                                                                                                                                    @onclick='() => ShowEmailConfirmationModalForApplicants("reject")'
+                                                                                                                                    disabled="@(selectedApplicantIds.Count == 0)"
+                                                                                                                                    onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                                                                                    onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                                                                                <i class="fas fa-times me-2"></i>Μαζική Απόρριψη
+                                                                                                                            </button>
+                                                                                                                            <button class="modern-button" style="background-color: #6c757d; color: white; display: inline-flex; align-items: center;" 
+                                                                                                                                    @onclick="CancelBulkEditForApplicants"
+                                                                                                                                    onmouseover="this.style.backgroundColor='#5a6268'" 
+                                                                                                                                    onmouseout="this.style.backgroundColor='#6c757d'">
+                                                                                                                                <i class="fas fa-times me-2"></i>Ακύρωση
+                                                                                                                            </button>
+                                                                                                                        </div>
+
+                                                                                                                        <!-- Badges section - All badges together -->
+                                                                                                                        <div class="mt-2 d-flex gap-2 align-items-center flex-wrap">
+                                                                                                                            <!-- Selected count badge -->
+                                                                                                                            @if (selectedApplicantIds.Count > 0)
+                                                                                                                            {
+                                                                                                                                <span class="badge bg-primary">
+                                                                                                                                    Επιλεγμένες Αιτήσεις: @selectedApplicantIds.Count
+                                                                                                                                </span>
+                                                                                                                            }
+                        
+                                                                                                                            <!-- Total and Accepted badges -->
+                                                                                                                            <span class="badge badge-primary" style="background-color: #0d6efd; padding: 5px 10px; border-radius: 15px;">
+                                                                                                                                Σύνολο Αιτήσεων: @(jobApplicantsMap.ContainsKey(job.RNGForPositionUploaded) ? jobApplicantsMap[job.RNGForPositionUploaded].Count().ToString() : "0")
+                                                                                                                            </span>
+                                                                                                                            <span class="badge badge-info" style="background-color: #17a2b8; padding: 5px 10px; border-radius: 15px;">
+                                                                                                                                Έχετε Αποδεχτεί: @acceptedApplicantsCountPerJob_ForCompanyJob.GetValueOrDefault(job.RNGForPositionUploaded, 0)/@availableSlotsPerJob_ForCompanyJob.GetValueOrDefault(job.RNGForPositionUploaded, job.OpenSlots)
+                                                                                                                            </span>                                                                                                                        
+                                                                                                                        </div>
+
+                                                                                                                        <!-- Instruction text - ALWAYS show when in bulk edit mode -->
+                                                                                                                        <div class="mt-2">
+                                                                                                                            <div class="alert alert-info" style="background-color: #e7f3ff; border: 1px solid #b3d9ff; color: #004085; border-radius: 6px; padding: 8px 12px;">
+                                                                                                                                <i class="fas fa-info-circle me-2"></i>
+                                                                                                                                <strong>Επιλέξτε Αιτήσεις στον Πίνακα</strong>
+                                                                                                                            </div>
+                                                                                                                        </div>
+                                                                                                                    </div>
+                                                                                                                }
+                                                                                                            </div>
+                                                                                                        </div>
+                                                                                                    }
+                                                                                                    <!-- END BULK ACTIONS SECTION -->
+
+                                                                                                    @if (jobApplicantsMap.ContainsKey(job.RNGForPositionUploaded) && jobApplicantsMap[job.RNGForPositionUploaded].Any())
+                                                                                                    {
+                                                                                                        <div class="table-responsive">
+                                                                                                            <table class="table table-striped">
+                                                                                                                <thead>
+                                                                                                                    <tr style="background-color: #cce7ff; border: 1px solid #0d6efd;">
+                                                                                                                        @if (isBulkEditModeForApplicants)
+                                                                                                                        {
+                                                                                                                            <th style="border: 1px solid #0d6efd; width: 40px;">
+                                                                                                                                #
+                                                                                                                            </th>
+                                                                                                                        }
+                                                                                                                        <th style="border: 1px solid #0d6efd;">
+                                                                                                                            <i class="fa-solid fa-user fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                                                                            Προφίλ
+                                                                                                                        </th>
+                                                                                                                        <th style="border: 1px solid #0d6efd;">
+                                                                                                                            <i class="fa-solid fa-signature fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                                                                            Όνομα
+                                                                                                                        </th>
+                                                                                                                        <th style="border: 1px solid #0d6efd;">
+                                                                                                                            <i class="fa-solid fa-signature fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                                                                            Επώνυμο
+                                                                                                                        </th>
+                                                                                                                        <th style="border: 1px solid #0d6efd;">
+                                                                                                                            <i class="fa-solid fa-calendar-plus fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                                                                            Ημερομηνία Αίτησης
+                                                                                                                        </th>
+                                                                                                                        <th style="border: 1px solid #0d6efd;">
+                                                                                                                            <i class="fa-solid fa-calendar-plus fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                                                                            Έτος Φοίτησης
+                                                                                                                        </th>
+                                                                                                                        <th style="border: 1px solid #0d6efd;">
+                                                                                                                            <i class="fa-solid fa-phone fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                                                                            Τηλέφωνο
+                                                                                                                        </th>
+                                                                                                                        <th style="border: 1px solid #0d6efd;">
+                                                                                                                            <i class="fa-solid fa-envelope fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                                                                            Email
+                                                                                                                        </th>
+                                                                                                                        <th style="border: 1px solid #0d6efd;">
+                                                                                                                            <i class="fa-solid fa-hand fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                                                                            Ενέργεια
+                                                                                                                        </th>
+                                                                                                                        <th style="border: 1px solid #0d6efd;">
+                                                                                                                            <i class="fa-solid fa-hourglass-half fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                                                                            Κατάσταση Αίτησης
+                                                                                                                        </th>
+                                                                                                                    </tr>
+                                                                                                                </thead>
+                                                                                                                <tbody>
+                                                                                                                    @if (studentDataCache == null)
+                                                                                                                    {
+                                                                                                                        <tr>
+                                                                                                                            <td colspan="9" class="text-center" style="border: 1px solid #0d6efd;">
+                                                                                                                                <div class="spinner-border text-primary" role="status">
+                                                                                                                                    <span class="sr-only">Φόρτωση...</span>
+                                                                                                                                </div>
+                                                                                                                                <p>Φόρτωση δεδομένων φοιτητών...</p>
+                                                                                                                            </td>
+                                                                                                                        </tr>
+                                                                                                                    }
+                                                                                                                    else
+                                                                                                                    {
+                                                                                                                        @foreach (var applicant in jobApplicantsMap[job.RNGForPositionUploaded])
+                                                                                                                        {
+                                                                                                                            var student = studentDataCache.TryGetValue(applicant.StudentEmailAppliedForCompanyJob, out var s) ? s : null;
+                                                                                                                            var status = applicant.CompanyPositionStatusAppliedAtTheStudentSide ?? "N/A";
+                                                                                                                            var companyStatus = applicant.CompanyPositionStatusAppliedAtTheCompanySide ?? "N/A";
+
+                                                                                                                            <tr style="background-color: @(companyStatus == "Επιτυχής" ? "lightgreen" :
+                                                                                                                                                            companyStatus == "Απορρίφθηκε" ? "lightcoral" :
+                                                                                                                                                            companyStatus == "Απορρίφθηκε (Απόσυρση Θέσεως Από Εταιρία)" ? "coral" :
+                                                                                                                                                            companyStatus == "Αποσύρθηκε από τον φοιτητή" ? "lightyellow" : "transparent")">
+                                                                                                                                @if (isBulkEditModeForApplicants)
+                                                                                                                                {
+                                                                                                                                    <td style="border: 1px solid #0d6efd; text-align: center;">
+                                                                                                                                        <div class="disabled-checkbox-container">
+                                                                                                                                            <input type="checkbox" 
+                                                                                                                                                   @onchange="@((e) => ToggleApplicantSelection(applicant.RNGForCompanyJobApplied, applicant.StudentUniqueIDAppliedForCompanyJob, e))" 
+                                                                                                                                                   checked="@selectedApplicantIds.Contains((applicant.RNGForCompanyJobApplied, applicant.StudentUniqueIDAppliedForCompanyJob))"
+                                                                                                                                                   disabled="@(companyStatus != "Σε Επεξεργασία")"
+                                                                                                                                                   class="@(companyStatus != "Σε Επεξεργασία" ? "disabled-checkbox" : "")" />
+                                                                                                                                        </div>
+                                                                                                                                    </td>
+                                                                                                                                }
+                                                                                                                                <td style="border: 1px solid #0d6efd;">
+                                                                                                                                    <a href="#" @onclick='() => ShowStudentDetailsInNameAsHyperlink(applicant.StudentUniqueIDAppliedForCompanyJob, applicant.Id, "Job")' 
+                                                                                                                                       title="Προφίλ Υποψήφιου Σπουδαστή" style="color: #0d6efd; text-decoration: none;">
+                                                                                                                                        <i class="fas fa-eye icon-button text-dark"></i>
+                                                                                                                                        @if (student == null)
+                                                                                                                                        {
+                                                                                                                                            <span class="badge badge-warning ml-1">Δε βρέθηκε</span>
+                                                                                                                                        }
+                                                                                                                                    </a>
+                                                                                                                                </td>
+                                                                                                                                <td style="border: 1px solid #0d6efd;">@(student?.Name ?? "Δε βρέθηκε")</td>
+                                                                                                                                <td style="border: 1px solid #0d6efd;">@(student?.Surname ?? "Δε βρέθηκε")</td>
+                                                                                                                                <td style="border: 1px solid #0d6efd;">@applicant.DateTimeStudentAppliedForCompanyJob.ToString("dd/MM/yyyy HH:mm")</td>
+                                                                                                                                <td style="border: 1px solid #0d6efd;">@(student?.StudyYear ?? "-")</td>
+                                                                                                                                <td style="border: 1px solid #0d6efd;">
+                                                                                                                                    <i class="fas fa-phone-alt"></i> @(student?.Telephone ?? "-")
+                                                                                                                                </td>
+                                                                                                                                <td style="border: 1px solid #0d6efd;">
+                                                                                                                                    <i class="fas fa-envelope"></i> @applicant.StudentEmailAppliedForCompanyJob
+                                                                                                                                </td>
+                                                                                                                                <td style="border: 1px solid #0d6efd;">
+                                                                                                                                    @if (status == "Σε Επεξεργασία")
+                                                                                                                                    {
+                                                                                                                                        <div style="display: flex; gap: 10px; justify-content: center;">
+                                                                                                                                            <span @onclick="() => ConfirmAndAcceptJob(applicant.RNGForCompanyJobApplied, applicant.StudentUniqueIDAppliedForCompanyJob)" 
+                                                                                                                                                  title="Αποδοχή Αίτησης" style="cursor: pointer;">
+                                                                                                                                                <i class="fas fa-check action-icon accept-icon"></i>
+                                                                                                                                            </span>
+
+                                                                                                                                            <span @onclick="() => ConfirmAndRejectJob(applicant.RNGForCompanyJobApplied, applicant.StudentUniqueIDAppliedForCompanyJob)" 
+                                                                                                                                                  title="Απόρριψη Αίτησης" style="cursor: pointer;">
+                                                                                                                                                <i class="fas fa-times action-icon reject-icon"></i>
+                                                                                                                                            </span>
+                                                                                                                                        </div>
+                                                                                                                                    }
+                                                                                                                                    else
+                                                                                                                                    {
+                                                                                                                                        <span class="text">@status</span>
+                                                                                                                                    }
+                                                                                                                                </td>
+                                                                                                                                <td style="border: 1px solid #0d6efd;">
+                                                                                                                                    @if (companyStatus == "Επιτυχής")
+                                                                                                                                    {
+                                                                                                                                        <span style="color: green; font-weight: bold;">Έχει γίνει Αποδοχή</span>
+                                                                                                                                    }
+                                                                                                                                    else if (companyStatus == "Απορρίφθηκε")
+                                                                                                                                    {
+                                                                                                                                        <span style="color: red; font-weight: bold;">Έχει Απορριφθεί</span>
+                                                                                                                                    }
+                                                                                                                                    else
+                                                                                                                                    {
+                                                                                                                                        <span>@companyStatus</span>
+                                                                                                                                    }
+                                                                                                                                </td>
+                                                                                                                            </tr>
+                                                                                                                        }
+                                                                                                                    }
+                                                                                                                </tbody>
+                                                                                                            </table>
+                                                                                                        </div>
+                                                                                                    }
+                                                                                                    else
+                                                                                                    {
+                                                                                                        <div class="text-center" style="padding: 20px;">
+                                                                                                            <i class="fas fa-users fa-2x" style="color: #6c757d; margin-bottom: 10px;"></i>
+                                                                                                            <p style="color: #6c757d; font-weight: bold; margin: 0;">
+                                                                                                                Δεν Υπάρχουν Αιτούντες για αυτήν την Θέση Εργασίας Ακόμη
+                                                                                                            </p>
+                                                                                                        </div>
+                                                                                                    }
+                                                                                                }
+                                                                                            </div>
+                                                                                        </td>
+                                                                                    </tr>
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <tr>
+                                                                                <td colspan="@(isBulkEditMode && jobs != null && jobs.Any() ? "6" : "5")" class="text-center" style="border: 1px solid black;">
+                                                                                    <div class="empty-state">
+                                                                                        <i class="fas fa-briefcase fa-3x mb-3" style="color: #6c757d;"></i>
+                                                                                        <h5 style="color: #2d3748; margin-bottom: 10px;">Δεν υπάρχουν Θέσεις Εργασίας</h5>
+                                                                                    </div>
+                                                                                </td>
+                                                                            </tr>
+                                                                        }
+                                                                    </tbody>
+                                                                </table>
+            
+                                                                @if (jobs != null && jobs.Any())
+                                                                {
+                                                                    <br/>
+                                                                    <!-- Pagination Controls -->
+                                                                    <div class="d-flex justify-content-center align-items-center mt-3 gap-1">
+                                                                        <!-- First Page (<<) -->
+                                                                        <span class="pagination-item @(currentPageForJobs == 1 ? "disabled" : "")" 
+                                                                              @onclick="@(() => GoToFirstPageForJobs())">
+                                                                            &lt;&lt;
+                                                                        </span>
+
+                                                                        <!-- Previous Page (<) -->
+                                                                        <span class="pagination-item @(currentPageForJobs == 1 ? "disabled" : "")" 
+                                                                              @onclick="@(() => PreviousPageForJobs())">
+                                                                            &lt;
+                                                                        </span>
+
+                                                                        <!-- Page Numbers -->
+                                                                        @foreach (var pageNum in GetVisiblePagesForJobs())
+                                                                        {
+                                                                            @if (pageNum == -1)
+                                                                            {
+                                                                                <span class="pagination-ellipsis">...</span>
+                                                                            }
+                                                                            else
+                                                                            {
+                                                                                <span class="pagination-item @(pageNum == currentPageForJobs ? "active" : "")" 
+                                                                                      @onclick="@(() => GoToPageForJobs(pageNum))">
+                                                                                    @pageNum
+                                                                                </span>
+                                                                            }
+                                                                        }
+
+                                                                        <!-- Next Page (>) -->
+                                                                        <span class="pagination-item @(currentPageForJobs == totalPagesForJobs ? "disabled" : "")" 
+                                                                              @onclick="@(() => NextPageForJobs())">
+                                                                            &gt;
+                                                                        </span>
+
+                                                                        <!-- Last Page (>>) -->
+                                                                        <span class="pagination-item @(currentPageForJobs == totalPagesForJobs ? "disabled" : "")" 
+                                                                              @onclick="@(() => GoToLastPageForJobs())">
+                                                                            &gt;&gt;
+                                                                        </span>
+
+                                                                        <!-- Page counter -->
+                                                                        <span class="ms-3">Σελίδα @currentPageForJobs από @totalPagesForJobs</span>
+                                                                    </div>
+                                                                    <br/>
+                                                                }
+                                                            </div>
+                                                        </div>
+                                                        <br/>
+                                                        <br/>
+                                                    }
+                                                            
+                                                        </div>
+                                                    </div>
+
+                                            <!-- Slot Warning Modal - NEW CODE -->
+                                            @if (showSlotWarningModal_ForCompanyJob)
+                                            {
+                                                <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0, 0, 0, 0.5);">
+                                                    <div class="modal-dialog modal-dialog-centered" role="document">
+                                                        <div class="modal-content" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); border: 2px solid #2d3748;">
+                                                            <div class="modal-header" style="border-bottom: 1px solid #2d3748; border-radius: 12px 12px 0 0; background-color: #FFFFFF;">
+                                                                <h5 class="modal-title" style="color: #2d3748; font-weight: 600; font-size: 1.25rem;">
+                                                                    <i class="fas fa-exclamation-triangle me-2"></i>Προσοχή - Όριο Slots Θέσης Εργασίας
+                                                                </h5>
+                                                                <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" 
+                                                                        @onclick="CloseSlotWarningModal_ForCompanyJob"
+                                                                        onmouseover="this.style.backgroundColor='#2d3748'" 
+                                                                        onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                    <span style="font-size: 1.2rem; line-height: 1;">×</span>
+                                                                </button>
+                                                            </div>
+                                                            <div class="modal-body" style="padding: 20px;">
+                                                                <div class="alert alert-warning" style="border-radius: 8px; margin: 0;">
+                                                                    <div class="d-flex align-items-center">
+                                                                        <i class="fas fa-exclamation-circle fa-2x me-3" style="color: #2d3748;"></i>
+                                                                        <div>
+                                                                            <h6 style="color: #2d3748; margin-bottom: 8px; font-weight: bold;">Υπέρβαση Διαθέσιμων Θέσεων</h6>
+                                                                            <p style="color: #2d3748; margin: 0; line-height: 1.5;">@slotWarningMessage_ForCompanyJob</p>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div class="modal-footer" style="border-top: 1px solid #2d3748; border-radius: 0 0 12px 12px; background-color: #FFFFFF;">
+                                                                <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; padding: 8px 20px; transition: all 0.2s;" 
+                                                                        @onclick="CloseSlotWarningModal_ForCompanyJob"
+                                                                        onmouseover="this.style.backgroundColor='#2d3748'" 
+                                                                        onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                    <i class="fas fa-times me-1"></i>Κλείσιμο
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            }
+
+                                            <!-- Bulk Action Modal -->
+                                            @if (showBulkActionModal)
+                                            {
+                                                <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0, 0, 0, 0.5);">
+                                                    <div class="modal-dialog modal-dialog-centered" role="document">
+                                                        <div class="modal-content" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);">
+                                                            <div class="modal-header" style="border-bottom: 1px solid #e9ecef; border-radius: 12px 12px 0 0; background-color: #f8f9fa;">
+                                                                <h5 class="modal-title" style="color: #4682B4; font-weight: 600; font-size: 1.25rem;">
+                                                                    <i class="fas fa-cogs me-2"></i>Μαζική Επεξεργασία
+                                                                </h5>
+                                                                <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" 
+                                                                        @onclick="CloseBulkActionModal"
+                                                                        onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                        onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                    <span style="font-size: 1.2rem; line-height: 1;">×</span>
+                                                                </button>
+                                                            </div>
+                                                            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                                                                <div class="list-group">
+                                                                    <div class="form-group">
+                                                                        <label style="font-weight: bold; color: #2d3748;">Επιλεγμένες Θέσεις</label>
+                                                                        <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                                                                            <i class="fas fa-list-check" style="color: #5F9EA0; margin-right: 8px;"></i>
+                                                                            <span>@selectedJobIds.Count θέσεις</span>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div class="form-group">
+                                                                        <label style="font-weight: bold; color: #2d3748;">Επιλέξτε Ενέργεια</label>
+                                                                        <div class="form-control" style="border-radius: 8px; background-color: #f8f9fa; border: none;">
+                                                                            <div class="form-check mb-2">
+                                                                                <input class="form-check-input" type="radio" name="bulkAction" 
+                                                                                       id="actionStatus" value="status" @onchange="@((e) => bulkAction = "status")" 
+                                                                                       style="cursor: pointer; margin-right: 8px;" />
+                                                                                <label class="form-check-label" for="actionStatus" style="cursor: pointer; color: #2d3748;">
+                                                                                    <i class="fas fa-arrows-up-down me-1" style="color: #4682B4;"></i>
+                                                                                    Αλλαγή Κατάστασης
+                                                                                </label>
+                                                                            </div>
+                                                                            <div class="form-check">
+                                                                                <input class="form-check-input" type="radio" name="bulkAction" 
+                                                                                       id="actionCopy" value="copy" @onchange="@((e) => bulkAction = "copy")" 
+                                                                                       style="cursor: pointer; margin-right: 8px;" />
+                                                                                <label class="form-check-label" for="actionCopy" style="cursor: pointer; color: #2d3748;">
+                                                                                    <i class="fas fa-copy me-1" style="color: #4682B4;"></i>
+                                                                                    Αντιγραφή Θέσεων
+                                                                                </label>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    @if (bulkAction == "status")
+                                                                    {
+                                                                        <div class="form-group">
+                                                                            <label style="font-weight: bold; color: #2d3748;">Νέα Κατάσταση</label>
+                                                                            <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa; padding: 0;">
+                                                                                <select class="form-select" @bind="newStatusForBulkAction" style="border: none; background: transparent; box-shadow: none;">
+                                                                                    <option value="Δημοσιευμένη">Δημοσιευμένη</option>
+                                                                                    <option value="Μη Δημοσιευμένη">Μη Δημοσιευμένη</option>
+                                                                                    <option value="Αποσυρμένη">Αποσυρμένη</option>
+                                                                                </select>
+                                                                            </div>
+                                                                        </div>
+                                                                    }
+                                                                </div>
+                                                            </div>
+                                                            <div class="modal-footer" style="border-top: 1px solid #e9ecef; border-radius: 0 0 12px 12px; background-color: #f8f9fa;">
+                                                                <button type="button" class="modern-button" style="background-color: #6c757d; color: white; border: none; border-radius: 6px; padding: 8px 20px; transition: all 0.2s;" 
+                                                                        @onclick="CloseBulkActionModal"
+                                                                        onmouseover="this.style.backgroundColor='#5a6268'" 
+                                                                        onmouseout="this.style.backgroundColor='#6c757d'">
+                                                                    <i class="fas fa-times me-1"></i>Ακύρωση
+                                                                </button>
+                                                                <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; padding: 8px 20px; transition: all 0.2s;" 
+                                                                        @onclick="ExecuteBulkAction" 
+                                                                        disabled="@string.IsNullOrEmpty(bulkAction)"
+                                                                        onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                        onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                    <i class="fas fa-play me-1"></i>Εκτέλεση
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            }
+
+                                            <!-- Email Confirmation Modal for Applicants -->
+                                            @if (showEmailConfirmationModalForApplicants)
+                                            {
+                                                <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0, 0, 0, 0.5);">
+                                                    <div class="modal-dialog modal-dialog-centered" role="document">
+                                                        <div class="modal-content" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);">
+                                                            <div class="modal-header" style="border-bottom: 1px solid #e9ecef; border-radius: 12px 12px 0 0; background-color: #f8f9fa;">
+                                                                <h5 class="modal-title" style="color: #4682B4; font-weight: 600; font-size: 1.25rem;">
+                                                                    <i class="fas fa-envelope me-2"></i>Αποστολή Email
+                                                                </h5>
+                                                                <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" 
+                                                                        @onclick="CloseEmailConfirmationModalForApplicants"
+                                                                        onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                        onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                    <span style="font-size: 1.2rem; line-height: 1;">×</span>
+                                                                </button>
+                                                            </div>
+                                                            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                                                                <div class="list-group">
+                                                                    <div class="form-group">
+                                                                        <label style="font-weight: bold; color: #2d3748;">Επιλεγμένες Αιτήσεις</label>
+                                                                        <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                                                                            <i class="fas fa-list-check" style="color: #5F9EA0; margin-right: 8px;"></i>
+                                                                            <span>@selectedApplicantIds.Count αιτήσεις</span>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div class="form-group">
+                                                                        <label style="font-weight: bold; color: #2d3748;">Ενέργεια</label>
+                                                                        <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                                                                            <i class="fas @(pendingBulkActionForApplicants == "accept" ? "fa-check text-success" : "fa-times text-danger") me-2"></i>
+                                                                            <span>@(pendingBulkActionForApplicants == "accept" ? "Μαζική Αποδοχή" : "Μαζική Απόρριψη")</span>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div class="form-group">
+                                                                        <label style="font-weight: bold; color: #2d3748;">Αποστολή Email Ειδοποιήσεων</label>
+                                                                        <div class="form-control" style="border-radius: 8px; background-color: #f8f9fa; border: none;">
+                                                                            <div class="form-check mb-2">
+                                                                                <input class="form-check-input" type="radio" name="emailOption" 
+                                                                                       id="sendEmails" value="true" @onchange="@((e) => sendEmailsForBulkAction = true)" 
+                                                                                       checked="@sendEmailsForBulkAction"
+                                                                                       style="cursor: pointer; margin-right: 8px;" />
+                                                                                <label class="form-check-label" for="sendEmails" style="cursor: pointer; color: #2d3748;">
+                                                                                    <i class="fas fa-envelope me-1" style="color: #4682B4;"></i>
+                                                                                    Να σταλούν Email στους Φοιτητές και στην Εταιρεία
+                                                                                </label>
+                                                                            </div>
+                                                                            <div class="form-check">
+                                                                                <input class="form-check-input" type="radio" name="emailOption" 
+                                                                                       id="dontSendEmails" value="false" @onchange="@((e) => sendEmailsForBulkAction = false)" 
+                                                                                       checked="@(!sendEmailsForBulkAction)"
+                                                                                       style="cursor: pointer; margin-right: 8px;" />
+                                                                                <label class="form-check-label" for="dontSendEmails" style="cursor: pointer; color: #2d3748;">
+                                                                                    <i class="fas fa-envelope-slash me-1" style="color: #6c757d;"></i>
+                                                                                    Να μην σταλούν Email (μόνο ενημέρωση κατάστασης)
+                                                                                </label>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div class="alert @(sendEmailsForBulkAction ? "alert-info" : "alert-warning")" style="border-radius: 8px;">
+                                                                        <i class="fas @(sendEmailsForBulkAction ? "fa-info-circle" : "fa-exclamation-triangle") me-2"></i>
+                                                                        @if (sendEmailsForBulkAction)
+                                                                        {
+                                                                            <strong>Πληροφορία:</strong> 
+                                                                            <span>Θα σταλούν @selectedApplicantIds.Count email @(pendingBulkActionForApplicants == "accept" ? "αποδοχής" : "απόρριψης") στους φοιτητές και email ειδοποίησης στην εταιρεία.</span>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <strong>Προσοχή:</strong> 
+                                                                            <span>Η ενέργεια θα εφαρμοστεί μόνο στην εφαρμογή. Δεν θα σταλούν email ειδοποιήσεων. Οι φοιτητές θα δουν την αλλαγή κατάστασης όταν συνδεθούν.</span>
+                                                                        }
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div class="modal-footer" style="border-top: 1px solid #e9ecef; border-radius: 0 0 12px 12px; background-color: #f8f9fa;">
+                                                                <button type="button" class="modern-button" style="background-color: #6c757d; color: white; border: none; border-radius: 6px; padding: 8px 20px; transition: all 0.2s;" 
+                                                                        @onclick="CloseEmailConfirmationModalForApplicants"
+                                                                        onmouseover="this.style.backgroundColor='#5a6268'" 
+                                                                        onmouseout="this.style.backgroundColor='#6c757d'">
+                                                                    <i class="fas fa-times me-1"></i>Ακύρωση
+                                                                </button>
+                                                                <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; padding: 8px 20px; transition: all 0.2s;" 
+                                                                        @onclick="ExecuteBulkActionForApplicants" 
+                                                                        onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                        onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                    <i class="fas fa-play me-1"></i>Εκτέλεση
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            }
+                                            
+
+                                            @if (isModalVisibleForJobs)
+                                            {
+                                                <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0,0,0,0.5);">
+                                                    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+                                                        <div class="modal-content" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);">
+                                                            <div class="modal-header" style="border-bottom: 1px solid #e9ecef; border-radius: 12px 12px 0 0; background-color: #f8f9fa;">
+                                                                <h5 class="modal-title" style="color: #007BFF; font-weight: 600; font-size: 1.25rem;">
+                                                                    <span>@currentJob.PositionTitle</span>
+                                                                </h5>
+                                                                <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" 
+                                                                        @onclick="CloseModalForJobs"
+                                                                        onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                        onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                    <span style="font-size: 1.2rem; line-height: 1;">×</span>
+                                                                </button>
+                                                            </div>
+                                                            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                                                                <div class="form-group">
+                                                                    <label for="viewDescription"><strong>Περιγραφή</strong></label>
+                                                                    <textarea id="viewDescription" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" readonly>@currentJob.PositionDescription</textarea>
+                                                                </div>
+                                                                <div class="form-group">
+                                                                    <label for="viewType"><strong>Τύπος</strong></label>
+                                                                    <input type="text" id="viewType" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;"
+                                                                           value="@(currentJob.PositionType == "Full-Time" ? "Αορίστου Χρόνου" : 
+                                                                                  currentJob.PositionType == "Part-Time" ? "Περιορισμένου Χρόνου" : 
+                                                                                  currentJob.PositionType == "Simvasi-Ergou" ? "Σύμβαση Έργου" : "")" 
+                                                                           readonly />
+                                                                </div>
+                                                                <div class="form-group">
+                                                                    <label for="viewForeas"><strong>Φορέας</strong></label>
+                                                                    <input type="text" id="viewForeas" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" value="@currentJob.PositionForeas" readonly />
+                                                                </div>
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Ξεκινάει Από</label>
+                                                                    <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="far fa-calendar-alt" style="color: #5F9EA0; margin-right: 8px;"></i>
+                                                                        <span>@currentJob.PositionActivePeriod.ToString("yyyy-MM-dd")</span>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Email Επικοινωνίας</label>
+                                                                    <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-envelope" style="color: #5F9EA0; margin-right: 8px;"></i>
+                                                                        <span>@currentJob.PositionContactPerson</span>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="form-group">
+                                                                    <label for="viewPerifereiaLocation"><strong>Περιφέρεια</strong></label>
+                                                                    <input type="text" id="viewPerifereiaLocation" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" value="@currentJob.PositionPerifereiaLocation" readonly />
+                                                                </div>
+                                                                <div class="form-group">
+                                                                    <label for="viewDimosLocation"><strong>Δήμος</strong></label>
+                                                                    <input type="text" id="viewDimosLocation" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" value="@currentJob.PositionDimosLocation" readonly />
+                                                                </div>
+                                                                <div class="form-group">
+                                                                    <label for="viewPostalCodeLocation"><strong>Ταχ. Κώδικας</strong></label>
+                                                                    <input type="text" id="viewPostalCodeLocation" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" value="@currentJob.PositionPostalCodeLocation" readonly />
+                                                                </div>
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Προσφορά Μεταφορικού Μέσου</label>
+                                                                    <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa; 
+                                                                         @(currentJob.PositionTransportOffer ? "color: #28a745;" : "color: #dc3545;")">
+                                                                        <i class="fas fa-car" style="margin-right: 8px;"></i>
+                                                                        <span>@(currentJob.PositionTransportOffer ? "Ναι" : "Όχι")</span>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="form-group">
+                                                                    <label for="viewAreas"><strong>Τομείς</strong></label>
+                                                                    <textarea id="viewAreas" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" rows="3" readonly>@currentJob.PositionAreas</textarea>
+                                                                </div>
+                                                                <!-- ADDED: Open Slots Field -->
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Διαθέσιμες Θέσεις</label>
+                                                                    <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa; color: #007BFF;">
+                                                                        <i class="fas fa-users" style="margin-right: 8px;"></i>
+                                                                        <span>@currentJob.OpenSlots θέσεις</span>
+                                                                    </div>
+                                                                    <small class="form-text text-muted">Αριθμός ανοιχτών θέσεων για αυτή τη θέση εργασίας</small>
+                                                                </div>
+                                                                <div class="form-group">
+                                                                    <label for="viewStatus"><strong>Κατάσταση</strong></label>
+                                                                    <select id="viewStatus" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" disabled>
+                                                                        <option value="Δημοσιευμένη" selected="@(currentJob.PositionStatus == "Δημοσιευμένη")">Δημοσιευμένη</option>
+                                                                        <option value="Μη Δημοσιευμένη" selected="@(currentJob.PositionStatus == "Μη Δημοσιευμένη")">Μη Δημοσιευμένη</option>
+                                                                        <option value="Αποσυρμένη" selected="@(currentJob.PositionStatus == "Αποσυρμένη")">Αποσυρμένη</option>
+                                                                    </select>
+                                                                </div>
+                                                            </div>
+                                                            <div class="modal-footer">
+                                                                <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; padding: 8px 20px; transition: all 0.2s;" 
+                                                                        @onclick="CloseModalForJobs"
+                                                                        onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                        onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                    <i class="fas fa-times me-2"></i> Κλείσιμο
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            }
+
+                                            @*MODAL FOR EDIT COMPANY JOBS*@
+                                            @if (isEditPopupVisibleForJobs) 
+                                            {
+                                                <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0, 0, 0, 0.5);">
+                                                    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+                                                        <div class="modal-content" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);">
+                                                            <div class="modal-header" style="border-bottom: 1px solid #e9ecef; border-radius: 12px 12px 0 0; background-color: #f8f9fa;">
+                                                                <h5 class="modal-title" style="color: #007BFF; font-weight: 600; font-size: 1.25rem;">@selectedJob.PositionTitle</h5>
+                                                                <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" 
+                                                                        @onclick="CloseEditPopupForJobs"
+                                                                        onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                        onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                    <span style="font-size: 1.2rem; line-height: 1;">×</span>
+                                                                </button>
+                                                            </div>
+                                                            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                                                                <div class="form-group">
+                                                                    <label for="editTitle"><strong>Τίτλος</strong></label>
+                                                                    <input type="text" id="editTitle" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" @bind="selectedJob.PositionTitle" />
+                                                                </div>
+                                                                <div class="form-group">
+                                                                    <label for="editDescription"><strong>Περιγραφή</strong></label>
+                                                                    <textarea id="editDescription" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" @bind="selectedJob.PositionDescription"></textarea>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label for="editType"><strong>Τύπος</strong></label>
+                                                                    <div class="input-group">
+                                                                        <select id="editType" class="form-control @(showErrorMessage && string.IsNullOrWhiteSpace(selectedJob.PositionType) ? "shake error" : "")" style="border-radius: 8px; background-color: #f8f9fa;" @bind="selectedJob.PositionType">
+                                                                            <option value="Full-Time">Αορίστου Χρόνου</option>
+                                                                            <option value="Part-Time">Περιορισμένου Χρόνου</option>
+                                                                            <option value="Simvasi-Ergou">Σύμβαση Έργου</option>
+                                                                        </select>
+                                                                        <div class="input-group-append">
+                                                                            <span class="input-group-text" style="border-radius: 0 8px 8px 0; background-color: #f8f9fa;">
+                                                                                <i class="fas fa-chevron-down"></i>
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label for="editForeas"><strong>Φορέας</strong></label>
+                                                                    <div class="input-group">
+                                                                        <select id="editForeas" class="form-control @(showErrorMessage && string.IsNullOrWhiteSpace(selectedJob.PositionForeas) ? "shake error" : "")" style="border-radius: 8px; background-color: #f8f9fa;" @bind="selectedJob.PositionForeas">
+                                                                            @foreach (var foreas in ForeasType)
+                                                                            {
+                                                                                <option value="@foreas">@foreas</option>
+                                                                            }
+                                                                        </select>
+                                                                        <div class="input-group-append">
+                                                                            <span class="input-group-text" style="border-radius: 0 8px 8px 0; background-color: #f8f9fa;">
+                                                                                <i class="fas fa-chevron-down"></i>
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                 
+                                                                <div class="form-group">
+                                                                    <label for="editContactPerson"><strong>Υπεύθυνος Επικοινωνίας</strong></label>
+                                                                    <input type="text" id="editContactPerson" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" @bind="selectedJob.PositionContactPerson" />
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label for="editPerifereiaLocationForInternship"><strong>Περιφέρεια</strong></label>
+                                                                    <div class="input-group">
+                                                                        <select id="editPerifereiaLocationForInternship" class="form-control @(showErrorMessage && string.IsNullOrWhiteSpace(selectedJob.PositionPerifereiaLocation) ? "shake error" : "")" style="border-radius: 8px; background-color: #f8f9fa;" @bind="selectedJob.PositionPerifereiaLocation">
+                                                                            <option value="">-- Επιλέξτε Περιφέρεια --</option>
+                                                                            @foreach (var region in Regions)
+                                                                            {
+                                                                                <option value="@region">@region</option>
+                                                                            }
+                                                                        </select>
+                                                                        <div class="input-group-append">
+                                                                            <span class="input-group-text" style="border-radius: 0 8px 8px 0; background-color: #f8f9fa;">
+                                                                                <i class="fas fa-chevron-down"></i>
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label for="editDimosLocation"><strong>Δήμος</strong></label>
+                                                                    <div class="input-group">
+                                                                        <select id="editDimosLocation" class="form-control @(showErrorMessage && string.IsNullOrWhiteSpace(selectedJob.PositionDimosLocation) ? "shake error" : "")" style="border-radius: 8px; background-color: #f8f9fa;" @bind="selectedJob.PositionDimosLocation">
+                                                                            <option value="">-- Επιλέξτε Δήμο --</option>
+                                                                            @if (!string.IsNullOrEmpty(selectedJob.PositionPerifereiaLocation) && RegionToTownsMap.ContainsKey(selectedJob.PositionPerifereiaLocation))
+                                                                            {
+                                                                                foreach (var town in RegionToTownsMap[selectedJob.PositionPerifereiaLocation])
+                                                                                {
+                                                                                    <option value="@town">@town</option>
+                                                                                }
+                                                                            }
+                                                                        </select>
+                                                                        <div class="input-group-append">
+                                                                            <span class="input-group-text" style="border-radius: 0 8px 8px 0; background-color: #f8f9fa;">
+                                                                                <i class="fas fa-chevron-down"></i>
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label for="editPostalCodeLocation"><strong>Ταχυδρομικός Κώδικας</strong></label>
+                                                                    <input type="text" id="editPostalCodeLocation" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" @bind="selectedJob.PositionPostalCodeLocation" />
+                                                                </div>
+                                                                <div class="form-group">
+                                                                    <label for="editTransportOffer"><strong>Προσφορά Μεταφοράς</strong></label>
+                                                                    <div>
+                                                                        <input type="checkbox" id="editTransportOffer" class="form-check-input" @bind="selectedJob.PositionTransportOffer" />
+                                                                        <span class="ml-2">@(selectedJob.PositionTransportOffer ? "Ναι" : "Όχι")</span>
+                                                                    </div>
+                                                                </div>
+                                                                <br/>
+                    
+                                                                <!-- UPDATED: Areas with Subfields -->
+                                                                <div class="form-group">
+                                                                    <label @onclick="ToggleCheckboxesForEditCompanyJob" style="cursor: pointer; display: flex; align-items: center;">
+                                                                        <strong>Τομείς Εργασίας</strong>
+                                                                        <span style="color: #1565c0; font-size: 0.9em; margin-left: 8px; display: flex; align-items: center;">
+                                                                            <i class="fas @(showCheckboxesForEditCompanyJob ? "fa-chevron-up" : "fa-chevron-down")" style="margin-right: 4px;"></i>
+                                                                            @(showCheckboxesForEditCompanyJob ? "Κλείσιμο" : "Άνοιγμα")
+                                                                        </span>
+                                                                    </label>
+                                                                    @if (showCheckboxesForEditCompanyJob)
+                                                                    {
+                                                                        <div id="toggleCheckboxes" class="checkbox-container">
+                                                                            @foreach (var area in Areas)
+                                                                            {
+                                                                                <div class="area-container" style="margin-bottom: 8px; border: 2px solid #1565c0; border-radius: 4px; padding: 8px; background-color: #f8f9fa;">
+                                                                                    <div class="form-check area-header">
+                                                                                        <input type="checkbox"
+                                                                                               id="edit_area_@area.Id"
+                                                                                               class="form-check-input"
+                                                                                               @onchange="(e) => OnAreaCheckedChangedForEditCompanyJob(e, area)"
+                                                                                               checked="@IsAreaSelectedForEditCompanyJob(area)" />
+                                                                                        <label class="form-check-label area-label" 
+                                                                                               for="edit_area_@area.Id"
+                                                                                               @onclick="@(() => ToggleSubFieldsForEditCompanyJob(area))"
+                                                                                               @onclick:stopPropagation="true"
+                                                                                               style="cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: space-between; width: 100%; color: #1565c0;">
+                                                                                            @area.AreaName
+                                                                                            <span class="expand-icon" style="font-size: 10px; transition: transform 0.2s; margin-left: 8px;">▶</span>
+                                                                                        </label>
+                                                                                    </div>
+                                        
+                                                                                    @if (ExpandedAreasForEditCompanyJob.Contains(area.Id))
+                                                                                    {
+                                                                                        <div class="subfields-container" style="margin-top: 8px; margin-left: 20px; padding-left: 15px; border-left: 2px solid #1565c0;">
+                                                                                            @if (!string.IsNullOrEmpty(area.AreaSubFields))
+                                                                                            {
+                                                                                                var subFields = area.AreaSubFields.Split(',').Select(s => s.Trim()).ToList();
+                                                                                                @foreach (var subField in subFields)
+                                                                                                {
+                                                                                                    <div class="form-check subfield-checkbox" style="margin-bottom: 4px;">
+                                                                                                        <input type="checkbox"
+                                                                                                               id="edit_subfield_@(area.Id)_@(subField)"
+                                                                                                               class="form-check-input"
+                                                                                                               @onchange="(e) => OnSubFieldCheckedChangedForEditCompanyJob(e, area, subField)"
+                                                                                                               checked="@IsSubFieldSelectedForEditCompanyJob(area, subField)" />
+                                                                                                        <label class="form-check-label" for="edit_subfield_@(area.Id)_@(subField)" style="font-weight: normal; font-size: 0.9em;">
+                                                                                                            @subField
+                                                                                                        </label>
+                                                                                                    </div>
+                                                                                                }
+                                                                                            }
+                                                                                        </div>
+                                                                                    }
+                                                                                </div>
+                                                                            }
+                                                                        </div>
+                                                                    }
+                                                                </div>
+                                                                <br/>
+                    
+                                                                <div class="form-group">
+                                                                    <label for="editActivePeriod"><strong>Ξεκινάει Από</strong></label>
+                                                                    <input type="date" id="editActivePeriod" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" @bind="selectedJob.PositionActivePeriod" />
+                                                                </div>
+                                                                <div class="form-group">
+                                                                    <label for="editLastUpdate"><strong>Ημερομηνία Τελευταίας Ανανέωσης Θέσης</strong></label>
+                                                                    <input type="date" id="editLastUpdate" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" @bind="selectedJob.UpdateDateTime" />
+                                                                </div>
+                                                                <div class="form-group">
+                                                                    <label for="editOpenSlots">
+                                                                        <strong>Διαθέσιμες Θέσεις</strong>
+                                                                        <span style="color: red;">*</span>
+                                                                    </label>
+                                                                    <input type="number" 
+                                                                           id="editOpenSlots" 
+                                                                           class="form-control @(showErrorMessage && (selectedJob?.OpenSlots ?? 0) < 3 ? "shake error" : "")" 
+                                                                           style="border-radius: 8px; background-color: #f8f9fa;" 
+                                                                           @bind="selectedJob.OpenSlots" 
+                                                                           min="3" 
+                                                                           step="1" />
+                                                                    @if (showErrorMessage && (selectedJob?.OpenSlots ?? 0) < 3)
+                                                                    {
+                                                                        <div class="text-danger mt-1">Ο αριθμός των διαθέσιμων θέσεων πρέπει να είναι τουλάχιστον 3.</div>
+                                                                    }
+                                                                    <small class="form-text text-muted">Αριθμός ανοιχτών θέσεων για αυτή τη θέση εργασίας (ελάχιστο 3)</small>
+                                                                </div>
+                                                                <div class="form-group">
+                                                                    <label for="editJobAttachment"><strong>Αντικατάσταση Συνημμένου</strong></label>
+                                                                    <InputFile class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" OnChange="HandleFileUploadToEditCompanyJobAttachment" />
+                                                                </div>
+                                                            </div>
+                                                            <div class="modal-footer">
+                                                                <button type="button" class="modern-button" style="background-color: #6c757d; color: white; border: none; border-radius: 6px; padding: 8px 20px; transition: all 0.2s;" 
+                                                                        @onclick="CloseEditPopupForJobs"
+                                                                        onmouseover="this.style.backgroundColor='#5a6268'" 
+                                                                        onmouseout="this.style.backgroundColor='#6c757d'">
+                                                                    <i class="fas fa-times me-2"></i> Ακύρωση
+                                                                </button>
+                                                                <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; padding: 8px 20px; transition: all 0.2s;" 
+                                                                        @onclick="SaveEditedJob"
+                                                                        onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                        onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                    <i class="fas fa-save me-2"></i> Αποθήκευση
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            }
+
+
+
+
+
+
+
+
+
+
+
+
+

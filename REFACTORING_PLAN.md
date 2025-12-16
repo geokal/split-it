@@ -3,9 +3,9 @@
 ## Current Status Summary
 
 ### ✅ Completed
-- Role-specific files extracted (Student.razor, Company.razor, Professor.razor, Admin.razor)
+- Role-specific files extracted (Student.razor, Company.razor, Professor.razor, Admin.razor, ResearchGroup.razor)
 - Common components extracted (Pagination, NewsSection, LoadingIndicator, RegistrationPrompt)
-- Some role-specific components extracted (CompanyJobsSection, CompanyInternshipsSection, etc.)
+- **Company.razor components fully extracted** (9 components, 12,290 lines) ✅
 - Files renamed (MainLayout.razor, MainLayout.razor.cs)
 
 ### ⚠️ Partially Completed
@@ -81,39 +81,22 @@
 ### Phase 2: Extract Large Inline Sections (MEDIUM-HIGH PRIORITY)
 **Goal:** Break down remaining large sections into components
 
-#### 2.1 Company.razor - Internships Section (Priority: MEDIUM-HIGH)
-- **Location:** Lines ~840-2776 (internships tab)
-- **Sections to Extract:**
-  - `<!-- ΔΗΜΙΟΥΡΓΙΑ ΠΡΑΚΤΙΚΉΣ ΑΣΚΗΣΗΣ ΩΣ COMPANY USER-->` - Internship creation form
-  - `<!-- VIEW UPLOADED INTERNSHIPS AS COMPANY -->` - Internship viewing/management
-- **Target:** `Shared/Company/CompanyInternshipCreationSection.razor`, `Shared/Company/CompanyInternshipManagementSection.razor`
-- **Estimated Effort:** High (large forms)
-- **Dependencies:** None
-
-#### 2.2 Company.razor - Events Section (Priority: MEDIUM)
-- **Location:** Lines ~5667-8269 (company events tab)
-- **Section:** `<!-- VIEW UPLOADED EVENTS AS COMPANY -->`
-- **Target:** `Shared/Company/CompanyEventsSection.razor`
-- **Estimated Effort:** Medium
-- **Dependencies:** None
-
-#### 2.3 Company.razor - Theses Section (Priority: MEDIUM)
-- **Location:** Lines ~2780-5657 (thesis tab)
-- **Sections:**
-  - Thesis creation/viewing
-  - `<!-- SEARCH PROFESSOR THESES AS COMPANY -->`
-- **Target:** `Shared/Company/CompanyThesesSection.razor`
-- **Estimated Effort:** Medium
-- **Dependencies:** None
-
-#### 2.4 Company.razor - Announcements Management (Priority: MEDIUM)
-- **Location:** Lines ~47-260
-- **Sections:**
-  - `<!-- CREATE ANNOUNCEMENTS TAB AS COMPANY -->`
-  - `<!-- VIEW UPLOADED ANNOUNCEMENTS AS COMPANY -->`
-- **Target:** `Shared/Company/CompanyAnnouncementCreationSection.razor`, `Shared/Company/CompanyAnnouncementManagementSection.razor`
-- **Estimated Effort:** Medium
-- **Dependencies:** None
+#### 2.1 Company.razor - Components Extraction (Priority: HIGH) ✅ COMPLETED
+- **Status:** ✅ All Company components extracted
+- **Location:** Lines 75-12391 (entire Company.razor)
+- **Sections Extracted:**
+  - `CompanyAnnouncementsManagementSection.razor` (638 lines) - CREATE announcements tab
+  - `CompanyAnnouncementsSection.razor` (609 lines) - VIEW uploaded announcements
+  - `CompanyJobsSection.razor` (1,658 lines) - CREATE and VIEW jobs
+  - `CompanyInternshipsSection.razor` (1,978 lines) - CREATE and VIEW internships
+  - `CompanyThesesSection.razor` (2,914 lines) - CREATE and VIEW theses
+  - `CompanyEventsSection.razor` (2,602 lines) - VIEW events
+  - `CompanyStudentSearchSection.razor` (671 lines) - Student search
+  - `CompanyProfessorSearchSection.razor` (528 lines) - Professor search
+  - `CompanyResearchGroupSearchSection.razor` (692 lines) - Research group search
+- **Target:** `Shared/Company/` (9 components, 12,290 lines total)
+- **Status:** ✅ Completed (2025-12-16)
+- **Impact:** Company.razor ready for component integration
 
 #### 2.5 Professor.razor - Announcements Management (Priority: MEDIUM)
 - **Location:** Lines ~54-822
