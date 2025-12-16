@@ -54,13 +54,30 @@ sed -n '<start_line>,<end_line>p' <Role>.razor > Shared/<Role>/<ComponentName>.r
 ### Component Boundaries (Company)
 1. **CompanyAnnouncementsManagementSection**: Lines 75-703 (tab-pane boundaries)
 2. **CompanyAnnouncementsSection**: Lines 711-1342 (after management section)
-3. **CompanyJobsSection**: Lines 1343-1752 (before `energes-theseis-ergasias-company`)
-4. **CompanyInternshipsSection**: Lines 2984-4965 (between `internships-tab-companies-start` and `thesis-companies-start`)
-5. **CompanyThesesSection**: Lines 4966-7880 (between `thesis-companies-start` and `company-thesis-end`)
-6. **CompanyEventsSection**: Lines 7890-10492 (between `company-events-start` and `company-events-end`)
-7. **CompanyStudentSearchSection**: Lines 10497-11168 (between `company-student-search-start` and `company-student-search-end`)
-8. **CompanyProfessorSearchSection**: Lines 11172-11699 (between `company-for-professor-search-tab-start` and researchgroup-search)
-9. **CompanyResearchGroupSearchSection**: Lines 11700-12379 (researchgroup-search tab-pane)
+3. **CompanyJobsSection**: Lines 1343-1752 (before `energes-theseis-ergasias-company` anchor)
+4. **CompanyInternshipsSection**: Lines 2984-4965 (between `internships-tab-companies-start` and `internships-tab-companies-end` anchors)
+5. **CompanyThesesSection**: Lines 4966-7880 (between `thesis-companies-start` and `company-thesis-end` anchors)
+6. **CompanyEventsSection**: Lines 7890-10492 (between `company-events-start` and `company-events-end` anchors)
+7. **CompanyStudentSearchSection**: Lines 10497-11168 (between `company-student-search-start` and `company-student-search-end` anchors)
+8. **CompanyProfessorSearchSection**: Lines 11172-11699 (between `company-for-professor-search-tab-start` anchor and researchgroup-search tab-pane)
+9. **CompanyResearchGroupSearchSection**: Lines 11700-12379 (researchgroup-search tab-pane, no specific end anchor)
+
+### Professor.razor
+- `professors-tab-table-start` (line 1) - Start of Professor section
+- `professor-ptyxiakes-dimiourgia-ptyxiakis` (line 1555) - Marker for Theses section
+- `show-my-uploaded-internships-as-professor` (line 3590) - Marker for Internships section
+- `professors-tab-table-end` (line 11246) - End of Professor section
+
+**Note**: Professor components use tab-pane boundaries as anchors are limited. All components should be within `professors-tab-table-start` and `professors-tab-table-end`.
+
+### Student.razor
+- `students-tab-table-start` (line 1) - Start of Student section
+- `students-tab-table-end` (line 10010) - End of Student section
+
+**Note**: Student components use tab-pane boundaries as anchors are limited. All components should be within `students-tab-table-start` and `students-tab-table-end`.
+
+### ResearchGroup.razor
+**Note**: ResearchGroup has no anchor divs. Components were extracted using tab-pane boundaries as fallback approach.
 
 ## When Anchor Divs Are Missing
 
