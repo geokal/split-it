@@ -1,0 +1,523 @@
+                                            <div class="tab-pane fade" id="rgsearchprofessor" role="tabpanel" aria-labelledby="rgsearchprofessor-tab">
+                                                <div class="mb-3 row-dark-gray mt-4">
+                                                    <div class="d-flex justify-content-between align-items-center" @onclick="ToggleRGSearchProfessorVisible" style="cursor: pointer;">
+                                                        <label class="form-label" style="color: #FFF8DC;">• Αναζήτηση Καθηγητή •</label>
+                                                        <button class="btn btn-link" @onclick="ToggleRGSearchProfessorVisible" @onclick:stopPropagation="true">
+                                                            @if (isRGSearchProfessorVisible)
+                                                            {
+                                                                <span>&#8722;</span> <!-- Minus sign -->
+                                                            }
+                                                            else
+                                                            {
+                                                                <span>&#43;</span> <!-- Plus sign -->
+                                                            }
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                @if (isRGSearchProfessorVisible)
+                                                {
+                                                    <!-- Search Form -->
+                                                    <div class="row mb-3">
+                                                        <!-- Search Professor by Name and Surname -->
+                                                        <div class="col-md-4 position-relative">
+                                                            <label for="searchNameSurnameAsRGToFindProfessor" style="font-weight: bold;">Όνοματεπώνυμο Καθηγητή</label>
+                                                            <input 
+                                                                type="text" 
+                                                                id="searchNameSurnameAsRGToFindProfessor"
+                                                                class="form-control" 
+                                                                placeholder="Αναζήτηση με όνομα ή επώνυμο" 
+                                                                @bind="searchNameSurnameAsRGToFindProfessor" 
+                                                                @oninput="HandleProfessorInputWhenSearchForProfessorAsRG" />
+
+                                                            <!-- Suggestions dropdown -->
+                                                            <ul class="list-group position-absolute" 
+                                                                style="z-index: 100; width: 100%; max-height: 150px; overflow-y: auto;" 
+                                                                hidden="@(!professorNameSurnameSuggestionsAsRG.Any())">
+                                                                @foreach (var suggestion in professorNameSurnameSuggestionsAsRG)
+                                                                {
+                                                                    <li class="list-group-item list-group-item-action" 
+                                                                        @onclick="() => SelectProfessorNameSurnameSuggestionAsRG(suggestion)">
+                                                                        @suggestion
+                                                                    </li>
+                                                                }
+                                                            </ul>
+                                                        </div>
+
+                                                        <!-- Search Professor by School (Research Group) -->
+                                                        <div class="col-md-4">
+                                                            <label for="searchSchoolAsRGToFindProfessor" style="font-weight: bold;">Σχολή</label>
+                                                            <div class="input-group">
+                                                                <select class="form-control" 
+                                                                        value="@searchSchoolAsRGToFindProfessor"
+                                                                        @onchange="OnProfessorSchoolChangedAsRG">
+                                                                    <option value=""> - Επιλέξτε Σχολή - </option>
+                                                                    @foreach (var school in researchGroupSchools)
+                                                                    {
+                                                                        <option value="@school">@school</option>
+                                                                    }
+                                                                </select>
+                                                                <div class="input-group-append">
+                                                                    <span class="input-group-text">
+                                                                        <i class="fas fa-chevron-down"></i>
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Search Professor by Department (Research Group) -->
+                                                        <div class="col-md-4">
+                                                            <label for="searchDepartmentAsRGToFindProfessor" style="font-weight: bold;">Τμήμα Πανεπιστημίου</label>
+                                                            <div class="input-group">
+                                                                <select class="form-control" 
+                                                                        @bind="searchDepartmentAsRGToFindProfessor"
+                                                                        disabled="@string.IsNullOrEmpty(searchSchoolAsRGToFindProfessor)">
+                                                                    <option value=""> - Επιλέξτε Τμήμα - </option>
+                                                                    @if (string.IsNullOrEmpty(searchSchoolAsRGToFindProfessor))
+                                                                    {
+                                                                        <!-- Show all departments when no school is selected -->
+                                                                        @foreach (var department in GetAllProfessorDepartments())
+                                                                        {
+                                                                            <option value="@department">@department</option>
+                                                                        }
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <!-- Show only departments from selected school -->
+                                                                        @foreach (var department in filteredProfessorDepartmentsAsRG)
+                                                                        {
+                                                                            <option value="@department">@department</option>
+                                                                        }
+                                                                    }
+                                                                </select>
+                                                                <div class="input-group-append">
+                                                                    <span class="input-group-text">
+                                                                        <i class="fas fa-chevron-down"></i>
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Search Professor by Areas of Interest -->
+                                                        <div class="col-md-4 position-relative">
+                                                            <label for="searchAreasOfInterestAsRGToFindProfessor" style="font-weight: bold;">Περιοχές Ενδιαφέροντος</label>
+                                                            <input 
+                                                                type="text" 
+                                                                id="searchAreasOfInterestAsRGToFindProfessor"
+                                                                class="form-control" 
+                                                                placeholder="Αναζήτηση με περιοχές ενδιαφέροντος" 
+                                                                @bind="searchAreasOfInterestAsRGToFindProfessor" 
+                                                                @oninput="HandleAreasOfInterestInputAsRG" />
+
+                                                            <!-- Suggestions dropdown for Areas of Interest -->
+                                                            <ul class="list-group position-absolute" 
+                                                                style="z-index: 100; width: 100%; max-height: 150px; overflow-y: auto;" 
+                                                                hidden="@(!areasOfInterestSuggestionsAsRG.Any())">
+                                                                @foreach (var suggestion in areasOfInterestSuggestionsAsRG)
+                                                                {
+                                                                    <li class="list-group-item list-group-item-action" 
+                                                                        @onclick="() => SelectAreasOfInterestSuggestionAsRG(suggestion)">
+                                                                        @if (suggestion.Contains(" - "))
+                                                                        {
+                                                                            var parts = suggestion.Split(new[] { " - " }, StringSplitOptions.None);
+                                                                            <div>
+                                                                                <span class="text-muted">@parts[0] - </span>
+                                                                                <span class="fw-bold">@parts[1]</span>
+                                                                            </div>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <div>@suggestion</div>
+                                                                        }
+                                                                    </li>
+                                                                }
+                                                            </ul>
+
+                                                            <!-- Selected Areas of Interest -->
+                                                            <div class="mt-3 selected-areas-container">
+                                                                @if (selectedAreasOfInterestAsRG.Any())
+                                                                {
+                                                                    <ul class="list-group selected-areas-list">
+                                                                        @foreach (var area in selectedAreasOfInterestAsRG)
+                                                                        {
+                                                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                                                @if (area.Contains(" - "))
+                                                                                {
+                                                                                    var parts = area.Split(new[] { " - " }, StringSplitOptions.None);
+                                                                                    <span>
+                                                                                        <span class="text-muted">@parts[0] - </span>
+                                                                                        <span class="fw-bold">@parts[1]</span>
+                                                                                    </span>
+                                                                                }
+                                                                                else
+                                                                                {
+                                                                                    <span>@area</span>
+                                                                                }
+                                                                                <button class="btn btn-danger btn-sm" @onclick="() => RemoveSelectedAreaOfInterestAsRG(area)">
+                                                                                    <i class="fas fa-times"></i>
+                                                                                </button>
+                                                                            </li>
+                                                                        }
+                                                                    </ul>
+                                                                }
+                                                            </div>
+                                                        </div>
+                                                        <br/>
+                                                        <br/>
+                                                        <div class="row mb-3">
+                                                            <div class="col-md-12">
+                                                                <button class="modern-button" style="background-color: #2d3748; color: white; display: inline-flex; align-items: center;" @onclick="SearchProfessorsAsRGToFindProfessor">
+                                                                    <i class="fa-brands fa-searchengin" style="margin-right: 8px;"></i>Αναζήτηση
+                                                                </button>
+                                                                <button class="modern-button" style="background-color: #2d3748; color: white; display: inline-flex; align-items: center;" @onclick="ClearSearchFieldsAsRGToFindProfessor">
+                                                                    <i class="fa-solid fa-broom" style="margin-right: 8px;"></i>Εκκαθάριση
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <br/>
+                                                    <br/>
+                                                    <!-- Results Table -->
+                                                    @if (searchResultsAsRGToFindProfessor != null && searchResultsAsRGToFindProfessor.Any())
+                                                    {
+                                                        <div class="col-md-2">
+                                                            <label style="color: #2d3748; font-weight: bold; font-size: 15px; display: block;">Αποτελέσματα ανά Σελίδα</label>
+                                                            <div class="input-group" style="max-width: 65px;">
+                                                                <select class="form-control form-control-sm" @onchange="OnPageSizeChange_SearchForProfessorsAsRG" aria-label="Items per page">
+                                                                    @foreach (var option in pageSizeOptions_SearchForProfessorsAsRG)
+                                                                    {
+                                                                        <option value="@option" selected="@(ProfessorsPerPage_SearchForProfessorsAsRG == option)">@option</option>
+                                                                    }
+                                                                </select>
+                                                                <div class="input-group-append">
+                                                                    <span class="input-group-text">
+                                                                        <i class="fas fa-chevron-down"></i>
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <table class="table mt-4">
+                                                            <thead>
+                                                                <tr>
+                                                                    <td colspan="8" style="padding: 0;">
+                                                                        <div style="display: flex; justify-content: space-between; align-items: center; height: 24px; line-height: 24px; width: 100%;">
+                                                                            <i class="fa-solid fa-magnifying-glass" style="font-size: 18px; color: #0d6efd;"></i>
+                                                                            <label class="form-label" style="color: #0d6efd; font-weight: bold; font-size: 18px; margin: 0;">Αποτέλεσμα Αναζήτησης</label>
+                                                                            <i class="fa-solid fa-magnifying-glass" style="font-size: 18px; color: #0d6efd;"></i>
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
+                                                                <tr style="background-color: lightgray; border: 2px solid black;">
+                                                                    <th style="border: 2px solid black;">
+                                                                        <i class="fa-solid fa-user fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                        Ονοματεπώνυμο
+                                                                    </th>
+                                                                    <th style="border: 2px solid black;">
+                                                                        <i class="fa-solid fa-building fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                        Τμήμα
+                                                                    </th>
+                                                                    <th style="border: 2px solid black;">
+                                                                        <i class="fa-solid fa-tags fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                        Περιοχές Ενδιαφέροντος
+                                                                    </th>
+                                                                    <th style="border: 2px solid black;">
+                                                                        <i class="fa-solid fa-envelope fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                        Ηλ. Ταχυδρομείο
+                                                                    </th>
+                                                                    <th style="border: 2px solid black;">
+                                                                        <i class="fa-solid fa-phone fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                        Τηλέφωνο
+                                                                    </th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                @foreach (var professor in GetPaginatedProfessorResultsAsRG())
+                                                                {
+                                                                    <tr>
+                                                                        <td>
+                                                                            <a href="#" style="text-decoration: none; color: #0d6efd; font-weight: 500;" 
+                                                                               @onclick="() => ShowProfessorDetailsOnEyeIconWhenSearchForProfessorAsRG(professor)" 
+                                                                               title="Επισκόπηση">
+                                                                                @professor.ProfName @professor.ProfSurname
+                                                                            </a>
+                                                                        </td>
+                                                                        <td>@professor.ProfDepartment</td>
+                                                                        <td>
+                                                                            @string.Join(", ", professor.ProfGeneralFieldOfWork)
+                                                                        </td>
+                                                                        <td>
+                                                                            @professor.ProfEmail
+                                                                            <a href="mailto:@professor.ProfEmail" title="Αποστολή Email">
+                                                                                <i class="fas fa-envelope"></i>
+                                                                            </a>
+                                                                        </td>
+                                                                        <td>@(professor.ProfPersonalTelephoneVisibility ? professor.ProfPersonalTelephone : "N/A")
+                                                                            <span class="ml-2">
+                                                                                <i class="fas fa-phone"></i>
+                                                                            </span>
+                                                                        </td>
+                                                                    </tr>
+                                                                }
+                                                            </tbody>
+                                                        </table>
+                                                        <div class="d-flex justify-content-center align-items-center mt-3 gap-1">
+                                                            <!-- First Page (<<) -->
+                                                            <span class="pagination-item @(currentProfessorPage_SearchForProfessorsAsRG == 1 ? "disabled" : "")" 
+                                                                  @onclick="@(() => GoToFirstProfessorPageAsRG())">
+                                                                &lt;&lt;
+                                                            </span>
+
+                                                            <!-- Previous Page (<) -->
+                                                            <span class="pagination-item @(currentProfessorPage_SearchForProfessorsAsRG == 1 ? "disabled" : "")" 
+                                                                  @onclick="@(() => PreviousProfessorPageAsRG())">
+                                                                &lt;
+                                                            </span>
+
+                                                            <!-- Page Numbers -->
+                                                            @foreach (var pageNum in GetVisibleProfessorPagesAsRG())
+                                                            {
+                                                                @if (pageNum == -1)
+                                                                {
+                                                                    <span class="pagination-ellipsis">...</span>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="pagination-item @(pageNum == currentProfessorPage_SearchForProfessorsAsRG ? "active" : "")" 
+                                                                          @onclick="@(() => GoToProfessorPageAsRG(pageNum))">
+                                                                        @pageNum
+                                                                    </span>
+                                                                }
+                                                            }
+
+                                                            <!-- Next Page (>) -->
+                                                            <span class="pagination-item @(currentProfessorPage_SearchForProfessorsAsRG == totalProfessorPages_SearchForProfessorsAsRG ? "disabled" : "")" 
+                                                                  @onclick="@(() => NextProfessorPageAsRG())">
+                                                                &gt;
+                                                            </span>
+
+                                                            <!-- Last Page (>>) -->
+                                                            <span class="pagination-item @(currentProfessorPage_SearchForProfessorsAsRG == totalProfessorPages_SearchForProfessorsAsRG ? "disabled" : "")" 
+                                                                  @onclick="@(() => GoToLastProfessorPageAsRG())">
+                                                                &gt;&gt;
+                                                            </span>
+
+                                                            <!-- Page counter -->
+                                                            <span class="ms-3">Σελίδα @currentProfessorPage_SearchForProfessorsAsRG από @totalProfessorPages_SearchForProfessorsAsRG</span>
+                                                        </div>
+                                                    }
+                                                    else if (searchResultsAsRGToFindProfessor != null)
+                                                    {
+                                                        <div class="alert alert-warning d-flex align-items-center" role="alert">
+                                                          <i class="fas fa-exclamation-triangle me-2"></i>
+                                                          <div>Δεν βρέθηκε κάποιο αποτέλεσμα που να πληρεί τα κριτήρια της Αναζήτησης σας.</div>
+                                                        </div>
+                                                    }
+                                                }
+
+                                            </div>
+                                            <!-- MODAL TO SHOW PROFESSOR DETAILS WHEN SEARCH AS RG -->
+                                            @if (showProfessorDetailsModalWhenSearchForProfessorsAsRG && selectedProfessorWhenSearchForProfessorsAsRG != null)
+                                            {
+                                                <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0, 0, 0, 0.5);">
+                                                    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+                                                        <div class="modal-content" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);">
+                                                            <div class="modal-header" style="border-bottom: 1px solid #e9ecef; border-radius: 12px 12px 0 0; background-color: #f8f9fa;">
+                                                                <h5 class="modal-title" style="color: #4682B4; font-weight: 600; font-size: 1.25rem;">
+                                                                    @selectedProfessorWhenSearchForProfessorsAsRG.ProfName @selectedProfessorWhenSearchForProfessorsAsRG.ProfSurname
+                                                                </h5>
+                                                                <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" 
+                                                                        @onclick="CloseModalProfessorDetailsOnEyeIconWhenSearchForProfessorsAsRG"
+                                                                        onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                        onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                    <span style="font-size: 1.2rem; line-height: 1;">×</span>
+                                                                </button>
+                                                            </div>
+                                                            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                                                                <!-- Profile Picture -->
+                                                                <div class="text-center mb-4">
+                                                                    @if (selectedProfessorWhenSearchForProfessorsAsRG.ProfImage != null && selectedProfessorWhenSearchForProfessorsAsRG.ProfImage.Length > 0)
+                                                                    {
+                                                                        var base64Image = Convert.ToBase64String(selectedProfessorWhenSearchForProfessorsAsRG.ProfImage);
+                                                                        <img src="data:image/jpeg;base64,@base64Image" 
+                                                                             alt="Φωτογραφία Προφίλ Καθηγητή"
+                                                                             style="max-width: 150px; max-height: 150px; border-radius: 50%; object-fit: cover; border: 3px solid #ddd;" />
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <div style="width: 150px; height: 150px; border-radius: 50%; background-color: #f8f9fa; display: flex; align-items: center; justify-content: center; margin: 0 auto; border: 3px solid #ddd;">
+                                                                            <i class="fas fa-user-tie" style="font-size: 3rem; color: #6c757d;"></i>
+                                                                        </div>
+                                                                        <p style="color: #6c757d; margin-top: 8px;">Δεν υπάρχει φωτογραφία Προφίλ</p>
+                                                                    }
+                                                                </div>
+
+                                                                <!-- Professor Email -->
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Email</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-envelope mr-2 text-primary"></i>
+                                                                        <span>@selectedProfessorWhenSearchForProfessorsAsRG.ProfEmail</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <!-- Professor University and Department -->
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Πανεπιστήμιο</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-university mr-2 text-primary"></i>
+                                                                        <span>@selectedProfessorWhenSearchForProfessorsAsRG.ProfUniversity</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Τμήμα</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-building mr-2"></i>
+                                                                        <span>@selectedProfessorWhenSearchForProfessorsAsRG.ProfDepartment</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <!-- Professor Vahmida Department -->
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Βαθμίδα ΔΕΠ</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-user-tie mr-2"></i>
+                                                                        <span>@selectedProfessorWhenSearchForProfessorsAsRG.ProfVahmidaDEP</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <!-- Professor Work and Personal Telephone -->
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Τηλέφωνο Εργασίας</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-phone mr-2 text-success"></i>
+                                                                        <span>@selectedProfessorWhenSearchForProfessorsAsRG.ProfWorkTelephone</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Προσωπικό Τηλέφωνο</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-phone mr-2 text-success"></i>
+                                                                        @if (selectedProfessorWhenSearchForProfessorsAsRG.ProfPersonalTelephoneVisibility)
+                                                                        {
+                                                                            <span>@selectedProfessorWhenSearchForProfessorsAsRG.ProfPersonalTelephone</span>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <span style="color: #6c757d;">Δεν Διατίθεται</span>
+                                                                        }
+                                                                    </div>
+                                                                </div>
+
+                                                                <!-- Professor Personal Website -->
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Ιστότοπος</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-globe mr-2 text-info"></i>
+                                                                        @if (!string.IsNullOrWhiteSpace(selectedProfessorWhenSearchForProfessorsAsRG.ProfPersonalWebsite))
+                                                                        {
+                                                                            <a href="@selectedProfessorWhenSearchForProfessorsAsRG.ProfPersonalWebsite" target="_blank" 
+                                                                               class="text-primary text-decoration-underline">
+                                                                                @selectedProfessorWhenSearchForProfessorsAsRG.ProfPersonalWebsite
+                                                                            </a>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <span style="color: #6c757d;">Δεν Διατίθεται</span>
+                                                                        }
+                                                                    </div>
+                                                                </div>
+
+                                                                <!-- Professor LinkedIn Site -->
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">LinkedIn</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fab fa-linkedin mr-2" style="color: #0077b5;"></i>
+                                                                        @if (!string.IsNullOrWhiteSpace(selectedProfessorWhenSearchForProfessorsAsRG.ProfLinkedInSite))
+                                                                        {
+                                                                            <a href="@selectedProfessorWhenSearchForProfessorsAsRG.ProfLinkedInSite" target="_blank" 
+                                                                               class="text-primary text-decoration-underline">
+                                                                                @selectedProfessorWhenSearchForProfessorsAsRG.ProfLinkedInSite
+                                                                            </a>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <span style="color: #6c757d;">Δεν Διατίθεται</span>
+                                                                        }
+                                                                    </div>
+                                                                </div>
+
+                                                                <!-- Professor Scholar Profile -->
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Scholar Profile</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-graduation-cap mr-2" style="color: #4285F4;"></i>
+                                                                        @if (!string.IsNullOrWhiteSpace(selectedProfessorWhenSearchForProfessorsAsRG.ProfScholarProfile))
+                                                                        {
+                                                                            <a href="@selectedProfessorWhenSearchForProfessorsAsRG.ProfScholarProfile" target="_blank" 
+                                                                               class="text-primary text-decoration-underline">
+                                                                                @selectedProfessorWhenSearchForProfessorsAsRG.ProfScholarProfile
+                                                                            </a>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <span style="color: #6c757d;">Δεν Διατίθεται</span>
+                                                                        }
+                                                                    </div>
+                                                                </div>
+
+                                                                <!-- Professor ORCID Profile -->
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">ORCID Profile</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-id-card mr-2" style="color: #A6CE39;"></i>
+                                                                        @if (!string.IsNullOrWhiteSpace(selectedProfessorWhenSearchForProfessorsAsRG.ProfOrchidProfile))
+                                                                        {
+                                                                            <a href="@selectedProfessorWhenSearchForProfessorsAsRG.ProfOrchidProfile" target="_blank" 
+                                                                               class="text-primary text-decoration-underline">
+                                                                                @selectedProfessorWhenSearchForProfessorsAsRG.ProfOrchidProfile
+                                                                            </a>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <span style="color: #6c757d;">Δεν Διατίθεται</span>
+                                                                        }
+                                                                    </div>
+                                                                </div>
+
+                                                                <!-- Professor General Field of Work (Areas) -->
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Γενικός Τομέας Εργασίας</label>
+                                                                    <textarea class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" readonly rows="3">@selectedProfessorWhenSearchForProfessorsAsRG.ProfGeneralFieldOfWork</textarea>
+                                                                </div>
+
+                                                                <!-- Professor General Skills -->
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Γενικές Δεξιότητες</label>
+                                                                    <textarea class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" readonly rows="3">@selectedProfessorWhenSearchForProfessorsAsRG.ProfGeneralSkills</textarea>
+                                                                </div>
+
+                                                                <!-- Professor Personal Description -->
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Προσωπική Περιγραφή</label>
+                                                                    <textarea class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" readonly rows="4">@selectedProfessorWhenSearchForProfessorsAsRG.ProfPersonalDescription</textarea>
+                                                                </div>
+                                                            </div>
+                                                            <div class="modal-footer">
+                                                                <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; padding: 8px 20px; transition: all 0.2s;" 
+                                                                        @onclick="CloseModalProfessorDetailsOnEyeIconWhenSearchForProfessorsAsRG"
+                                                                        onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                        onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                    <i class="fas fa-arrow-left me-2"></i> Κλείσιμο
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            }
+
+                                        </div>   
+            
+                                        <!-- RESEARCH GROUP STATISTICS -->
