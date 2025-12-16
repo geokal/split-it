@@ -1181,10 +1181,9 @@
                                         </div>
 
                                                                     
+
                                         
 
-
-<div id="jobs-as-student-tab-content"></div>
                                         <div class="tab-pane fade" id="jobs" role="tabpanel" aria-labelledby="jobs-tab">
                                             <!-- Filter label for jobs -->
                                             <div class="mb-3 row-dark-gray mt-4">
@@ -1243,14 +1242,58 @@
                                                     </div>
                                                 @if (jobApplications != null && jobApplications.Any())
                                                 {
-                                                    <table class="table">
+                                                    // FIX: Declare the variable here at the top. 
+                                                    // We are already inside the @if code block, so we just write C# code directly.
+                                                    var totalJobPages = (int)Math.Ceiling((double)jobApplications.Count / jobPageSize);
+
+                                                    <table class="table table-bordered">
                                                         <thead>
                                                             <tr>
-                                                                <td colspan="9" style="padding: 0;">
-                                                                    <div style="display: flex; justify-content: space-between; align-items: center; height: 24px; line-height: 24px; width: 100%;">
-                                                                        <i class="fa-regular fa-bell" style="font-size: 18px; color: #0d6efd;"></i>
-                                                                        <label class="form-label" style="color: #0d6efd; font-weight: bold; font-size: 18px; margin: 0;">Οι Αιτήσεις Μου</label>
-                                                                        <i class="fa-regular fa-bell" style="font-size: 18px; color: #0d6efd;"></i>
+                                                                <td colspan="9" style="padding: 10px; background-color: #f8f9fa;">
+                                                                    <div class="d-flex justify-content-between align-items-center w-100 flex-wrap">
+                        
+                                                                        @* --- Left Side: Title --- *@
+                                                                        <div class="d-flex align-items-center">
+                                                                            <i class="fa-solid fa-bell me-2" style="font-size: 18px; color: #2d3748;"></i>
+                                                                            <label class="form-label mb-0" style="color: #2d3748; font-weight: bold; font-size: 18px;">Οι Αιτήσεις Μου</label>
+                                                                             <i class="fa-solid fa-bell ms-2" style="font-size: 18px; color: #2d3748;"></i>
+
+                                                                        </div>
+
+                                                                        @* --- Right Side: LEGEND --- *@
+                                                                        <div class="d-flex align-items-center gap-3" style="font-size: 12px; color: #555;">
+                            
+                                                                            @* In Process *@
+                                                                            <div class="d-flex align-items-center">
+                                                                                <span style="width: 12px; height: 12px; border: 1px solid #ccc; background-color: white; display: inline-block; margin-right: 5px;"></span>
+                                                                                <span>Σε Επεξεργασία</span>
+                                                                            </div>
+
+                                                                            @* Successful *@
+                                                                            <div class="d-flex align-items-center">
+                                                                                <span style="width: 12px; height: 12px; border: 1px solid #ccc; background-color: lightgreen; display: inline-block; margin-right: 5px;"></span>
+                                                                                <span>Επιτυχής</span>
+                                                                            </div>
+
+                                                                            @* Rejected *@
+                                                                            <div class="d-flex align-items-center">
+                                                                                <span style="width: 12px; height: 12px; border: 1px solid #ccc; background-color: lightcoral; display: inline-block; margin-right: 5px;"></span>
+                                                                                <span>Απορρίφθηκε</span>
+                                                                            </div>
+
+                                                                            @* Position Withdrawn (Coral) *@
+                                                                            <div class="d-flex align-items-center">
+                                                                                <span style="width: 12px; height: 12px; border: 1px solid #ccc; background-color: coral; display: inline-block; margin-right: 5px;"></span>
+                                                                                <span>Απόσυρση Θέσεως</span>
+                                                                            </div>
+
+                                                                            @* Withdrawn by Student *@
+                                                                            <div class="d-flex align-items-center">
+                                                                                <span style="width: 12px; height: 12px; border: 1px solid #ccc; background-color: lightyellow; display: inline-block; margin-right: 5px;"></span>
+                                                                                <span>Αποσύρθηκε (Εσείς)</span>
+                                                                            </div>
+
+                                                                        </div>
                                                                     </div>
                                                                 </td>
                                                             </tr>
@@ -1282,84 +1325,118 @@
                                                                 </th>
                                                             </tr>
                                                         </thead>
-                                                       <tbody id="jobApplicationsTable">
-                                                        @foreach (var application in jobApplications
-                                                            .Skip((currentJobPage - 1) * jobPageSize)
-                                                            .Take(jobPageSize))
-                                                        {
-                                                            // Get status directly from main entity with fallback
-                                                            var status = application.CompanyPositionStatusAppliedAtTheStudentSide 
-                                                                       ?? application.CompanyPositionStatusAppliedAtTheCompanySide
-                                                                       ?? "Σε Επεξεργασία";
-        
-                                                            // Get job data from cache
-                                                            var job = jobDataCache.TryGetValue(application.RNGForCompanyJobApplied, out var j) ? j : null;
+                                                        <tbody id="jobApplicationsTable">
+                                                            @foreach (var application in jobApplications
+                                                                .Skip((currentJobPage - 1) * jobPageSize)
+                                                                .Take(jobPageSize))
+                                                            {
+                                                                // Get status directly from main entity with fallback
+                                                                var status = application.CompanyPositionStatusAppliedAtTheStudentSide 
+                                                                           ?? application.CompanyPositionStatusAppliedAtTheCompanySide
+                                                                           ?? "Σε Επεξεργασία";
+       
+                                                                // Get job data from cache
+                                                                var job = jobDataCache.TryGetValue(application.RNGForCompanyJobApplied, out var j) ? j : null;
 
-                                                            <tr style="background-color: @GetStatusColor(status)">
-                                                                <td style="color: #2d3748;">
-                                                                    @application.RNGForCompanyJobAppliedAsStudent_HashedAsUniqueID
-                                                                </td>
-                                                                <td>
-                                                                    @if (job != null)
-                                                                    {
-                                                                        <a href="#" @onclick="() => ShowCompanyDetailsAsAHyperlinkInShowJobsAsStudent(job.EmailUsedToUploadJobs)" style="text-decoration: none;">
-                                                                            @(job.Company?.CompanyName ?? "Unknown Company")
+                                                                <tr style="background-color: @GetStatusColor(status)">
+                                                                    <td style="color: #2d3748;">
+                                                                        @application.RNGForCompanyJobAppliedAsStudent_HashedAsUniqueID
+                                                                    </td>
+                                                                    <td>
+                                                                        @if (job != null)
+                                                                        {
+                                                                            <a href="#" @onclick="() => ShowCompanyDetailsAsAHyperlinkInShowJobsAsStudent(job.EmailUsedToUploadJobs)" style="text-decoration: none;">
+                                                                                @(job.Company?.CompanyName ?? "Unknown Company")
+                                                                            </a>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <span class="text-warning">Δεν βρέθηκε</span>
+                                                                        }
+                                                                    </td>
+                                                                    <td>
+                                                                        @if (job != null)
+                                                                        {
+                                                                            <a href="#" @onclick="() => ShowJobDetailsInJobTitleAsHyperlink_StudentJobApplications(application.RNGForCompanyJobApplied)" style="text-decoration: none;">
+                                                                                @job.PositionTitle
+                                                                            </a>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <span class="text-warning">Δεν βρέθηκε</span>
+                                                                        }
+                                                                    </td>
+                                                                    <td>@application.DateTimeStudentAppliedForCompanyJob.ToString("dd/MM/yyyy HH:mm")</td>
+                                                                    <td class="text-center">
+                                                                        <a href="mailto:@application.CompanysEmailWhereStudentAppliedForCompanyJob" target="_blank" 
+                                                                           title="@application.CompanysEmailWhereStudentAppliedForCompanyJob">
+                                                                            <i class="fas fa-envelope"></i>
                                                                         </a>
-                                                                    }
-                                                                    else
-                                                                    {
-                                                                        <span class="text-warning">Δεν βρέθηκε</span>
-                                                                    }
-                                                                </td>
-                                                                <td>
-                                                                    @if (job != null)
-                                                                    {
-                                                                        <a href="#" @onclick="() => ShowJobDetailsInJobTitleAsHyperlink_StudentJobApplications(application.RNGForCompanyJobApplied)" style="text-decoration: none;">
-                                                                            @job.PositionTitle
-                                                                        </a>
-                                                                    }
-                                                                    else
-                                                                    {
-                                                                        <span class="text-warning">Δεν βρέθηκε</span>
-                                                                    }
-                                                                </td>
-                                                                <td>@application.DateTimeStudentAppliedForCompanyJob.ToString("dd/MM/yyyy HH:mm")</td>
-                                                                <td class="text-center">
-                                                                    <a href="mailto:@application.CompanysEmailWhereStudentAppliedForCompanyJob" target="_blank" 
-                                                                       title="@application.CompanysEmailWhereStudentAppliedForCompanyJob">
-                                                                        <i class="fas fa-envelope"></i>
-                                                                    </a>
-                                                                </td>
-                                                                <td>@status</td>
-                                                                <td class="text-center">
-                                                                    @if (status == "Σε Επεξεργασία")
-                                                                    {
-                                                                        <span style="cursor: pointer;" @onclick="() => WithdrawJobApplicationMadeByStudent(application)" 
-                                                                              title="Κάντε Κλικ για Απόσυρση της Αίτησης σας">
-                                                                            <i class="fas fa-times"></i>
-                                                                        </span>
-                                                                    }
-                                                                    else if (status == "Επιτυχής" || status == "Απορρίφθηκε")
-                                                                    {
-                                                                        <span>Δεν μπορεί να αποσυρθεί</span>
-                                                                    }
-                                                                    else
-                                                                    {
-                                                                        <span>Ολοκληρώθηκε</span>
-                                                                    }
-                                                                </td>
-                                                            </tr>
-                                                        }             
-                                                    </tbody>
+                                                                    </td>
+                                                                    <td>@status</td>
+                                                                    <td class="text-center">
+                                                                        @if (status == "Σε Επεξεργασία")
+                                                                        {
+                                                                            <span style="cursor: pointer;" @onclick="() => WithdrawJobApplicationMadeByStudent(application)" 
+                                                                                  title="Κάντε Κλικ για Απόσυρση της Αίτησης σας">
+                                                                                <i class="fas fa-times"></i>
+                                                                            </span>
+                                                                        }
+                                                                        else if (status == "Επιτυχής" || status == "Απορρίφθηκε")
+                                                                        {
+                                                                            <span>Δεν μπορεί να αποσυρθεί</span>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <span>Ολοκληρώθηκε</span>
+                                                                        }
+                                                                    </td>
+                                                                </tr>
+                                                            }                     
+                                                        </tbody>
                                                     </table>
-                                                     <br/>
-                                                                                                         <Shared.Pagination CurrentPage="currentJobPage"
-                                                                                                                            TotalPages="(int)Math.Ceiling((double)jobApplications.Count / jobPageSize)"
-                                                                                                                            GoToFirstPage="@(() => ChangeJobPage(1))"
-                                                                                                                            PreviousPage="@(() => ChangeJobPage(currentJobPage - 1))"
-                                                                                                                            NextPage="@(() => ChangeJobPage(currentJobPage + 1))"
-                                                                                                                            GoToLastPage="@(() => ChangeJobPage((int)Math.Ceiling((double)jobApplications.Count / jobPageSize)))"
-                                                                                                                            GoToPage="ChangeJobPage" />                                                }
+    
+                                                    <br/>
+                                                           
+                                                    <div class="d-flex justify-content-center align-items-center mt-3 gap-1">
+                                                        <span class="pagination-item @(currentJobPage == 1 ? "disabled" : "")" 
+                                                              @onclick="@(() => ChangeJobPage(1))">
+                                                            &lt;&lt;
+                                                        </span>
+    
+                                                        <span class="pagination-item @(currentJobPage == 1 ? "disabled" : "")" 
+                                                              @onclick="@(() => ChangeJobPage(currentJobPage - 1))">
+                                                            &lt;
+                                                        </span>
+    
+                                                        @foreach (var pageNumber in GetVisiblePages(currentJobPage, totalJobPages))
+                                                        {
+                                                            @if (pageNumber == -1)
+                                                            {
+                                                                <span class="pagination-ellipsis">...</span>
+                                                            }
+                                                            else
+                                                            {
+                                                                <span class="pagination-item @(pageNumber == currentJobPage ? "active" : "")" 
+                                                                      @onclick="@(() => ChangeJobPage(pageNumber))">
+                                                                    @pageNumber
+                                                                </span>
+                                                            }
+                                                        }
+    
+                                                        <span class="pagination-item @(currentJobPage == totalJobPages ? "disabled" : "")" 
+                                                              @onclick="@(() => ChangeJobPage(currentJobPage + 1))">
+                                                            &gt;
+                                                        </span>
+    
+                                                        <span class="pagination-item @(currentJobPage == totalJobPages ? "disabled" : "")" 
+                                                              @onclick="@(() => ChangeJobPage(totalJobPages))">
+                                                            &gt;&gt;
+                                                        </span>
+    
+                                                        <span class="ms-3">Σελίδα @currentJobPage από @totalJobPages</span>
+                                                    </div>
+                                                }
                                                 else
                                                 {
                                                     <div class="alert alert-warning" role="alert">
@@ -1367,7 +1444,7 @@
                                                     </div>
                                                 }
                                             }
-
+                                            
                                             <!-- Loading Modal for Job Application Withdrawal -->
                                             @if (showLoadingModalWhenWithdrawJobApplication)
                                             {
@@ -1971,13 +2048,13 @@
                                                                     <br/>
                                                                     <br/>
                                                                     <div class="col-md-4">
-                                                                        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 12px;">
+                                                                        <div style="display: flex; align-items: center; width: 100%; margin-bottom: 12px; gap: 10px;">
                                                                             <label for="positionAreaSearch" style="margin: 0; display: flex; align-items: center; gap: 4px;">
                                                                                 <strong>Θεματική Περιοχή</strong>
                                                                             </label>
                                                                             <button type="button"
                                                                                     @onclick="TogglePositionAreasVisibility"
-                                                                                    style="border: 1px solid #1565c0; background: white; border-radius: 6px; padding: 4px 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; color: #1565c0; font-size: 0.85em; transition: all 0.2s;">
+                                                                                    style="border: 1px solid #2d3748; background: white; border-radius: 6px; padding: 4px 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; color: #2d3748; font-size: 0.85em; transition: all 0.2s;">
                                                                                 <span>👆</span>
                                                                                 <span>@(isPositionAreasVisible ? "Κρύψε" : "Προβολή περιοχών")</span>
                                                                             </button>
@@ -2031,9 +2108,11 @@
                                                                     </div>
 
                                                                     <div class="col-md-12 mt-3">
-                                                                        <div class="form-check">
-                                                                            <input type="checkbox" id="jobTransportOffer" class="form-check-input" @bind="companyjobSearchByTransportOffer">
-                                                                            <label for="jobTransportOffer" class="form-check-label"><strong>Παροχή Μεταφοράς</strong></label>
+                                                                        <div class="d-flex align-items-center gap-2">
+                                                                            <label for="jobTransportOffer" class="mb-0">
+                                                                                <strong>Παροχή Μεταφοράς</strong>
+                                                                            </label>
+                                                                            <input type="checkbox" id="jobTransportOffer" class="form-check-input m-0" @bind="companyjobSearchByTransportOffer">
                                                                         </div>
                                                                     </div>
                                                                 </div>

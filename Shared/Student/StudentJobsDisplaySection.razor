@@ -119,13 +119,56 @@
                                                                     }
                                                                 </tbody>
                                                         </table>
-                                                                                                                 <Shared.Pagination CurrentPage="currentJobPositionPage"
-                                                                                                                                    TotalPages="totalJobPositionPages"
-                                                                                                                                    GoToFirstPage="@(() => ChangeJobPositionPage(1))"
-                                                                                                                                    PreviousPage="@(() => ChangeJobPositionPage(currentJobPositionPage - 1))"
-                                                                                                                                    NextPage="@(() => ChangeJobPositionPage(currentJobPositionPage + 1))"
-                                                                                                                                    GoToLastPage="@(() => ChangeJobPositionPage(totalJobPositionPages))"
-                                                                                                                                    GoToPage="ChangeJobPositionPage" />                                                        <br/>
+                                                        <!-- Job Positions Pagination -->                                                    
+                                                        var totalJobPositionPages = publishedJobs != null ? (int)Math.Ceiling((double)publishedJobs.Count / jobPositionPageSize) : 1;                                                       
+                                                        <div class="d-flex justify-content-center align-items-center mt-3 gap-1">
+                                                            <!-- First Page (<<) -->
+                                                            <span class="pagination-item @(currentJobPositionPage == 1 ? "disabled" : "")" 
+                                                                  @onclick="@(() => ChangeJobPositionPage(1))">
+                                                                &lt;&lt;
+                                                            </span>
+    
+                                                            <!-- Previous Page (<) -->
+                                                            <span class="pagination-item @(currentJobPositionPage == 1 ? "disabled" : "")" 
+                                                                  @onclick="@(() => ChangeJobPositionPage(currentJobPositionPage - 1))">
+                                                                &lt;
+                                                            </span>
+    
+                                                            <!-- Page Numbers -->
+                                                            @if (publishedJobs != null)
+                                                            {
+                                                                @foreach (var pageNumber in GetVisiblePages(currentJobPositionPage, totalJobPositionPages))
+                                                                {
+                                                                    @if (pageNumber == -1)
+                                                                    {
+                                                                        <span class="pagination-ellipsis">...</span>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <span class="pagination-item @(pageNumber == currentJobPositionPage ? "active" : "")" 
+                                                                              @onclick="@(() => ChangeJobPositionPage(pageNumber))">
+                                                                            @pageNumber
+                                                                        </span>
+                                                                    }
+                                                                }
+                                                            }
+    
+                                                            <!-- Next Page (>) -->
+                                                            <span class="pagination-item @(currentJobPositionPage == totalJobPositionPages ? "disabled" : "")" 
+                                                                  @onclick="@(() => ChangeJobPositionPage(currentJobPositionPage + 1))">
+                                                                &gt;
+                                                            </span>
+    
+                                                            <!-- Last Page (>>) -->
+                                                            <span class="pagination-item @(currentJobPositionPage == totalJobPositionPages ? "disabled" : "")" 
+                                                                  @onclick="@(() => ChangeJobPositionPage(totalJobPositionPages))">
+                                                                &gt;&gt;
+                                                            </span>
+    
+                                                            <!-- Page counter -->
+                                                            <span class="ms-3">Σελίδα @currentJobPositionPage από @totalJobPositionPages</span>
+                                                        </div>
+                                                        <br/>
                                                         <br/>
                                                     }
                                                     else 

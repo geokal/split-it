@@ -1,4 +1,7 @@
-<div class="tab-pane fade" id="internships" role="tabpanel" aria-labelledby="internships-tab">
+                                                    <div id="internships-tab-companies-start"></div>
+
+
+                                            <div class="tab-pane fade" id="internships" role="tabpanel" aria-labelledby="internships-tab">
                                                 <!-- ΔΗΜΙΟΥΡΓΙΑ ΠΡΑΚΤΙΚΉΣ ΑΣΚΗΣΗΣ ΩΣ COMPANY USER-->
                                                 <div class="mb-3 row-dark-gray">
                                                     <div class="d-flex justify-content-between align-items-center" @onclick="ToggleFormVisibilityForUploadCompanyInternships" style="cursor: pointer;">
@@ -220,7 +223,7 @@
                                                                 <button type="button" 
                                                                         @onclick="ToggleCheckboxesForCompanyInternship"
                                                                         class="toggle-all-areas-btn @(showErrorMessage && !HasAnySelectionForCompanyInternship() ? "shake error" : "")"
-                                                                        style="border: 1px solid #1565c0; background: white; border-radius: 6px; padding: 4px 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; color: #1565c0; font-size: 0.85em; transition: all 0.2s;">
+                                                                        style="border: 1px solid #2d3748; background: white; border-radius: 6px; padding: 4px 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; color: #2d3748; font-size: 0.85em; transition: all 0.2s;">
                                                                     <span>👆</span>
                                                                     <span>Προβολή τομέων</span>
                                                                 </button>
@@ -406,7 +409,7 @@
 
 
 
-<div id="show-my-uploaded-internships-as-company"></div>
+                                                    <div id="show-my-uploaded-internships-as-company"></div>
 
 
                                                 <!-- VIEW UPLOADED INTERNSHIPS AS COMPANY -->
@@ -1024,20 +1027,56 @@
                                                             {
                                                                 <br/>
                                                                 <!-- Pagination Controls -->
-                                                                <Shared.Pagination CurrentPage="currentPageForCompanyInternships"
-                                                                                                   TotalPages="totalPagesForCompanyInternships"
-                                                                                                   GoToFirstPage="@(() => GoToFirstPageForCompanyInternships())"
-                                                                                                   PreviousPage="@(() => PreviousPageForCompanyInternships())"
-                                                                                                   NextPage="@(() => NextPageForCompanyInternships())"
-                                                                                                   GoToLastPage="@(() => GoToLastPageForCompanyInternships())"
-                                                                                                   GoToPage="GoToPageForCompanyInternships" />
+                                                                <div class="d-flex justify-content-center align-items-center mt-3 gap-1">
+                                                                    <!-- First Page (<<) -->
+                                                                    <span class="pagination-item @(currentPageForCompanyInternships == 1 ? "disabled" : "")" 
+                                                                          @onclick="@(() => GoToFirstPageForCompanyInternships())">
+                                                                        &lt;&lt;
+                                                                    </span>
+
+                                                                    <!-- Previous Page (<) -->
+                                                                    <span class="pagination-item @(currentPageForCompanyInternships == 1 ? "disabled" : "")" 
+                                                                          @onclick="@(() => PreviousPageForCompanyInternships())">
+                                                                        &lt;
+                                                                    </span>
+
+                                                                    <!-- Page Numbers -->
+                                                                    @foreach (var pageNum in GetVisiblePagesForCompanyInternships())
+                                                                    {
+                                                                        @if (pageNum == -1)
+                                                                        {
+                                                                            <span class="pagination-ellipsis">...</span>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <span class="pagination-item @(pageNum == currentPageForCompanyInternships ? "active" : "")" 
+                                                                                  @onclick="@(() => GoToPageForCompanyInternships(pageNum))">
+                                                                                @pageNum
+                                                                            </span>
+                                                                        }
+                                                                    }
+
+                                                                    <!-- Next Page (>) -->
+                                                                    <span class="pagination-item @(currentPageForCompanyInternships == totalPagesForCompanyInternships ? "disabled" : "")" 
+                                                                          @onclick="@(() => NextPageForCompanyInternships())">
+                                                                        &gt;
+                                                                    </span>
+
+                                                                    <!-- Last Page (>>) -->
+                                                                    <span class="pagination-item @(currentPageForCompanyInternships == totalPagesForCompanyInternships ? "disabled" : "")" 
+                                                                          @onclick="@(() => GoToLastPageForCompanyInternships())">
+                                                                        &gt;&gt;
+                                                                    </span>
+
+                                                                    <!-- Page counter -->
+                                                                    <span class="ms-3">Σελίδα @currentPageForCompanyInternships από @totalPagesForCompanyInternships</span>
+                                                                </div>
                                                                 <br/>
                                                             }
                                                         </div>
                                                     </div>
                                                     <br/>
                                                     <br/>
-                                                }
                                                 
                                                 
                                                 
@@ -1047,34 +1086,34 @@
                                                     {
                                                         <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0, 0, 0, 0.5); z-index: 1060;">
                                                             <div class="modal-dialog modal-dialog-centered" role="document">
-                                                                <div class="modal-content" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); border: 2px solid #dc3545;">
-                                                                    <div class="modal-header" style="border-bottom: 1px solid #e9ecef; border-radius: 12px 12px 0 0; background-color: #f8f9fa;">
-                                                                        <h5 class="modal-title" style="color: #dc3545; font-weight: 600; font-size: 1.25rem;">
+                                                                <div class="modal-content" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); border: 2px solid #2d3748;">
+                                                                    <div class="modal-header" style="border-bottom: 1px solid #e9ecef; border-radius: 12px 12px 0 0; background-color: #FFFFFF;">
+                                                                        <h5 class="modal-title" style="color: #2d3748; font-weight: 600; font-size: 1.25rem;">
                                                                             <i class="fas fa-exclamation-triangle me-2"></i>Προσοχή - Όριο Slots Πρακτικής
                                                                         </h5>
-                                                                        <button type="button" class="modern-button" style="background-color: #dc3545; color: white; border: none; border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" 
+                                                                        <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" 
                                                                                 @onclick="CloseSlotWarningModal_ForCompanyInternship"
-                                                                                onmouseover="this.style.backgroundColor='#c82333'" 
-                                                                                onmouseout="this.style.backgroundColor='#dc3545'">
+                                                                                onmouseover="this.style.backgroundColor='#2d3748'" 
+                                                                                onmouseout="this.style.backgroundColor='#2d3748'">
                                                                             <span style="font-size: 1.2rem; line-height: 1;">×</span>
                                                                         </button>
                                                                     </div>
                                                                     <div class="modal-body" style="padding: 20px;">
                                                                         <div class="alert alert-warning" style="border-radius: 8px; margin: 0;">
                                                                             <div class="d-flex align-items-center">
-                                                                                <i class="fas fa-exclamation-circle fa-2x me-3" style="color: #856404;"></i>
+                                                                                <i class="fas fa-exclamation-circle fa-2x me-3" style="color: #2d3748;"></i>
                                                                                 <div>
-                                                                                    <h6 style="color: #856404; margin-bottom: 8px; font-weight: bold;">Υπέρβαση Διαθέσιμων Θέσεων Πρακτικής</h6>
-                                                                                    <p style="color: #856404; margin: 0; line-height: 1.5;">@slotWarningMessage_ForCompanyInternship</p>
+                                                                                    <h6 style="color: #2d3748; margin-bottom: 8px; font-weight: bold;">Υπέρβαση Διαθέσιμων Θέσεων Πρακτικής</h6>
+                                                                                    <p style="color: #2d3748; margin: 0; line-height: 1.5;">@slotWarningMessage_ForCompanyInternship</p>
                                                                                 </div>
                                                                             </div>
                                                                         </div>
                                                                     </div>
-                                                                    <div class="modal-footer" style="border-top: 1px solid #e9ecef; border-radius: 0 0 12px 12px; background-color: #f8f9fa;">
-                                                                        <button type="button" class="modern-button" style="background-color: #dc3545; color: white; border: none; border-radius: 6px; padding: 8px 20px; transition: all 0.2s;" 
+                                                                    <div class="modal-footer" style="border-top: 1px solid #e9ecef; border-radius: 0 0 12px 12px; background-color: #FFFFFF;">
+                                                                        <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; padding: 8px 20px; transition: all 0.2s;" 
                                                                                 @onclick="CloseSlotWarningModal_ForCompanyInternship"
-                                                                                onmouseover="this.style.backgroundColor='#c82333'" 
-                                                                                onmouseout="this.style.backgroundColor='#dc3545'">
+                                                                                onmouseover="this.style.backgroundColor='#2d3748'" 
+                                                                                onmouseout="this.style.backgroundColor='#2d3748'">
                                                                             <i class="fas fa-times me-1"></i>Κλείσιμο
                                                                         </button>
                                                                     </div>
@@ -1622,8 +1661,69 @@
                                                                         <div class="form-group">
                                                                             <label style="font-weight: bold;">Ταχ. Κώδικας</label>
                                                                             <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
-                                                                                <i class="fas fa-map-pin mr-2"></i>
+                                                                                <i class="fas fa-mail-bulk mr-2 text-info"></i>
                                                                                 <span>@currentInternship.CompanyInternshipPostalCodeLocation</span>
+                                                                            </div>
+                                                                        </div>
+
+                                                                        <!-- Transport Offer -->
+                                                                        <div class="form-group">
+                                                                            <label style="font-weight: bold;">Προσφορά Μεταφορικού Μέσου</label>
+                                                                            <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;
+                                                                                 @(currentInternship.CompanyInternshipTransportOffer ? "color: #28a745;" : "color: #dc3545;")">
+                                                                                <i class="fas fa-car mr-2"></i>
+                                                                                <span>@(currentInternship.CompanyInternshipTransportOffer ? "Ναι" : "Όχι")</span>
+                                                                            </div>
+                                                                        </div>
+
+                                                                        <!-- Areas -->
+                                                                        <div class="form-group">
+                                                                            <label style="font-weight: bold;">Τομείς</label>
+                                                                            <textarea class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" readonly rows="3">@string.Join(Environment.NewLine, currentInternship.CompanyInternshipAreas.Split(','))</textarea>
+                                                                        </div>
+
+                                                                        <!-- Dates -->
+                                                                        <div class="form-group">
+                                                                            <label style="font-weight: bold;">Ξεκινάει Από</label>
+                                                                            <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                                <i class="far fa-calendar-alt mr-2 text-info"></i>
+                                                                                <span>@currentInternship.CompanyInternshipActivePeriod.ToString("yyyy-MM-dd")</span>
+                                                                            </div>
+                                                                        </div>
+
+                                                                        <div class="form-group">
+                                                                            <label style="font-weight: bold;">Εκτιμώμενη Ημερομηνία Ολοκλήρωσης</label>
+                                                                            <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                                <i class="far fa-calendar-check mr-2 text-info"></i>
+                                                                                <span>@currentInternship.CompanyInternshipFinishEstimation.ToString("yyyy-MM-dd")</span>
+                                                                            </div>
+                                                                        </div>
+
+                                                                        <!-- UPDATED: Open Slots Field -->
+                                                                        <div class="form-group">
+                                                                            <label style="font-weight: bold;">Διαθέσιμες Θέσεις</label>
+                                                                            <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa; color: #007BFF;">
+                                                                                <i class="fas fa-users" style="margin-right: 8px;"></i>
+                                                                                <span>@currentInternship.OpenSlots_CompanyInternships θέσεις</span>
+                                                                            </div>
+                                                                            <small class="form-text text-muted">Αριθμός ανοιχτών θέσεων για αυτή τη πρακτική άσκηση</small>
+                                                                        </div>
+
+                                                                        <!-- Supervisor -->
+                                                                        <div class="form-group">
+                                                                            <label style="font-weight: bold; color: #87CEEB;">Επιβλέπων Καθηγητής</label>
+                                                                            <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                                <i class="fas fa-user-tie mr-2" style="color: #87CEEB;"></i>
+                                                                                <span>@currentInternship.CompanyInternshipEKPASupervisor</span>
+                                                                            </div>
+                                                                        </div>
+
+                                                                        <!-- Status -->
+                                                                        <div class="form-group">
+                                                                            <label style="font-weight: bold;">Κατάσταση</label>
+                                                                            <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                                <i class="fas fa-info-circle mr-2 text-info"></i>
+                                                                                <span>@currentInternship.CompanyUploadedInternshipStatus</span>
                                                                             </div>
                                                                         </div>
                                                                     </div>
@@ -1632,7 +1732,7 @@
                                                                                 @onclick="CloseModalForInternships"
                                                                                 onmouseover="this.style.backgroundColor='#4a5568'" 
                                                                                 onmouseout="this.style.backgroundColor='#2d3748'">
-                                                                            <i class="fas fa-times me-2"></i> Κλείσιμο
+                                                                            <i class="fas fa-arrow-left me-2"></i> Κλείσιμο
                                                                         </button>
                                                                     </div>
                                                                 </div>
@@ -1641,4 +1741,239 @@
                                                     }
                                                 }
                                             </div>
-<div id="internships-tab-companies-end"></div>
+
+                                            <!-- MODAL FOR STUDENT DETAILS FROM COMPANY JOBS/INTERNSHIPS/THESIS -->
+                                            @if (isModalVisibleToShowStudentDetailsAsCompanyFromTheirHyperlinkNameInCompanyInternships)
+                                            {
+                                                <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0, 0, 0, 0.5);">
+                                                    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+                                                        <div class="modal-content" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);">
+                                                            <div class="modal-header" style="border-bottom: 1px solid #e9ecef; border-radius: 12px 12px 0 0; background-color: #f8f9fa;">
+                                                                <h5 class="modal-title" style="color: #4682B4; font-weight: 600; font-size: 1.25rem;">
+                                                                    @($"{selectedStudentFromCache?.Name} {selectedStudentFromCache?.Surname}")
+                                                                </h5>
+                                                                <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" 
+                                                                        @onclick="CloseModalforHyperLinkTitleStudentName"
+                                                                        onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                        onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                    <span style="font-size: 1.2rem; line-height: 1;">×</span>
+                                                                </button>
+                                                            </div>
+                                                            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                                                                @if (selectedStudentFromCache == null)
+                                                                {
+                                                                    <div class="alert alert-warning text-center" style="border-radius: 8px;">
+                                                                        <i class="fas fa-exclamation-triangle me-2"></i>Δεν βρέθηκαν στοιχεία για τον φοιτητή
+                                                                    </div>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <!-- Profile Picture -->
+                                                                    <div class="text-center mb-4">
+                                                                        @if (selectedStudentFromCache?.Image != null && selectedStudentFromCache.Image.Length > 0)
+                                                                        {
+                                                                            var base64Image = Convert.ToBase64String(selectedStudentFromCache.Image);
+                                                                            <img src="data:image/jpeg;base64,@base64Image" alt="Φωτογραφία Προφίλ Σπουδαστή" 
+                                                                                 style="max-width: 150px; max-height: 150px; border-radius: 50%; object-fit: cover; border: 3px solid #ddd;" />
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <div style="width: 150px; height: 150px; border-radius: 50%; background-color: #f8f9fa; display: flex; align-items: center; justify-content: center; margin: 0 auto; border: 3px solid #ddd;">
+                                                                                <i class="fas fa-user" style="font-size: 3rem; color: #6c757d;"></i>
+                                                                            </div>
+                                                                        }
+                                                                    </div>
+
+                                                                    <!-- Student Details -->
+                                                                    <div class="form-group">
+                                                                        <label style="font-weight: bold;">Επίπεδο Σπουδών</label>
+                                                                        <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                            <i class="fas fa-graduation-cap mr-2"></i>
+                                                                            <span>@selectedStudentFromCache?.LevelOfDegree</span>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div class="form-group">
+                                                                        <label style="font-weight: bold;">Όνοματεπώνυμο</label>
+                                                                        <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                            <i class="fas fa-user mr-2 text-primary"></i>
+                                                                            <span>@($"{selectedStudentFromCache?.Name} {selectedStudentFromCache?.Surname}")</span>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div class="form-group">
+                                                                        <label style="font-weight: bold;">Πανεπιστήμιο</label>
+                                                                        <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                            <i class="fas fa-university mr-2 text-primary"></i>
+                                                                            <span>@selectedStudentFromCache?.University</span>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div class="form-group">
+                                                                        <label style="font-weight: bold;">Τμήμα</label>
+                                                                        <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                            <i class="fas fa-building mr-2"></i>
+                                                                            <span>@selectedStudentFromCache?.Department</span>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div class="form-group">
+                                                                        <label style="font-weight: bold;">Αριθμός Μητρώου</label>
+                                                                        <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                            <i class="fas fa-id-card mr-2 text-info"></i>
+                                                                            <span>@selectedStudentFromCache?.RegNumber</span>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div class="form-group">
+                                                                        <label style="font-weight: bold;">Ημερομηνία Εγγραφής</label>
+                                                                        <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                            <i class="far fa-calendar-alt mr-2 text-info"></i>
+                                                                            <span>@selectedStudentFromCache?.EnrollmentDate</span>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div class="form-group">
+                                                                        <label style="font-weight: bold;">Email</label>
+                                                                        <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                            <i class="fas fa-envelope mr-2 text-primary"></i>
+                                                                            <span>@selectedStudentFromCache?.Email</span>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div class="form-group">
+                                                                        <label style="font-weight: bold;">Τηλέφωνο</label>
+                                                                        <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                            <i class="fas fa-phone mr-2 text-success"></i>
+                                                                            <span>@(selectedStudentFromCache?.Telephone ?? "N/A")</span>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <!-- Address Information -->
+                                                                    <div class="form-group">
+                                                                        <label style="font-weight: bold;">Μόνιμη Περιοχή</label>
+                                                                        <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                            <i class="fas fa-map-marked-alt mr-2"></i>
+                                                                            <span>@selectedStudentFromCache?.PermanentRegion</span>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div class="form-group">
+                                                                        <label style="font-weight: bold;">Μόνιμος Τόπος</label>
+                                                                        <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                            <i class="fas fa-city mr-2"></i>
+                                                                            <span>@selectedStudentFromCache?.PermanentTown</span>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div class="form-group">
+                                                                        <label style="font-weight: bold;">Μόνιμη Διεύθυνση</label>
+                                                                        <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                            <i class="fas fa-map-marker-alt mr-2 text-danger"></i>
+                                                                            @if (!string.IsNullOrEmpty(selectedStudentFromCache?.PermanentAddress))
+                                                                            {
+                                                                                <a href="https://www.google.com/maps/search/?api=1&query=@Uri.EscapeDataString(selectedStudentFromCache.PermanentAddress)"
+                                                                                   target="_blank"
+                                                                                   class="text-primary text-decoration-underline">
+                                                                                    @selectedStudentFromCache.PermanentAddress
+                                                                                </a>
+                                                                            }
+                                                                            else
+                                                                            {
+                                                                                <span class="text-muted">N/A</span>
+                                                                            }
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <!-- Social Links -->
+                                                                    <div class="form-group">
+                                                                        <label style="font-weight: bold;">LinkedIn Προφίλ</label>
+                                                                        <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                            <i class="fab fa-linkedin mr-2 text-info"></i>
+                                                                            @if (!string.IsNullOrEmpty(selectedStudentFromCache?.LinkedInProfile))
+                                                                            {
+                                                                                <a href="@selectedStudentFromCache.LinkedInProfile" target="_blank" class="text-info text-decoration-underline">
+                                                                                    @selectedStudentFromCache.LinkedInProfile
+                                                                                </a>
+                                                                            }
+                                                                            else
+                                                                            {
+                                                                                <span class="text-muted">Δεν έχει οριστεί προφίλ LinkedIn ακόμη..</span>
+                                                                            }
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div class="form-group">
+                                                                        <label style="font-weight: bold;">Προσωπική Ιστοσελίδα</label>
+                                                                        <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                            <i class="fas fa-globe mr-2 text-info"></i>
+                                                                            @if (!string.IsNullOrEmpty(selectedStudentFromCache?.PersonalWebsite))
+                                                                            {
+                                                                                <a href="@selectedStudentFromCache.PersonalWebsite" target="_blank" class="text-primary text-decoration-underline">
+                                                                                    @selectedStudentFromCache.PersonalWebsite
+                                                                                </a>
+                                                                            }
+                                                                            else
+                                                                            {
+                                                                                <span class="text-muted">Δεν έχει οριστεί ιστοσελίδα ακόμη..</span>
+                                                                            }
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <!-- Skills and Expertise -->
+                                                                    <div class="form-group">
+                                                                        <label style="font-weight: bold;">Δεξιότητες</label>
+                                                                        <textarea class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" readonly rows="3">@selectedStudentFromCache?.Keywords</textarea>
+                                                                    </div>
+
+                                                                    <div class="form-group">
+                                                                        <label style="font-weight: bold;">Τομείς Εξειδίκευσης</label>
+                                                                        <textarea class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" readonly rows="3">@selectedStudentFromCache?.AreasOfExpertise</textarea>
+                                                                    </div>
+
+                                                                    <!-- Transport Info -->
+                                                                    <div class="form-group">
+                                                                        <label style="font-weight: bold;">Διαθέτει Μέσο Μεταφοράς</label>
+                                                                        <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                            <i class="fas fa-car mr-2"></i>
+                                                                            <span>@(selectedStudentFromCache?.Transport == true ? "Ναι" : "Όχι")</span>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <!-- CV Download -->
+                                                                    <div class="form-group">
+                                                                        <label style="font-weight: bold;">Βιογραφικό</label>
+                                                                        <div>
+                                                                            @if (selectedStudentFromCache?.Attachment != null)
+                                                                            {
+                                                                                <button class="modern-button" @onclick="() => DownloadStudentCVFromCompanyInternships(selectedStudentFromCache.Email)"
+                                                                                        style="background-color: #2d3748; color: white; border: none; border-radius: 6px; padding: 8px 20px; transition: all 0.2s;"
+                                                                                        onmouseover="this.style.backgroundColor='#4a5568'; this.style.transform='translateY(-1px)';" 
+                                                                                        onmouseout="this.style.backgroundColor='#2d3748'; this.style.transform='translateY(0)';">
+                                                                                    <i class="fas fa-download me-2"></i>Λήψη Βιογραφικού
+                                                                                </button>
+                                                                            }
+                                                                            else
+                                                                            {
+                                                                                <span class="text-muted">Δεν Διατίθεται Βιογραφικό!</span>
+                                                                            }
+                                                                        </div>
+                                                                    </div>
+                                                                }
+                                                            </div>
+                                                            <div class="modal-footer">
+                                                                <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; padding: 8px 20px; transition: all 0.2s;" 
+                                                                        @onclick="CloseModalforHyperLinkTitleStudentName"
+                                                                        onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                        onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                    <i class="fas fa-arrow-left me-2"></i> Κλείσιμο
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            }
+
+
+
+                                                    <div id="internships-tab-companies-end"></div>

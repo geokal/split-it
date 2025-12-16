@@ -1,3 +1,5 @@
+                                                    <div id="thesis-companies-start"></div>
+                                            <!-- COMPANY THESIS tab content -->
                                             <div class="tab-pane fade" id="thesis" role="tabpanel" aria-labelledby="thesis-tab">
                                                 <!-- ΔΗΜΙΟΥΡΓΙΑ ΠΤΥΧΙΑΚΗΣ ΕΡΓΑΣΙΑΣ ΩΣ COMPANY USER-->
                                                 <div class="mb-3 row-dark-gray">
@@ -113,7 +115,7 @@
                                                                 <button type="button" 
                                                                         @onclick="ToggleCheckboxesForCompanyThesis"
                                                                         class="toggle-all-areas-btn @(showErrorMessageforUploadingthesisAsCompany && !HasAnySelectionForCompanyThesis() ? "shake error" : "")"
-                                                                        style="border: 1px solid #1565c0; background: white; border-radius: 6px; padding: 4px 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; color: #1565c0; font-size: 0.85em; transition: all 0.2s;">
+                                                                        style="border: 1px solid #2d3748; background: white; border-radius: 6px; padding: 4px 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; color: #2d3748; font-size: 0.85em; transition: all 0.2s;">
                                                                     <span>👆</span>
                                                                     <span>Προβολή τομέων</span>
                                                                 </button>
@@ -200,7 +202,7 @@
                                                                 <button type="button" 
                                                                         @onclick="ToggleCheckboxesForSkillsForCompanyThesis"
                                                                         class="toggle-all-areas-btn @(showErrorMessageforUploadingthesisAsCompany && string.IsNullOrWhiteSpace(thesis.CompanyThesisSkillsNeeded) ? "shake error" : "")"
-                                                                        style="border: 1px solid @(showErrorMessageforUploadingthesisAsCompany && string.IsNullOrWhiteSpace(thesis.CompanyThesisSkillsNeeded) ? "#dc3545" : "#1565c0"); background: white; border-radius: 6px; padding: 4px 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; color: @(showErrorMessageforUploadingthesisAsCompany && string.IsNullOrWhiteSpace(thesis.CompanyThesisSkillsNeeded) ? "#dc3545" : "#1565c0"); font-size: 0.85em; transition: all 0.2s;">
+                                                                        style="border: 1px solid @(showErrorMessageforUploadingthesisAsCompany && string.IsNullOrWhiteSpace(thesis.CompanyThesisSkillsNeeded) ? "#2d3748" : "#2d3748"); background: white; border-radius: 6px; padding: 4px 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; color: @(showErrorMessageforUploadingthesisAsCompany && string.IsNullOrWhiteSpace(thesis.CompanyThesisSkillsNeeded) ? "#2d3748" : "#1565c0"); font-size: 0.85em; transition: all 0.2s;">
                                                                     <span>👆</span>
                                                                     <span>Προβολή δεξιοτήτων</span>
                                                                 </button>
@@ -1112,13 +1114,50 @@
                                                             {
                                                                 <br/>
                                                                 <!-- Pagination Controls -->
-                                                                <Shared.Pagination CurrentPage="currentPageForCompanyTheses"
-                                                                                                   TotalPages="totalPagesForCompanyTheses"
-                                                                                                   GoToFirstPage="@(() => GoToFirstPageForCompanyTheses())"
-                                                                                                   PreviousPage="@(() => PreviousPageForCompanyTheses())"
-                                                                                                   NextPage="@(() => NextPageForCompanyTheses())"
-                                                                                                   GoToLastPage="@(() => GoToLastPageForCompanyTheses())"
-                                                                                                   GoToPage="GoToPageForCompanyTheses" />
+                                                                <div class="d-flex justify-content-center align-items-center mt-3 gap-1">
+                                                                    <!-- First Page (<<) -->
+                                                                    <span class="pagination-item @(currentPageForCompanyTheses == 1 ? "disabled" : "")" 
+                                                                          @onclick="@(() => GoToFirstPageForCompanyTheses())">
+                                                                        &lt;&lt;
+                                                                    </span>
+
+                                                                    <!-- Previous Page (<) -->
+                                                                    <span class="pagination-item @(currentPageForCompanyTheses == 1 ? "disabled" : "")" 
+                                                                          @onclick="@(() => PreviousPageForCompanyTheses())">
+                                                                        &lt;
+                                                                    </span>
+
+                                                                    <!-- Page Numbers -->
+                                                                    @foreach (var pageNum in GetVisiblePagesForCompanyTheses())
+                                                                    {
+                                                                        @if (pageNum == -1)
+                                                                        {
+                                                                            <span class="pagination-ellipsis">...</span>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <span class="pagination-item @(pageNum == currentPageForCompanyTheses ? "active" : "")" 
+                                                                                  @onclick="@(() => GoToPageForCompanyTheses(pageNum))">
+                                                                                @pageNum
+                                                                            </span>
+                                                                        }
+                                                                    }
+
+                                                                    <!-- Next Page (>) -->
+                                                                    <span class="pagination-item @(currentPageForCompanyTheses == totalPagesForCompanyTheses ? "disabled" : "")" 
+                                                                          @onclick="@(() => NextPageForCompanyTheses())">
+                                                                        &gt;
+                                                                    </span>
+
+                                                                    <!-- Last Page (>>) -->
+                                                                    <span class="pagination-item @(currentPageForCompanyTheses == totalPagesForCompanyTheses ? "disabled" : "")" 
+                                                                          @onclick="@(() => GoToLastPageForCompanyTheses())">
+                                                                        &gt;&gt;
+                                                                    </span>
+
+                                                                    <!-- Page counter -->
+                                                                    <span class="ms-3">Σελίδα @currentPageForCompanyTheses από @totalPagesForCompanyTheses</span>
+                                                                </div>
                                                                 <br/>
                                                             }
                                                         </div>
@@ -1132,34 +1171,34 @@
                                                 {
                                                     <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0, 0, 0, 0.5); z-index: 1060;">
                                                         <div class="modal-dialog modal-dialog-centered" role="document">
-                                                            <div class="modal-content" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); border: 2px solid #dc3545;">
-                                                                <div class="modal-header" style="border-bottom: 1px solid #e9ecef; border-radius: 12px 12px 0 0; background-color: #f8f9fa;">
-                                                                    <h5 class="modal-title" style="color: #dc3545; font-weight: 600; font-size: 1.25rem;">
+                                                            <div class="modal-content" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); border: 2px solid #2d3748;">
+                                                                <div class="modal-header" style="border-bottom: 1px solid #2d3748; border-radius: 12px 12px 0 0; background-color: #FFFFFF;">
+                                                                    <h5 class="modal-title" style="color: #2d3748; font-weight: 600; font-size: 1.25rem;">
                                                                         <i class="fas fa-exclamation-triangle me-2"></i>Προσοχή - Όριο Slots Διπλωματικής
                                                                     </h5>
-                                                                    <button type="button" class="modern-button" style="background-color: #dc3545; color: white; border: none; border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" 
+                                                                    <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" 
                                                                             @onclick="CloseSlotWarningModal_ForCompanyThesis"
-                                                                            onmouseover="this.style.backgroundColor='#c82333'" 
-                                                                            onmouseout="this.style.backgroundColor='#dc3545'">
+                                                                            onmouseover="this.style.backgroundColor='#2d3748'" 
+                                                                            onmouseout="this.style.backgroundColor='#2d3748'">
                                                                         <span style="font-size: 1.2rem; line-height: 1;">×</span>
                                                                     </button>
                                                                 </div>
                                                                 <div class="modal-body" style="padding: 20px;">
                                                                     <div class="alert alert-warning" style="border-radius: 8px; margin: 0;">
                                                                         <div class="d-flex align-items-center">
-                                                                            <i class="fas fa-exclamation-circle fa-2x me-3" style="color: #856404;"></i>
+                                                                            <i class="fas fa-exclamation-circle fa-2x me-3" style="color: #2d3748;"></i>
                                                                             <div>
-                                                                                <h6 style="color: #856404; margin-bottom: 8px; font-weight: bold;">Υπέρβαση Διαθέσιμων Θέσεων Διπλωματικής</h6>
-                                                                                <p style="color: #856404; margin: 0; line-height: 1.5;">@slotWarningMessage_ForCompanyThesis</p>
+                                                                                <h6 style="color: #2d3748; margin-bottom: 8px; font-weight: bold;">Υπέρβαση Διαθέσιμων Θέσεων Διπλωματικής</h6>
+                                                                                <p style="color: #2d3748; margin: 0; line-height: 1.5;">@slotWarningMessage_ForCompanyThesis</p>
                                                                             </div>
                                                                         </div>
                                                                     </div>
                                                                 </div>
-                                                                <div class="modal-footer" style="border-top: 1px solid #e9ecef; border-radius: 0 0 12px 12px; background-color: #f8f9fa;">
-                                                                    <button type="button" class="modern-button" style="background-color: #dc3545; color: white; border: none; border-radius: 6px; padding: 8px 20px; transition: all 0.2s;" 
+                                                                <div class="modal-footer" style="border-top: 1px solid #2d3748; border-radius: 0 0 12px 12px; background-color: #FFFFFF;">
+                                                                    <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; padding: 8px 20px; transition: all 0.2s;" 
                                                                             @onclick="CloseSlotWarningModal_ForCompanyThesis"
-                                                                            onmouseover="this.style.backgroundColor='#c82333'" 
-                                                                            onmouseout="this.style.backgroundColor='#dc3545'">
+                                                                            onmouseover="this.style.backgroundColor='#2d3748'" 
+                                                                            onmouseout="this.style.backgroundColor='#2d3748'">
                                                                         <i class="fas fa-times me-1"></i>Κλείσιμο
                                                                     </button>
                                                                 </div>

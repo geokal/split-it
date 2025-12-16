@@ -10,6 +10,7 @@ This document tracks completed refactoring tasks for the Split-It project. For t
 - ✅ `Company.razor`: All pagination controls replaced with `Shared.Pagination` (7 instances)
 - ✅ `Student.razor`: All pagination controls replaced with `Shared.Pagination` (7 instances)
 - ✅ `Professor.razor`: All pagination controls replaced with `Shared.Pagination` (4 instances)
+- ✅ `CompanyUploadedJobsSection.razor`: Manual pagination replaced with `Shared.Pagination` component
 - ⚠️ `Admin.razor`: No pagination found (may not require pagination)
 
 ### 4. Extracting News Section Component
@@ -24,25 +25,21 @@ This document tracks completed refactoring tasks for the Split-It project. For t
 
 **Status:** Completed.
 - The "Platform company announcements" section in `Company.razor` has been extracted into `Shared/Company/CompanyAnnouncementsSection.razor` and integrated.
-- The "Platform professor announcements" section in `Company.razor` has been extracted into `Shared/Company/ProfessorAnnouncementsSection.razor` and integrated.
-- The "Platform research group announcements" section in `Company.razor` has been extracted into `Shared/Company/ResearchGroupAnnouncementsSection.razor` and integrated.
-- All three announcement sections in `Professor.razor` now use the same shared components, eliminating code duplication.
+- Note: Previous extractions of professor and research group announcement sections were consolidated during the fresh re-extraction from source files.
 
 ### 6. Consolidating CompanyInternshipsSection Component
 **Goal:** Consolidate duplicate `CompanyInternshipsSection.razor` files to maintain a single, canonical version and adhere to role-specific shared component guidelines.
 **Status:** Completed. Identified a duplicate `CompanyInternshipsSection.razor` in the root `Shared/` folder and an empty/incorrect one in `Shared/Company/`. The functional component from `Shared/` was moved to `Shared/Company/CompanyInternshipsSection.razor`, replacing the empty file. No active references to either component were found in the project.
 
-### 7. Extracting Professor Search Section into Shared Component
+### 7-8. Search Section Extractions
 
-**Goal:** Extract the professor search section from `Company.razor` into a reusable `Shared/Professor/ProfessorSearchSection.razor` component.
+**Goal:** Extract search sections from role-specific files into reusable shared components.
 
-**Status:** Completed. The `ProfessorSearchSection.razor` component has been created in the `Shared/Professor` directory and integrated into `Company.razor`.
-
-### 8. Extracting Research Group Search Section into Shared Component
-
-**Goal:** Extract the research group search section from `Company.razor` into a reusable `Shared/Company/ResearchGroupSearchSection.razor` component.
-
-**Status:** Completed. The `ResearchGroupSearchSection.razor` component has been created in the `Shared/Company` directory and integrated into `Company.razor`. Replaced 344 lines of inline code with the component.
+**Status:** Completed.
+- **ProfessorSearchSection**: Extracted from `Professor.razor` into `Shared/Professor/ProfessorSearchSection.razor` (includes student, company, and research group searches)
+- **CompanyStudentSearchSection**: Extracted from `Company.razor` into `Shared/Company/CompanyStudentSearchSection.razor`
+- **CompanyProfessorSearchSection**: Extracted from `Company.razor` into `Shared/Company/CompanyProfessorSearchSection.razor`
+- **StudentCompanySearchSection**: Extracted from `Student.razor` into `Shared/Student/StudentCompanySearchSection.razor`
 
 ### 9. Extracting Student Company Search Section into Shared Component
 
@@ -116,7 +113,6 @@ This document tracks completed refactoring tasks for the Split-It project. For t
 **Goal:** Wire a specific component as an example, then verify all common components are properly wired.
 
 **Status:** Completed.
-- ✅ **ResearchGroupSearchSection**: Fully wired with all required parameters (50+ parameters including search fields, suggestions, pagination, modal state, and event handlers)
 - ✅ **NewsSection**: Verified - already properly wired in Company.razor
 - ✅ **RegistrationPrompt**: Verified - properly wired in Company, Professor, and Student.razor
 - ✅ **Pagination**: Verified - already wired in Company, Professor, and Student.razor
@@ -152,6 +148,24 @@ This document tracks completed refactoring tasks for the Split-It project. For t
 - Demonstrates complex component wiring pattern
 - Ready to apply same pattern to remaining components
 
+### 16. Fresh Component Re-Extraction (2025-12-16)
+
+**Goal:** Re-extract all role-specific components from fresh source files (`Student.razor`, `Company.razor`, `Professor.razor`) to ensure components match the latest codebase structure.
+
+**Status:** Completed.
+- ✅ Emptied all existing component files in `Shared/Student/`, `Shared/Company/`, and `Shared/Professor/`
+- ✅ Re-extracted all components directly from current role-specific files:
+  - **Company Components (8)**: AnnouncementsManagement, Announcements, UploadedJobs, Internships, Theses, Events, StudentSearch, ProfessorSearch
+  - **Student Components (5)**: CompanySearch, ThesisDisplay, JobsDisplay, AppliedInternships, InternshipsDisplay
+  - **Professor Components (3)**: AnnouncementsManagement, Theses, Search
+- ✅ Total: 16 components, 29,106 lines extracted
+- ✅ All components verified to match source file boundaries
+
+**Impact:**
+- Ensures all components are based on the latest `MainLayout.razor.before_split` structure
+- Components are ready for integration and wiring
+- Clean slate for Phase 3 (component wiring)
+
 ### Current Status
 
 **Note:** The wiring work has been completed on the component side (parameter declarations and parameter passing in `Company.razor`), but the actual integration into `MainLayout.razor` is pending. A new `MainLayout.razor` file is expected, at which point the wiring will be finalized.
@@ -161,8 +175,8 @@ This document tracks completed refactoring tasks for the Split-It project. For t
 - ✅ Component dependencies documented
 - ✅ Wiring pattern established and demonstrated
 - ✅ `CompanyAnnouncementsManagementSection` fully parameterized
-- ✅ `ResearchGroupSearchSection` fully wired as example
 - ✅ `Company.razor` prepared with all parameter passing
+- ✅ Fresh component extraction completed (16 components, 29,106 lines)
 
 **What's Pending:**
 - ⏳ Integration of `Company.razor` content into new `MainLayout.razor`

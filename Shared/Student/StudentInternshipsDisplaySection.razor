@@ -173,13 +173,52 @@
                                                         </tbody>
                                                     </table>
         
-                                                                                                         <Shared.Pagination CurrentPage="currentInternshipPage"
-                                                                                                                            TotalPages="totalInternshipPages"
-                                                                                                                            GoToFirstPage="@(() => GoToFirstInternshipPage())"
-                                                                                                                            PreviousPage="@(() => PreviousInternshipPage())"
-                                                                                                                            NextPage="@(() => NextInternshipPage())"
-                                                                                                                            GoToLastPage="@(() => GoToLastInternshipPage())"
-                                                                                                                            GoToPage="GoToInternshipPage" />                                                    <br />
+                                                    <!-- Internships Pagination -->
+                                                    <div class="d-flex justify-content-center align-items-center mt-3 gap-1">
+                                                        <!-- First Page (<<) -->
+                                                        <span class="pagination-item @(currentInternshipPage == 1 ? "disabled" : "")" 
+                                                              @onclick="@(() => GoToFirstInternshipPage())">
+                                                            &lt;&lt;
+                                                        </span>
+            
+                                                        <!-- Previous Page (<) -->
+                                                        <span class="pagination-item @(currentInternshipPage == 1 ? "disabled" : "")" 
+                                                              @onclick="@(() => PreviousInternshipPage())">
+                                                            &lt;
+                                                        </span>
+            
+                                                        <!-- Page Numbers -->
+                                                        @foreach (var pageNum in GetVisibleInternshipPages())
+                                                        {
+                                                            @if (pageNum == -1)
+                                                            {
+                                                                <span class="pagination-ellipsis">...</span>
+                                                            }
+                                                            else
+                                                            {
+                                                                <span class="pagination-item @(pageNum == currentInternshipPage ? "active" : "")" 
+                                                                      @onclick="@(() => GoToInternshipPage(pageNum))">
+                                                                    @pageNum
+                                                                </span>
+                                                            }
+                                                        }
+            
+                                                        <!-- Next Page (>) -->
+                                                        <span class="pagination-item @(currentInternshipPage == totalInternshipPages ? "disabled" : "")" 
+                                                              @onclick="@(() => NextInternshipPage())">
+                                                            &gt;
+                                                        </span>
+            
+                                                        <!-- Last Page (>>) -->
+                                                        <span class="pagination-item @(currentInternshipPage == totalInternshipPages ? "disabled" : "")" 
+                                                              @onclick="@(() => GoToLastInternshipPage())">
+                                                            &gt;&gt;
+                                                        </span>
+            
+                                                        <!-- Page counter -->
+                                                        <span class="ms-3">Σελίδα @currentInternshipPage από @totalInternshipPages</span>
+                                                    </div>
+                                                    <br />
                                                     <br />
                                                 }
                                                 else
@@ -3201,5 +3240,3 @@
 
                                 }
                                             
- <div id="students-tab-table-end"></div>
-                           
