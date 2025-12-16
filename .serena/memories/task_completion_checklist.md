@@ -1,10 +1,10 @@
 # Task Completion Checklist
 
-## After Component Extraction
-1. ✅ Verify component boundaries using anchor divs or tab-pane markers
-2. ✅ Check component starts with proper opening tag (not closing tags/braces)
-3. ✅ Verify no overlapping sections between components
-4. ✅ Check for missing content (gaps between components)
+## Component Extraction (from EXTRACTION_STANDARD.md)
+1. ✅ Use anchor divs (`<div id="...-start"></div>`) for precise boundaries
+2. ✅ Extract using `sed -n 'start,end p'` to preserve exact markup
+3. ✅ Verify component starts with proper opening tag (not closing tags)
+4. ✅ Check for no overlapping sections between components
 5. ✅ Verify extracted markup matches source (MD5 checksum if needed)
 6. ✅ Update `REFACTORING_PLAN.md` with extraction status
 7. ✅ Update `COMPONENT_DEPENDENCIES.md` with component parameters
@@ -31,3 +31,18 @@
 - Consistent naming conventions
 - Proper component boundaries
 - No orphaned code
+
+## Verification Checklist (from EXTRACTION_STANDARD.md)
+For each extracted component:
+- [ ] Starts with proper opening tag (div, @if, etc.)
+- [ ] Does NOT start with closing tags (</div>, }, etc.)
+- [ ] Ends with proper closing tag or anchor div
+- [ ] No leftover content from previous sections
+- [ ] All divs are properly balanced (or intentionally unbalanced if parent provides structure)
+- [ ] Component is self-contained and can be integrated into parent
+
+## Common Issues to Avoid (from EXTRACTION_STANDARD.md)
+1. **Including Modals from Previous Sections**: Modals often extend beyond tab-pane boundaries. Always use anchor divs to exclude them.
+2. **Starting with Closing Tags**: Components should never start with `</div>`, `}`, or other closing tags. If this happens, the start boundary is incorrect.
+3. **Missing Content**: Ensure the end boundary includes all content up to (and including) the anchor div or closing tag.
+4. **Overlapping Boundaries**: Components should not overlap. Each component should have distinct, non-overlapping boundaries.
