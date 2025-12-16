@@ -98,8 +98,8 @@ This document tracks completed refactoring tasks for the Split-It project. For t
 **Goal:** Analyze code-behind dependencies and create parameter contracts for all extracted components.
 
 **Status:** Completed.
-- ✅ **COMPONENT_DEPENDENCIES.md**: Created comprehensive mapping of component dependencies
-- ✅ **PARAMETER_CONTRACTS.md**: Created detailed parameter contracts for all components
+- ✅ **COMPONENT_DEPENDENCIES.md**: Created comprehensive mapping of component dependencies (see `docs/components/COMPONENT_DEPENDENCIES.md`)
+- ✅ **PARAMETER_CONTRACTS.md**: Created detailed parameter contracts for all components (see `docs/components/PARAMETER_CONTRACTS.md`)
 - ✅ Identified all components that need wiring
 - ✅ Documented required parameters, event handlers, and data models for each component
 
@@ -184,7 +184,7 @@ This document tracks completed refactoring tasks for the Split-It project. For t
 - ⏳ Final testing and validation
 
 **First Step When New File Arrives:**
-- 📝 Split new MainLayout.razor into markup (.razor) and code (.razor.cs) - see `SPLITTING_GUIDE.md`
+- 📝 Split new MainLayout.razor into markup (.razor) and code (.razor.cs) - see `docs/components/SPLITTING_GUIDE.md`
 
 **Strategy for New MainLayout.razor:**
 - 📋 Diff-based approach planned to minimize overhead (see `DIFF_ANALYSIS_PLAN.md`)
