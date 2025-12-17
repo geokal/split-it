@@ -74,13 +74,13 @@
                                                                             @if (showCheckboxesForProfessorThesis)
                                                                             {
                                                                                 <div class="checkbox-container">
-                                                                                    @if (availableAreasForProfessorThesis == null || !availableAreasForProfessorThesis.Any())
+                                                                                    @if (Areas == null || !Areas.Any())
                                                                                     {
                                                                                         <p>Φορτώνει...</p>
                                                                                     }
                                                                                     else
                                                                                     {
-                                                                                        @foreach (var area in availableAreasForProfessorThesis)
+                                                                                        @foreach (var area in Areas)
                                                                                         {
                                                                                             <div class="area-container" style="margin-bottom: 8px; border: 2px solid #1565c0; border-radius: 6px; padding: 8px; background-color: #f8f9fa;">
                                                                                                 <div class="form-check area-header" style="display: flex; align-items: center; gap: 8px;">
@@ -160,14 +160,14 @@
                                                                             </div>
 
                                                                             <div id="toggleCheckboxesForThesisSkillsAsProfessor" class="checkbox-containerThesisSkills" style="display: none;">
-                                                                                @if (availableSkillsForProfessorThesis == null || !availableSkillsForProfessorThesis.Any())
+                                                                                @if (Skills == null || !Skills.Any())
                                                                                 {
                                                                                     <p>Φορτώνει...</p>
                                                                                 }
                                                                                 else
                                                                                 {
                                                                                     <div class="d-flex flex-wrap">
-                                                                                        @foreach (var skill in availableSkillsForProfessorThesis)
+                                                                                        @foreach (var skill in Skills)
                                                                                         {
                                                                                             <div class="form-check me-2 mb-2" style="flex-basis: 20%;">
                                                                                                 <input type="checkbox"
@@ -2029,5 +2029,4 @@
                                                                         }
 
                                                                     }
-
 

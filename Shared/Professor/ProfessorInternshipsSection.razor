@@ -57,7 +57,7 @@
                                                                                             aria-label="Items per page">
                                                                                         @foreach (var option in pageSizeOptions_SeeMyUploadedInternshipsAsProfessor)
                                                                                         {
-                                                                                            <option value="@option" selected="@(itemsPerPage_ProfessorInternships == option)">@option</option>
+                                                                                            <option value="@option" selected="@(professorInternshipsPerPage == option)">@option</option>
                                                                                         }
                                                                                     </select>
                                                                                     <div class="input-group-append">
@@ -70,11 +70,11 @@
                                                                             <div class="col-md-2">
                                                                                 @if (selectedStatusFilterForProfessorInternships == "Όλα")
                                                                                 {
-                                                                                    <span><strong>Σύνολο: </strong>@totalProfessorInternshipsCount</span>
+                                                                                    <span><strong>Σύνολο: </strong>@totalCountInternshipsAsProfessor</span>
                                                                                 }
                                                                                 @if (selectedStatusFilterForProfessorInternships == "Δημοσιευμένη")
                                                                                 {
-                                                                                    <span><strong>Σύνολο: </strong>@publishedProfessorInternshipsCount</span>
+                                                                                    <span><strong>Σύνολο: </strong>@publishedCountInternshipsAsProfessor</span>
                                                                                 }
                                                                                 else if (selectedStatusFilterForProfessorInternships == "Μη Δημοσιευμένη")
                                                                                 {
@@ -241,7 +241,7 @@
                                                                                         }
                                                                                         else if (professorInternships != null && professorInternships.Any())
                                                                                         {
-                                                                                            @foreach (var internship in GetPaginatedProfessorInternships().Where(i => selectedStatusFilterForProfessorInternships == "Όλα" || i.ProfessorUploadedInternshipStatus == selectedStatusFilterForProfessorInternships))
+                                                                                            @foreach (var internship in GetPaginatedProfessorInternships())
                                                                                             {
                                                                                                 <!-- Main Internship Row -->
                                                                                                 <tr style="background-color: @(internship.ProfessorUploadedInternshipStatus == "Δημοσιευμένη" ? "lightblue" : (internship.ProfessorUploadedInternshipStatus == "Μη Δημοσιευμένη" ? "lightcoral" : "lightyellow")); border: 2px solid black;">
@@ -1420,5 +1420,4 @@
 
 
                                                                 </div>
-                                                                                                                             
-                                                         
+
