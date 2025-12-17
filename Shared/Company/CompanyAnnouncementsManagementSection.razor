@@ -513,37 +513,36 @@
 
                                                 @*iNPUT FIELDS SHOULD BE HERE FOR UPLOAD ANNOUNCEMENT AS COMPANY*@
                                                 <!-- Announcement Form -->
-                                                <div class="tab-pane fade show active" id="announcements" role="tabpanel" aria-labelledby="announcements-tab">
-                                                    <div class="mb-3 row-dark-gray">
-                                                        <div class="d-flex justify-content-between align-items-center" @onclick="ToggleFormVisibilityForUploadCompanyAnnouncements" style="cursor: pointer;">
-                                                            <label class="form-label" style="color: #FFF8DC;">• Δημιουργία Ανακοίνωσης •</label>
-                                                            <button class="btn btn-link" @onclick="ToggleFormVisibilityForUploadCompanyAnnouncements" @onclick:stopPropagation="true">
-                                                                @if (isAnnouncementsFormVisible)
-                                                                {
-                                                                    <span>&#8722;</span> <!-- Minus sign -->
-                                                                }
-                                                                else
-                                                                {
-                                                                    <span>&#43;</span> <!-- Plus sign -->
-                                                                }
-                                                            </button>
-                                                        </div>
+                                                <div class="mb-3 row-dark-gray">
+                                                    <div class="d-flex justify-content-between align-items-center" @onclick="ToggleFormVisibilityForUploadCompanyAnnouncements" style="cursor: pointer;">
+                                                        <label class="form-label" style="color: #FFF8DC;">• Δημιουργία Ανακοίνωσης •</label>
+                                                        <button class="btn btn-link" @onclick="ToggleFormVisibilityForUploadCompanyAnnouncements" @onclick:stopPropagation="true">
+                                                            @if (isAnnouncementsFormVisible)
+                                                            {
+                                                                <span>&#8722;</span> <!-- Minus sign -->
+                                                            }
+                                                            else
+                                                            {
+                                                                <span>&#43;</span> <!-- Plus sign -->
+                                                            }
+                                                        </button>
                                                     </div>
+                                                </div>
    
-                                                    @if (isAnnouncementsFormVisible)
-                                                    {
+                                                @if (isAnnouncementsFormVisible)
+                                                {
                                                         <div class="row mb-3">
                                                             <div class="col-md-4 position-relative">
                                                                 <label for="announcementTitle">
                                                                     <strong>Τίτλος Ανακοίνωσης</strong>
                                                                     <span style="color: red;">*</span>
                                                                 </label>
-                                                                <input type="text" id="announcementTitle" class="form-control @(showErrorMessageforUploadingAnnouncementAsCompany && string.IsNullOrWhiteSpace(announcement.CompanyAnnouncementTitle) ? "shake error" : "")" 
+                                                                <input type="text" id="announcementTitle" class="form-control @(showErrorMessageforUploadingannouncementsAsCompany && string.IsNullOrWhiteSpace(announcement.CompanyAnnouncementTitle) ? "shake error" : "")" 
                                                                        @bind="announcement.CompanyAnnouncementTitle" 
                                                                        @oninput="CheckCharacterLimitInAnnouncementFieldUploadAsCompany" maxlength="120" />
                                                                 <small class="character-limit light-cadetblue-text">@remainingCharactersInAnnouncementFieldUploadAsCompany/120</small>
                                                             </div>
-                                                            @if (showErrorMessageforUploadingAnnouncementAsCompany && string.IsNullOrWhiteSpace(announcement.CompanyAnnouncementTitle))
+                                                            @if (showErrorMessageforUploadingannouncementsAsCompany && string.IsNullOrWhiteSpace(announcement.CompanyAnnouncementTitle))
                                                             {
                                                                 <div class="text-danger mt-1">Απαιτείται Tίτλος Ανακοίνωσης!</div>
                                                             }
@@ -552,14 +551,14 @@
                                                         <div class="row mb-3">
                                                             <div class="col-md-4 position-relative">
                                                                 <label for="CompanyAnnouncementDescription"><strong>Περιγραφή Ανακοίνωσης</strong> <span style="color: red;"> *</span></label>
-                                                                <textarea id="CompanyAnnouncementDescription" class="form-control @(showErrorMessageforUploadingAnnouncementAsCompany && string.IsNullOrWhiteSpace(announcement.CompanyAnnouncementDescription) ? "shake error" : "")"
+                                                                <textarea id="CompanyAnnouncementDescription" class="form-control @(showErrorMessageforUploadingannouncementsAsCompany && string.IsNullOrWhiteSpace(announcement.CompanyAnnouncementDescription) ? "shake error" : "")"
                                                                           @bind="announcement.CompanyAnnouncementDescription"
                                                                           @oninput="CheckCharacterLimitInAnnouncementDescriptionUploadAsCompany"
                                                                           maxlength="1000"
                                                                           placeholder="Πληκτρολογείστε την Ανακοίνωσή σας"></textarea>
                                                                 <small class="character-limit light-cadetblue-text">@remainingCharactersInAnnouncementDescriptionUploadAsCompany/1000</small>
                                                             </div>
-                                                            @if (showErrorMessageforUploadingAnnouncementAsCompany && string.IsNullOrWhiteSpace(announcement.CompanyAnnouncementDescription))
+                                                            @if (showErrorMessageforUploadingannouncementsAsCompany && string.IsNullOrWhiteSpace(announcement.CompanyAnnouncementDescription))
                                                             {
                                                                 <div class="text-danger mt-1">Απαιτείται Περιγραφή της Ανακοίνωσης!</div>
                                                             }
@@ -568,10 +567,10 @@
                                                         <div class="row mb-3">
                                                             <div class="col-md-4 position-relative">
                                                                 <label for="CompanyAnnouncementTimeToBeActive"><strong>Ημερομηνία Λήξης Ανακοίνωσης</strong> <span style="color: red;"> *</span></label>
-                                                                <input type="date" id="CompanyAnnouncementTimeToBeActive" class="form-control @(showErrorMessageforUploadingAnnouncementAsCompany && announcement.CompanyAnnouncementTimeToBeActive.Date == DateTime.Today ? "shake error" : "")" 
+                                                                <input type="date" id="CompanyAnnouncementTimeToBeActive" class="form-control @(showErrorMessageforUploadingannouncementsAsCompany && announcement.CompanyAnnouncementTimeToBeActive.Date == DateTime.Today ? "shake error" : "")" 
                                                                        @bind="announcement.CompanyAnnouncementTimeToBeActive" />
                                                             </div>
-                                                            @if (showErrorMessageforUploadingAnnouncementAsCompany && announcement.CompanyAnnouncementTimeToBeActive.Date <= DateTime.Today)
+                                                            @if (showErrorMessageforUploadingannouncementsAsCompany && announcement.CompanyAnnouncementTimeToBeActive.Date <= DateTime.Today)
                                                             {
                                                                 <div class="text-danger mt-1">Η ημερομηνία πρέπει να είναι μεταγενέστερη της σημερινής ημερομηνίας.</div>
                                                             }
@@ -627,3 +626,7 @@
                                                         {
                                                             <div class="alert @(isSaveAnnouncementAsCompanySuccessful ? "alert-success" : "alert-danger")" role="alert">
                                                                 @saveAnnouncementAsCompanyMessage
+                                                            </div>
+                                                        }
+                                                }
+                                            </div>
