@@ -2,6 +2,44 @@
 
 This document tracks completed refactoring tasks for the Split-It project. For the main project overview and current tasks, see [AGENTS.md](AGENTS.md).
 
+## 🎯 Project End Goal
+
+**Transform the monolithic application into a modular architecture with minimal MainLayout files.**
+
+**Target Architecture:**
+- `MainLayout.razor`: Minimal (~100-200 lines) - only layout structure and role component routing
+- `MainLayout.razor.cs`: Minimal (~500-1000 lines) - only layout logic, UserRole management, basic initialization
+- Role Components (Student.razor, Company.razor, etc.): Use subcomponents from `Shared/[Role]/` folders
+- Shared Components: Reusable across ALL roles (Pagination, LoadingIndicator, NewsSection, etc.) in `Shared/` root folder
+- **Service Layer** (Future Phase):
+  - **Centralized Database Calls**: All DbContext operations go through service classes
+  - Role-specific services (`CompanyService`, `StudentService`, etc.) for role-specific business logic
+  - Shared services (`AnnouncementService`, `ThesisService`, etc.) for common operations
+  - Eliminates direct DbContext access from components and MainLayout.razor.cs
+- Business logic: Extracted to services/viewmodels, away from MainLayout.razor.cs
+
+**Current Phase:** Component Architecture Migration - Converting components from Pattern 1 (dumb components with parameters) to Pattern 2 (smart components with code-behind and injected services).
+
+**Pattern 2 Status:**
+- ✅ **Professor Components (7/7)**: All converted to Pattern 2 (code-behind with services)
+  - ProfessorAnnouncementsManagementSection.razor.cs
+  - ProfessorThesesSection.razor.cs
+  - ProfessorInternshipsSection.razor.cs
+  - ProfessorEventsSection.razor.cs
+  - ProfessorStudentSearchSection.razor.cs
+  - ProfessorCompanySearchSection.razor.cs
+  - ProfessorResearchGroupSearchSection.razor.cs
+- ✅ **Student Components (6/6)**: All converted to Pattern 2 (code-behind with services)
+  - StudentCompanySearchSection.razor.cs
+  - StudentAnnouncementsSection.razor.cs
+  - StudentThesisDisplaySection.razor.cs
+  - StudentJobsDisplaySection.razor.cs
+  - StudentInternshipsSection.razor.cs
+  - StudentEventsSection.razor.cs
+- ⏳ **Company Components (0/9)**: Still using Pattern 1 (parameters from MainLayout.razor.cs)
+- ⏳ **ResearchGroup Components (0/5)**: Still using Pattern 1 (parameters from MainLayout.razor.cs)
+- ⏳ **Admin Components (0/1)**: Still using Pattern 1 (parameters from MainLayout.razor.cs)
+
 ### 3. Pagination Refactoring
 
 **Goal:** Replace all manual pagination controls in `Admin.razor`, `Company.razor`, `Professor.razor`, and `Student.razor` with the `Shared.Pagination` component to standardize the pagination logic and improve maintainability.
@@ -168,27 +206,26 @@ This document tracks completed refactoring tasks for the Split-It project. For t
 
 ### Current Status
 
-**Note:** The wiring work has been completed on the component side (parameter declarations and parameter passing in `Company.razor`), but the actual integration into `MainLayout.razor` is pending. A new `MainLayout.razor` file is expected, at which point the wiring will be finalized.
+**Note:** The project architecture has shifted from Pattern 1 (dumb components with parameters) to Pattern 2 (smart components with code-behind and injected services).
 
 **What's Ready:**
-- ✅ All component parameter contracts defined
-- ✅ Component dependencies documented
-- ✅ Wiring pattern established and demonstrated
-- ✅ `CompanyAnnouncementsManagementSection` fully parameterized
-- ✅ `Company.razor` prepared with all parameter passing
-- ✅ Fresh component extraction completed (16 components, 29,106 lines)
+- ✅ All Professor components (7/7) converted to Pattern 2 with code-behind files
+- ✅ All Student components (6/6) converted to Pattern 2 with code-behind files
+- ✅ Component extraction completed (28 components total)
+- ✅ Common components (Pagination, NewsSection, LoadingIndicator, RegistrationPrompt) verified and working
+- ✅ Pattern 2 architecture established and demonstrated
 
 **What's Pending:**
-- ⏳ Integration of `Company.razor` content into new `MainLayout.razor`
-- ⏳ Wiring remaining role-specific components (Student, Professor, Admin)
+- ⏳ Convert Company components (9 components) to Pattern 2
+- ⏳ Convert ResearchGroup components (5 components) to Pattern 2
+- ⏳ Convert Admin components (1 component) to Pattern 2
+- ⏳ Extract remaining business logic from MainLayout.razor.cs into service classes (future phase)
 - ⏳ Final testing and validation
 
-**First Step When New File Arrives:**
-- 📝 Split new MainLayout.razor into markup (.razor) and code (.razor.cs) - see `docs/components/SPLITTING_GUIDE.md`
-
-**Strategy for New MainLayout.razor:**
-- 📋 Diff-based approach planned to minimize overhead (see `DIFF_ANALYSIS_PLAN.md`)
-- ✅ Will compare new file with current one
-- ✅ Only wire what's actually changed
-- ✅ Reuse existing wiring work where possible
+**Pattern 2 Conversion Process:**
+- Create `.razor.cs` code-behind file for each component
+- Inject required services (AppDbContext, IJSRuntime, AuthenticationStateProvider, NavigationManager, InternshipEmailService)
+- Move component logic from MainLayout.razor.cs to component code-behind
+- Remove `@code` section from `.razor` file
+- Update parent component to remove all parameters from component reference
 

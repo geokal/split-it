@@ -1,6 +1,9 @@
 # Wiring Pattern Explanation
 
-## What Does "Establish the Pattern" Mean?
+> **⚠️ NOTE: This document describes Pattern 1 (dumb components with parameters), which has been superseded by Pattern 2 (smart components with code-behind).**  
+> The project has migrated to Pattern 2. See Serena memory `pattern2_component_architecture` for current approach.
+
+## What Does "Establish the Pattern" Mean? (Pattern 1 - Deprecated)
 
 When I say "establish the pattern, then apply it to the rest," I mean:
 

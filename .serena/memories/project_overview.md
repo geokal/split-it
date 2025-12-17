@@ -37,11 +37,16 @@ This is a .NET 6 Blazor Server application refactoring project. The goal is to r
   - Total: ~35,891 lines extracted across all roles
 
 ## Current Phase
-**Phase 3: Wiring Components to MainLayout.razor.cs**
-- Extracted components need to be wired to `MainLayout.razor.cs`
-- Components need parameters passed from code-behind
-- Event handlers need to be connected
-- **Status**: Phase 3.1-3.3 complete, Phase 3.4 (wire role-specific components) in progress
+**Phase 3: Component Architecture Migration - Pattern 2 (Smart Components with Code-Behind)**
+- **Architecture Shift**: Changed from Pattern 1 (dumb components with parameters) to Pattern 2 (smart components with code-behind)
+- Components now have their own `.razor.cs` files with injected services
+- Logic moved from `MainLayout.razor.cs` to component code-behind files
+- **Status**: 
+  - ✅ Professor components (7/7) converted to Pattern 2
+  - ✅ Student components (6/6) converted to Pattern 2
+  - ⏳ Company components (0/9) - pending conversion
+  - ⏳ ResearchGroup components (0/5) - pending conversion
+  - ⏳ Admin components (0/1) - pending conversion
 
 ## Key Concepts
 - **Component Extraction**: Large sections extracted into separate `.razor` files

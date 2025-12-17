@@ -1,22 +1,68 @@
 # Refactoring Plan: Split-It Project
 
+## 🎯 Project End Goal
+
+**Transform the monolithic Blazor application into a modular architecture with minimal MainLayout files.**
+
+### Target State
+
+**MainLayout.razor** → Minimal file (~100-200 lines) containing only:
+- Basic layout structure
+- Role-based component routing: `<Student />`, `<Company />`, `<Professor />`, `<Admin />`, `<ResearchGroup />`
+
+**MainLayout.razor.cs** → Minimal file (~500-1000 lines) containing only:
+- Layout-specific logic
+- UserRole management
+- Basic initialization
+- **NO role-specific business logic** (logic should be in role component code-behinds or services)
+
+**Role Components** (Student.razor, Company.razor, etc.) → Use subcomponents:
+- `Company.razor` uses `<CompanyJobsSection />`, `<CompanyAnnouncementsSection />`, etc.
+- `Student.razor` uses `<StudentCompanySearchSection />`, `<StudentThesisDisplaySection />`, etc.
+
+**Subcomponents** → Located in `Shared/[Role]/` folders:
+- Receive data via `[Parameter]` declarations
+- Business logic wired from MainLayout.razor.cs (current phase) or role-specific services (future phase)
+
+**Shared Components** → Located in `Shared/` folder (root level):
+- Reusable across ALL user roles (e.g., `Pagination`, `LoadingIndicator`, `NewsSection`)
+- No role-specific logic - truly shared functionality
+- Can be used by Company, Student, Professor, Admin, ResearchGroup components
+
+**Service Layer** (Future Phase):
+- **Centralized Database Calls**: All DbContext operations go through service classes
+- **Role-Specific Services**: `CompanyService`, `StudentService`, `ProfessorService` (handle role-specific business logic)
+- **Shared Services**: `AnnouncementService`, `ThesisService`, `JobService` (handle shared business logic)
+- Services eliminate direct DbContext access from components and MainLayout.razor.cs
+
+This modular architecture makes the application:
+- ✅ **Maintainable**: Easy to find and modify code
+- ✅ **Scalable**: Easy to add new features without touching MainLayout
+- ✅ **Testable**: Components and services can be tested in isolation
+- ✅ **Standard**: Follows Blazor Server best practices
+- ✅ **Centralized**: All database calls go through services (not scattered)
+- ✅ **Reusable**: Components and services can be shared across roles
+
+---
+
 ## Current Status Summary
 
 ### ✅ Completed
 - Role-specific files extracted (Student.razor, Company.razor, Professor.razor, Admin.razor, ResearchGroup.razor)
 - Common components extracted (Pagination, NewsSection, LoadingIndicator, RegistrationPrompt)
-- **Company.razor components fully extracted** (9 components, 12,290 lines) ✅
+- **All components extracted** (28 components total across all roles) ✅
 - Files renamed (MainLayout.razor, MainLayout.razor.cs)
+- **Pattern 2 Architecture Migration**:
+  - ✅ All Professor components (7/7) converted to Pattern 2 (code-behind with services)
+  - ✅ All Student components (6/6) converted to Pattern 2 (code-behind with services)
 
-### ⚠️ Partially Completed
-- Pagination: Professor.razor still uses manual pagination
-- ResearchGroupSearchSection: Component created but not integrated into Company.razor
-- Professor.razor: Still has inline announcement sections (should use components)
+### ⏳ In Progress
+- Converting Company components (0/9) to Pattern 2
+- Converting ResearchGroup components (0/5) to Pattern 2
+- Converting Admin components (0/1) to Pattern 2
 
 ### ❌ Not Started
-- Wiring code-behind (MainLayout.razor.cs) to extracted components
-- Extracting remaining large inline sections
-- Admin.razor component extraction
+- Extract remaining business logic from MainLayout.razor.cs into service classes (future phase)
 
 ---
 

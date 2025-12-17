@@ -1,4 +1,22 @@
-# Wiring Progress Documentation
+# Wiring Progress
+
+> **⚠️ NOTE: This document tracks Pattern 1 (dumb components with parameters) progress, which has been superseded by Pattern 2 (smart components with code-behind).**  
+> The project has migrated to Pattern 2. See Serena memory `pattern2_component_architecture` for current approach.
+
+## Current Status: Pattern 2 Migration
+
+**Completed:**
+- ✅ All Professor components (7/7) converted to Pattern 2
+- ✅ All Student components (6/6) converted to Pattern 2
+
+**Pending:**
+- ⏳ Company components (0/9) - Pattern 2 conversion
+- ⏳ ResearchGroup components (0/5) - Pattern 2 conversion
+- ⏳ Admin components (0/1) - Pattern 2 conversion
+
+---
+
+# Pattern 1 Wiring Progress (Deprecated) Documentation
 
 **Last Updated**: 2025-12-16
 **Status**: In Progress - CompanyAnnouncementsSection wired, ready to integrate into Company.razor
