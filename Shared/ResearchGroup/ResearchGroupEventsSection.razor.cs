@@ -8,7 +8,7 @@ using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace SplitIt.Shared.ResearchGroup
+namespace QuizManager.Shared.ResearchGroup
 {
     public partial class ResearchGroupEventsSection : ComponentBase
     {

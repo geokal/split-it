@@ -14,7 +14,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using HtmlAgilityPack;
 
-namespace SplitIt.Shared.ResearchGroup
+namespace QuizManager.Shared.ResearchGroup
 {
     public partial class ResearchGroupAnnouncementsSection : ComponentBase
     {
