@@ -11,7 +11,7 @@ using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 
-namespace SplitIt.Shared.Student
+namespace QuizManager.Shared.Student
 {
     public partial class StudentEventsSection : ComponentBase
     {

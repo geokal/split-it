@@ -9,7 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace SplitIt.Shared.Student
+namespace QuizManager.Shared.Student
 {
     public partial class StudentJobsDisplaySection : ComponentBase
     {

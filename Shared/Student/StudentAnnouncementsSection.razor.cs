@@ -8,7 +8,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using HtmlAgilityPack;
 
-namespace SplitIt.Shared.Student
+namespace QuizManager.Shared.Student
 {
     public partial class StudentAnnouncementsSection : ComponentBase
     {

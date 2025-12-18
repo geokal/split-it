@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using QuizManager.Data;
 using QuizManager.Models;
 
-namespace SplitIt.Shared.Student
+namespace QuizManager.Shared.Student
 {
     public partial class StudentCompanySearchSection : ComponentBase
     {
