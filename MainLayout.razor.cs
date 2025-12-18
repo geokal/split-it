@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Components;
 
 
-namespace SplitIt.Shared.Components
+namespace QuizManager.Shared.Components
 {
     public partial class MainLayout : LayoutComponentBase
     {
@@ -161,7 +161,17 @@ namespace SplitIt.Shared.Components
 
 
         private List<StudentWithAuth0Details> StudentsWithAuth0Details { get; set; } = new();
+        
+        // ============================================================================
+        // USER ROLE MANAGEMENT
+        // ============================================================================
+        // UserRole: Stores the current user's role (e.g., "Student", "Company", "Professor", "Admin", "Research Group")
+        // - Defined here: Line 164
+        // - Initialized in: OnInitializedAsync() at line 1295 from authentication claims
+        // - Used in: ShouldShowAdminTable() at line 178, and in MainLayout.razor for conditional rendering
+        // - Note: This is a private field. If components need access, consider making it public or passing as parameter
         private string UserRole = "";
+        
         bool isStudentRegistered;
         bool isInitializedAsStudentUser = false;
         bool isCompanyRegistered;
@@ -173,6 +183,11 @@ namespace SplitIt.Shared.Components
         bool isInitializedAsResearchGroupUser = false;
         bool isResearchGroupRegistered;
 
+        // ============================================================================
+        // USER ROLE USAGE: Admin Table Visibility
+        // ============================================================================
+        // Checks if admin table should be displayed based on UserRole
+        // Used by: Admin.razor component via ShouldShowAdminTable() method
         private bool ShouldShowAdminTable()
         {
             return UserRole == "Admin" && !NavigationManager.Uri.Contains("/profile", StringComparison.OrdinalIgnoreCase);
@@ -199,6 +214,10 @@ namespace SplitIt.Shared.Components
         }
 
 
+        // ============================================================================
+        // SHARED DATA STRUCTURES AND PROPERTIES
+        // ============================================================================
+        // These properties are used across multiple user roles or are shared infrastructure
         bool showThesisApplications = false;
         bool showInternships = false;
         bool showJobApplications = false;
@@ -1292,6 +1311,12 @@ namespace SplitIt.Shared.Components
 
             var user = authState.User;
 
+            // ============================================================================
+            // USER ROLE INITIALIZATION
+            // ============================================================================
+            // UserRole is initialized here from the authentication claims
+            // Possible values: "Student", "Company", "Professor", "Admin", "Research Group"
+            // This value is used throughout the application for role-based UI rendering
             UserRole = user.FindFirst(ClaimTypes.Role)?.Value; // Get user's role
 
             var userEmail = user.FindFirst("name")?.Value; // Assuming "name" claim contains the user's email
@@ -4075,6 +4100,10 @@ namespace SplitIt.Shared.Components
             }
         }
 
+        // ============================================================================
+        // PROFESSOR ROLE - INTERNSHIP APPLICANT MANAGEMENT
+        // ============================================================================
+        // Methods for professors to view and manage internship applicants
         private async Task LoadProfessorInternshipApplicantData()
         {
             try 
@@ -7233,7 +7262,7 @@ namespace SplitIt.Shared.Components
             StateHasChanged();
         }
 
-    @inject IJSRuntime JS
+
 
         private async Task SaveEditedJob()
         {
@@ -11673,6 +11702,9 @@ namespace SplitIt.Shared.Components
             StateHasChanged();
         }
 
+        // ============================================================================
+        // COMPANY ROLE - JOB PUBLICATION
+        // ============================================================================
         private async Task HandlePublishSaveJobAsCompany()
         {
             // Call JavaScript function for confirmation with HTML content and custom styling
@@ -11690,6 +11722,10 @@ namespace SplitIt.Shared.Components
         }
 
 
+        // ============================================================================
+        // COMPANY ROLE - THESIS MANAGEMENT METHODS
+        // ============================================================================
+        // Methods for creating, saving, and managing company thesis positions
         private async Task HandleTemporarySaveThesisAsCompany()
         {
             // Show custom confirmation dialog with formatted text
@@ -11726,6 +11762,10 @@ namespace SplitIt.Shared.Components
 
 
 
+        // ============================================================================
+        // COMPANY ROLE - ANNOUNCEMENT MANAGEMENT METHODS
+        // ============================================================================
+        // Methods for creating, saving, and managing company announcements
         private async Task SaveAnnouncementAsPublished()
         {
             // Validate mandatory fields
