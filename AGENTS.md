@@ -1,6 +1,129 @@
 # Project: Split-It Refactoring
 
-This project refactors a very large and historically grown Blazor MainLayout.razor that acted as a monolithic container for layout, role-based UI, and feature logic across the entire application from a .NET 6 Blazor app. This document outlines the tasks being performed to refactor the a Blazor application MainLayout.razor into separate components for different user roles (student, company, professor, admin). Additionally, it includes steps for extracting shared components and replacing manual pagination controls with a standardized component.
+## 🎯 Project End Goal
+
+**The primary objective of this refactoring project is to transform the monolithic Blazor application into a modular, maintainable architecture by slimming down `MainLayout.razor` and `MainLayout.razor.cs` to minimal files that follow standard Blazor Server application patterns.**
+
+### Target Architecture
+
+In a normal, well-structured Blazor Server application, `MainLayout.razor` and `MainLayout.razor.cs` should be **minimal** files that only handle:
+- Basic layout structure (navigation, footer, etc.)
+- Route rendering (`@Body`)
+- User authentication/authorization checks
+- Role-based component routing
+
+### Current State vs. Target State
+
+**Current State (Monolithic):**
+```
+MainLayout.razor (~5,441 lines) → Contains role-specific markup
+MainLayout.razor.cs (~34,018 lines) → Contains ALL business logic for all roles
+```
+
+**Target State (Modular):**
+```
+MainLayout.razor (minimal, ~100-200 lines)
+  └─> <Student /> component
+  └─> <Company /> component
+  └─> <Professor /> component
+  └─> <Admin /> component
+  └─> <ResearchGroup /> component
+
+MainLayout.razor.cs (minimal, ~500-1000 lines)
+  └─> Only layout-specific logic
+  └─> UserRole management
+  └─> Basic initialization
+  └─> NO role-specific business logic
+
+Student.razor (moderate size, uses subcomponents)
+  └─> <StudentCompanySearchSection />
+  └─> <StudentAnnouncementsSection />
+  └─> <StudentThesisDisplaySection />
+  └─> <StudentJobsDisplaySection />
+  └─> <StudentInternshipsSection />
+  └─> <StudentEventsSection />
+
+Company.razor (moderate size, uses subcomponents)
+  └─> <CompanyAnnouncementsSection />
+  └─> <CompanyAnnouncementsManagementSection />
+  └─> <CompanyJobsSection />
+  └─> <CompanyInternshipsSection />
+  └─> <CompanyThesesSection />
+  └─> <CompanyEventsSection />
+  └─> <CompanyStudentSearchSection />
+  └─> <CompanyProfessorSearchSection />
+  └─> <CompanyResearchGroupSearchSection />
+
+[Similar structure for Professor, Admin, ResearchGroup]
+```
+
+### Component Hierarchy
+
+```
+MainLayout.razor (MINIMAL)
+  └─> Role Components (Student.razor, Company.razor, etc.)
+       └─> Feature Subcomponents (CompanyJobsSection.razor, etc.)
+            └─> Shared Components (Pagination, LoadingIndicator, etc.) ← Reusable across ALL roles
+
+Service Layer (Future):
+  └─> Role-Specific Services (CompanyService, StudentService, etc.)
+  └─> Shared Services (AnnouncementService, ThesisService, etc.)
+       └─> All database calls centralized here (DbContext operations)
+```
+
+### Why This Architecture?
+
+1. **Maintainability**: Each component has a single responsibility
+2. **Scalability**: Easy to add new features without touching MainLayout
+3. **Testability**: Components can be tested in isolation
+4. **Readability**: Developers can find code quickly
+5. **Standard Pattern**: Follows Blazor best practices
+6. **Centralized Data Access**: All database calls go through service classes (not scattered in MainLayout.razor.cs)
+7. **Reusability**: Shared components and services can be used across all user roles
+8. **Separation of Concerns**: UI components, business logic, and data access are properly separated
+
+### Current Work: Component Architecture Migration
+
+**Phase 3: Component Architecture Migration (Current Phase) - Pattern 2 (Smart Components)**
+
+**Architecture Decision:** The project has shifted from Pattern 1 (dumb components with parameters) to Pattern 2 (smart components with code-behind and injected services).
+
+**Pattern 2 Approach:**
+- Each component has its own `.razor.cs` code-behind file
+- Components inject required services directly (AppDbContext, IJSRuntime, AuthenticationStateProvider, NavigationManager, InternshipEmailService)
+- All business logic is moved from `MainLayout.razor.cs` to component code-behind files
+- Parent components (e.g., `Professor.razor`, `Student.razor`) simply reference child components without passing parameters
+- This provides better separation of concerns, easier testing, and more maintainable code
+
+**Current Status:**
+- ✅ **Professor Components (7/7)**: All converted to Pattern 2
+- ✅ **Student Components (6/6)**: All converted to Pattern 2
+- ✅ **Company Components (9/9)**: All converted to Pattern 2
+- ✅ **ResearchGroup Components (5/5)**: All converted to Pattern 2
+- ✅ **Admin Components (1/1)**: All converted to Pattern 2
+
+**Phase 3 Complete: 28/28 components converted to Pattern 2** ✅
+
+**Future Phase: Logic Extraction & Service Architecture**
+- Eventually, business logic should be extracted from `MainLayout.razor.cs` into:
+  - **Service classes** (for centralized data access and business logic)
+    - Centralize all database calls (currently scattered throughout MainLayout.razor.cs)
+    - Create role-specific services (e.g., `CompanyService`, `StudentService`, `ProfessorService`)
+    - Create shared services for common operations (e.g., `AnnouncementService`, `ThesisService`)
+    - Services handle all DbContext operations, data transformation, and business rules
+  - **ViewModels** (for component-specific logic and state management)
+    - ViewModels manage component state and coordinate with services
+    - Reduce direct DbContext access from components
+  - **Dedicated code-behind files** for role components (e.g., `Student.razor.cs`, `Company.razor.cs`)
+    - Move role-specific logic out of MainLayout.razor.cs
+    - Each role component has its own code-behind with minimal logic (delegates to services)
+- This will further reduce `MainLayout.razor.cs` size and create a maintainable, testable architecture
+
+---
+
+## Project Overview
+
+This project refactors a very large and historically grown Blazor MainLayout.razor that acted as a monolithic container for layout, role-based UI, and feature logic across the entire application from a .NET 6 Blazor app. This document outlines the tasks being performed to refactor the Blazor application MainLayout.razor into separate components for different user roles (student, company, professor, admin). Additionally, it includes steps for extracting shared components and replacing manual pagination controls with a standardized component.
 
 ## Task History
 
@@ -138,80 +261,21 @@ This project refactors a very large and historically grown Blazor MainLayout.raz
 - Minor patterns identified (modals, buttons, collapsible sections) but not recommended for extraction due to significant variations. See [SHARED_PATTERNS_ANALYSIS.md](SHARED_PATTERNS_ANALYSIS.md) for detailed analysis.
 
 **Next Steps:**
-- Proceed to Phase 3: Wiring Components (see [REFACTORING_PLAN.md](REFACTORING_PLAN.md))
+- ✅ Phase 3 Complete - All 28 components converted to Pattern 2
+- ⏳ Testing and validation
+- ⏳ Future: Extract business logic from MainLayout.razor.cs into service classes
 
 For completed tasks and progress updates, see [PROGRESS.md](PROGRESS.md).
 
-## Current Task
+## Current Status
 
-### 2. Identifying and Extracting Shared Components
+### Phase 3: Component Architecture Migration
 
-**Status:** In Progress.
+**Status:** ✅ Complete (28/28 components converted to Pattern 2)
+
+All components now have their own `.razor.cs` code-behind files with injected services. No parameters are passed from parent components.
 
 ## Operational Guidelines
-
-### Component Wiring Verification Process (MANDATORY)
-
-**CRITICAL**: After wiring ANY component to MainLayout.razor.cs, you MUST perform complete symbol verification using Serena tools.
-
-**When to Perform:**
-- After adding `@code` section with `[Parameter]` declarations
-- After updating component markup to use parameters
-- Before marking component as "complete"
-- Before moving to the next component
-
-**Verification Steps:**
-
-1. **Symbol Existence Verification**
-   - Use Serena's `find_symbol` tool to verify ALL symbols referenced in component markup exist in `MainLayout.razor.cs`
-   - Check properties, fields, methods, EventCallbacks, and computed properties
-   - Verify line numbers and signatures match
-
-2. **Casing Verification and Fix (CRITICAL)**
-   - MainLayout.razor.cs uses **camelCase** for all properties/fields
-   - Component markup MUST match exactly (camelCase, not PascalCase)
-   - Common fixes: `IsLoadingUploadedAnnouncements` → `isLoadingUploadedAnnouncements`
-   - Search for PascalCase patterns: `grep -n "[A-Z][a-z]*[A-Z]" ComponentName.razor`
-
-3. **Parameter Completeness Check**
-   - Verify ALL symbols used in markup have corresponding `[Parameter]` declarations
-   - Check direct property references, method calls, computed properties, collections
-
-4. **EventCallback Verification**
-   - Verify methods exist in MainLayout.razor.cs
-   - Verify method signatures match (parameters, return type)
-   - Verify markup uses `.InvokeAsync()` correctly
-
-5. **Create Verification Report**
-   - Document all verified symbols with line numbers
-   - Document all casing fixes applied
-   - Note any missing symbols or issues
-   - Save as `WIRING_VERIFICATION_ComponentName.md`
-
-**Verification Checklist for EACH component:**
-- [ ] All properties/fields exist in MainLayout.razor.cs
-- [ ] All methods/EventCallbacks exist in MainLayout.razor.cs
-- [ ] All casing matches (camelCase, not PascalCase)
-- [ ] All `[Parameter]` declarations match actual usage
-- [ ] No missing symbols in markup
-- [ ] EventCallbacks use correct syntax
-- [ ] Verification report created
-
-**Tools:**
-- `mcp_serena_find_symbol` - Verify symbol existence
-- `grep` - Find casing issues
-- `read_lints` - Check for compilation errors
-
-**Reference:** See Serena memory `component_wiring_verification_process.md` for detailed process and examples.
-
-**Apply to ALL components in:**
-- `Shared/Company/*.razor` (9 components)
-- `Shared/Professor/*.razor` (7 components)
-- `Shared/Student/*.razor` (6 components)
-- `Shared/ResearchGroup/*.razor` (5 components)
-- `Shared/Admin/*.razor` (1 component)
-
-**Total: 28 components requiring verification**
 
 ### Command Line Tools for File Manipulation
 
@@ -224,11 +288,17 @@ For completed tasks and progress updates, see [PROGRESS.md](PROGRESS.md).
 
 **Reasoning:** These tools offer precise control over text, handle large files efficiently, and are less prone to issues related to programming language-specific string handling or environment variations when used correctly. This approach minimizes errors during automated code modifications.
 
-## Memories
-- Shared components should follow this pattern:
-- Common code across all user roles goes directly into `Shared/`.
-- Role-specific sections extracted from a monolithic file are placed in a subdirectory under `Shared/` named after the role from which they were extracted (e.g., `Shared/Company/ComponentName.razor` for components extracted from `Company.razor`).
-- Always update AGENTS.md and PROGRESS.md and keep them updated after changes or tasks being completed.
-- Only place code in the Shared/ folder if it is exactly the same for all user roles that will use it. If the code is not exactly the same, it should not be a shared component.
-- if a component is only in one user role create a folder under Shared with that user-role name and place there the extracted component
-- **MANDATORY**: After wiring ANY component, perform complete symbol verification using Serena tools (see "Component Wiring Verification Process" section above and Serena memory `component_wiring_verification_process.md`). This includes verifying all symbols exist in MainLayout.razor.cs, fixing all casing mismatches (camelCase), and creating a verification report.
+## Guidelines
+
+### Component Organization
+- Common code across all user roles → `Shared/` root folder
+- Role-specific components → `Shared/[Role]/` (e.g., `Shared/Company/`)
+
+### Pattern 2 Architecture
+Each component has:
+- `.razor` file: UI markup only (no `@code` section)
+- `.razor.cs` file: Code-behind with `[Inject]` services and all logic
+
+### Documentation
+- Always update `AGENTS.md` and `PROGRESS.md` after changes
+- See `REFACTORING_PLAN.md` for architecture details
