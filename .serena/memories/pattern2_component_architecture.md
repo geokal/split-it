@@ -35,44 +35,14 @@ Most components inject these services:
 8. **Update parent component**: Remove all parameters from component reference in parent (e.g., `Professor.razor`, `Student.razor`)
 9. **Namespace**: Use `SplitIt.Shared.[Role]` namespace (e.g., `SplitIt.Shared.Professor`)
 
-## Completed Conversions
+## Completed Conversions (27/28)
 
-### Professor Components (7/7) ✅
-- ProfessorAnnouncementsManagementSection.razor.cs
-- ProfessorThesesSection.razor.cs
-- ProfessorInternshipsSection.razor.cs
-- ProfessorEventsSection.razor.cs
-- ProfessorStudentSearchSection.razor.cs
-- ProfessorCompanySearchSection.razor.cs
-- ProfessorResearchGroupSearchSection.razor.cs
-
-### Student Components (6/6) ✅
-- StudentCompanySearchSection.razor.cs
-- StudentAnnouncementsSection.razor.cs
-- StudentThesisDisplaySection.razor.cs
-- StudentJobsDisplaySection.razor.cs
-- StudentInternshipsSection.razor.cs
-- StudentEventsSection.razor.cs
+### Professor (7/7) ✅
+### Student (6/6) ✅
+### Company (9/9) ✅
+### ResearchGroup (5/5) ✅
 
 ## Pending Conversions
-
-### Company Components (0/9) ⏳
-- CompanyAnnouncementsManagementSection
-- CompanyAnnouncementsSection
-- CompanyJobsSection
-- CompanyInternshipsSection
-- CompanyThesesSection
-- CompanyEventsSection
-- CompanyStudentSearchSection
-- CompanyProfessorSearchSection
-- CompanyResearchGroupSearchSection
-
-### ResearchGroup Components (0/5) ⏳
-- ResearchGroupAnnouncementsSection
-- ResearchGroupEventsSection
-- ResearchGroupCompanySearchSection
-- ResearchGroupProfessorSearchSection
-- ResearchGroupStatisticsSection
 
 ### Admin Components (0/1) ⏳
 - AdminSection
