@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace SplitIt.Shared.Professor
+namespace QuizManager.Shared.Professor
 {
     public partial class ProfessorStudentSearchSection : ComponentBase
     {

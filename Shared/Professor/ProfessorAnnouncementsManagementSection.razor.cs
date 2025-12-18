@@ -14,7 +14,7 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using HtmlAgilityPack;
 
-namespace SplitIt.Shared.Professor
+namespace QuizManager.Shared.Professor
 {
     public partial class ProfessorAnnouncementsManagementSection : ComponentBase
     {
