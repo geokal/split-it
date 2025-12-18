@@ -13,7 +13,7 @@ using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 
-namespace SplitIt.Shared.Company
+namespace QuizManager.Shared.Company
 {
     public partial class CompanyAnnouncementsSection : ComponentBase
     {
