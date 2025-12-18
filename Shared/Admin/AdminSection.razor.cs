@@ -9,7 +9,7 @@ using Microsoft.JSInterop;
 using QuizManager.Data;
 using QuizManager.Models;
 
-namespace SplitIt.Shared.Admin
+namespace QuizManager.Shared.Admin
 {
     public partial class AdminSection : ComponentBase
     {
