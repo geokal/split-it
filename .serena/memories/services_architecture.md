@@ -10,6 +10,14 @@ Services/
 │   ├── IUserContextService.cs
 │   ├── UserContextService.cs
 │   └── UserContextState.cs (record with user auth state)
+├── FrontPage/
+│   ├── IFrontPageService.cs
+│   ├── FrontPageService.cs
+│   └── FrontPageData.cs (DTO for front page data)
+├── StudentDashboard/
+│   ├── IUserContextService.cs
+│   ├── UserContextService.cs
+│   └── UserContextState.cs (record with user auth state)
 ├── StudentDashboard/
 │   ├── IStudentDashboardService.cs
 │   ├── StudentDashboardService.cs
@@ -44,9 +52,15 @@ Services/
 - Components receive some data via `[Parameter]` from parent, but also load their own data via services
 
 ### 5. MainLayout Pattern
-- MainLayout.razor.cs should be **minimal** (~200 lines)
-- Only handles: authentication state (via `IUserContextService`), front page data, navigation helpers
+- MainLayout.razor.cs is now **minimal** (127 lines) ✅
+- Only handles: authentication state (via `IUserContextService`), front page data (via `IFrontPageService`), navigation helpers
 - **NOT responsible for**: database queries, business logic, role-specific data loading
+
+### 6. FrontPage Service
+- Handles loading public/published events and announcements for unauthenticated users
+- Returns `FrontPageData` DTO with company events, professor events, and announcements
+- Used by MainLayout to populate front page content
+- Registered as Scoped service in `Program.cs`
 
 ## Example: StudentDashboardService
 
