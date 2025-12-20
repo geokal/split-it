@@ -1,0 +1,94 @@
+@if (UserRole == "Research Group")
+{
+    @if (!isInitializedAsResearchGroupUser)
+    {
+        <div class="professional-loading">
+            <div class="loading-content">
+                <div class="loading-spinner">
+                    <div class="spinner-circle"></div>
+                    <div class="spinner-circle"></div>
+                    <div class="spinner-circle"></div>
+                </div>
+                <div class="loading-text">
+                    <span class="loading-title">Φορτώνει, Παρακαλώ Περιμένετε...</span>
+                    <span class="loading-subtitle">Γίνεται προετοιμασία του περιεχομένου</span>
+                </div>
+            </div>
+            <div class="loading-progress">
+                <div class="progress-bar">
+                    <div class="progress-fill"></div>
+                </div>
+            </div>
+        </div>
+    }
+    else if (!isResearchGroupRegistered)
+    {
+        <div style="display: flex; justify-content: flex-start; padding: 20px; flex-direction: column;">
+            <div style="width: 300px; border: none; border-radius: 12px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); transition: transform 0.3s ease, box-shadow 0.3s ease; background: linear-gradient(135deg, #f9f9f9, #e0e0e0);">
+                <div style="padding: 20px; text-align: center;">
+                    <h5 style="font-size: 1.5rem; font-weight: bold; color: #333; margin-bottom: 20px;">Εγγραφή Ερευνητικής Ομάδας</h5>
+                    <a style="background-color: #007bff; border: none; border-radius: 25px; padding: 10px 20px; font-size: 1rem; color: white; text-decoration: none; transition: background-color 0.3s ease, transform 0.2s ease;" 
+                       href="researchGroupRegistration" 
+                       onmouseover="this.style.backgroundColor='#0056b3'; this.style.transform='scale(1.05)'" 
+                       onmouseout="this.style.backgroundColor='#007bff'; this.style.transform='scale(1)'">
+                        Εγγραφή
+                    </a>
+                </div>
+            </div>
+            <p style="font-size: 0.9rem; color: #000; margin-top: 7px; text-align: center; font-weight: bold;">
+                <span style="color: #ff0000;">**</span> <span style="color: #ff0000;">Προσοχή</span>: Για εμφάνιση του περιεχομένου της σελίδας είναι <span style="color: #ff0000;">Υποχρεωτική</span> η Εγγραφή σας
+            </p>                                      
+        </div>
+    }
+    else
+    {
+        <div class="table-bordered">
+            <!-- Tabs navigation -->
+            <ul class="nav nav-tabs" id="myTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fade show active" id="rgannouncements-tab" data-bs-toggle="tab" data-bs-target="#rgannouncements" type="button" role="tab" aria-controls="rgannouncements" aria-selected="true">Ανακοινώσεις</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="rgevents-tab" data-bs-toggle="tab" data-bs-target="#rgevents" type="button" role="tab" aria-controls="rgevents" aria-selected="false">Εκδηλώσεις</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="rgsearchcompany-tab" data-bs-toggle="tab" data-bs-target="#rgsearchcompany" type="button" role="tab" aria-controls="rgsearchcompany" aria-selected="false">Αναζήτηση Εταιρείας</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="rgsearchprofessor-tab" data-bs-toggle="tab" data-bs-target="#rgsearchprofessor" type="button" role="tab" aria-controls="rgsearchprofessor" aria-selected="false">Αναζήτηση Καθηγητή</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="rgstatistics-tab" data-bs-toggle="tab" data-bs-target="#rgstatistics" type="button" role="tab" aria-controls="rgstatistics" aria-selected="false">Στατιστικά Ερευνητικής Ομάδας</button>
+                </li>
+            </ul>
+
+            <!-- Tab panes -->
+            <div class="tab-content mt-3" id="myTabContent">
+                <!-- Announcements Tab -->
+                <div class="tab-pane show active" id="rgannouncements" role="tabpanel" aria-labelledby="rgannouncements-tab">
+                    <ResearchGroupAnnouncementsSection />
+                </div>
+
+                <!-- Events Tab -->
+                <div class="tab-pane fade" id="rgevents" role="tabpanel" aria-labelledby="rgevents-tab">
+                    <ResearchGroupEventsSection />
+                </div>
+
+                <!-- Company Search Tab -->
+                <div class="tab-pane fade" id="rgsearchcompany" role="tabpanel" aria-labelledby="rgsearchcompany-tab">
+                    <ResearchGroupCompanySearchSection />
+                </div>
+
+                <!-- Professor Search Tab -->
+                <div class="tab-pane fade" id="rgsearchprofessor" role="tabpanel" aria-labelledby="rgsearchprofessor-tab">
+                    <ResearchGroupProfessorSearchSection />
+                </div>
+
+                <!-- Statistics Tab -->
+                <div class="tab-pane fade" id="rgstatistics" role="tabpanel" aria-labelledby="rgstatistics-tab">
+                    <ResearchGroupStatisticsSection />
+                </div>
+            </div>
+        </div>
+    }
+}
