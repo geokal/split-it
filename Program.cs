@@ -26,6 +26,7 @@ builder.Services.AddAuth0WebAppAuthentication(options =>
 });
 
 // 4. HTTP CLIENTS
+builder.Services.AddHttpClient(); // General HttpClient factory for services like FrontPageService
 builder.Services.AddHttpClient<GoogleScholarService>();
 builder.Services.AddHttpClient<ICordisService, CordisService>();
 

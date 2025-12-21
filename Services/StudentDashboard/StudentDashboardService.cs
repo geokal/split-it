@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using QuizManager.Data;
 using QuizManager.Models;
@@ -14,18 +15,25 @@ namespace QuizManager.Services.StudentDashboard
 {
     public class StudentDashboardService : IStudentDashboardService
     {
+        private const string DashboardCachePrefix = "student-dashboard:";
+        private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
+
         private readonly AuthenticationStateProvider _authenticationStateProvider;
         private readonly IDbContextFactory<AppDbContext> _dbContextFactory;
         private readonly ILogger<StudentDashboardService> _logger;
+        private readonly IMemoryCache _memoryCache;
+        private readonly SemaphoreSlim _dashboardLock = new(1, 1);
 
         public StudentDashboardService(
             AuthenticationStateProvider authenticationStateProvider,
             IDbContextFactory<AppDbContext> dbContextFactory,
-            ILogger<StudentDashboardService> logger)
+            ILogger<StudentDashboardService> logger,
+            IMemoryCache memoryCache)
         {
             _authenticationStateProvider = authenticationStateProvider;
             _dbContextFactory = dbContextFactory;
             _logger = logger;
+            _memoryCache = memoryCache;
         }
 
         public async Task<StudentDashboardData> LoadDashboardDataAsync(CancellationToken cancellationToken = default)
@@ -46,21 +54,81 @@ namespace QuizManager.Services.StudentDashboard
                     return StudentDashboardData.Empty;
                 }
 
-                await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-
-                var student = await context.Students
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(s => s.Email == email, cancellationToken);
-
-                if (student == null)
+                // Check cache first
+                if (_memoryCache.TryGetValue(DashboardCachePrefix + email, out StudentDashboardData cached))
                 {
-                    return new StudentDashboardData
-                    {
-                        IsAuthenticated = true,
-                        Email = email,
-                        IsRegisteredStudent = false
-                    };
+                    return cached;
                 }
+
+                // Acquire lock for thread-safe cache population
+                await _dashboardLock.WaitAsync(cancellationToken);
+                try
+                {
+                    // Double-check after acquiring lock
+                    if (_memoryCache.TryGetValue(DashboardCachePrefix + email, out cached))
+                    {
+                        return cached;
+                    }
+
+                    var data = await BuildDashboardDataAsync(email, cancellationToken);
+                    _memoryCache.Set(DashboardCachePrefix + email, data, CacheDuration);
+                    return data;
+                }
+                finally
+                {
+                    _dashboardLock.Release();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to load student dashboard data");
+                return StudentDashboardData.Empty;
+            }
+        }
+
+        public async Task RefreshDashboardCacheAsync(CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
+                var user = authState.User;
+
+                if (user?.Identity?.IsAuthenticated != true)
+                {
+                    return;
+                }
+
+                var email = ResolveUserEmail(user);
+                if (string.IsNullOrWhiteSpace(email))
+                {
+                    return;
+                }
+
+                _memoryCache.Remove(DashboardCachePrefix + email);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to refresh student dashboard cache");
+            }
+        }
+
+        private async Task<StudentDashboardData> BuildDashboardDataAsync(string email, CancellationToken cancellationToken)
+        {
+            await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+        var student = await context.Students
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => s.Email == email, cancellationToken);
+
+        if (student == null)
+        {
+            return new StudentDashboardData
+            {
+                IsAuthenticated = true,
+                Email = email,
+                IsRegisteredStudent = false
+            };
+        }
 
                 // Load Company Thesis Applications
                 var companyThesisApplications = await context.CompanyThesesApplied
@@ -203,12 +271,6 @@ namespace QuizManager.Services.StudentDashboard
                     CompanyEventInterests = companyEventInterests,
                     ProfessorEventInterests = professorEventInterests
                 };
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to load student dashboard data");
-                return StudentDashboardData.Empty;
-            }
         }
 
         // TODO: Implement remaining methods by extracting from MainLayout.razor.cs
@@ -286,6 +348,7 @@ namespace QuizManager.Services.StudentDashboard
                 application.ProfessorThesisStatusAppliedAtProfessorSide = "Αποσύρθηκε από τον φοιτητή";
 
                 await context.SaveChangesAsync(cancellationToken);
+                await RefreshDashboardCacheAsync(cancellationToken);
                 return true;
             }
             catch (Exception ex)
@@ -349,6 +412,7 @@ namespace QuizManager.Services.StudentDashboard
                 });
 
                 await context.SaveChangesAsync(cancellationToken);
+                await RefreshDashboardCacheAsync(cancellationToken);
                 return true;
             }
             catch (Exception ex)
@@ -385,6 +449,7 @@ namespace QuizManager.Services.StudentDashboard
                 });
 
                 await context.SaveChangesAsync(cancellationToken);
+                await RefreshDashboardCacheAsync(cancellationToken);
                 return true;
             }
             catch (Exception ex)
@@ -423,6 +488,7 @@ namespace QuizManager.Services.StudentDashboard
                 });
 
                 await context.SaveChangesAsync(cancellationToken);
+                await RefreshDashboardCacheAsync(cancellationToken);
                 return true;
             }
             catch (Exception ex)
@@ -669,6 +735,7 @@ namespace QuizManager.Services.StudentDashboard
                 });
 
                 await context.SaveChangesAsync(cancellationToken);
+                await RefreshDashboardCacheAsync(cancellationToken);
                 return true;
             }
             catch (Exception ex)
@@ -849,6 +916,7 @@ namespace QuizManager.Services.StudentDashboard
                 });
 
                 await context.SaveChangesAsync(cancellationToken);
+                await RefreshDashboardCacheAsync(cancellationToken);
                 return true;
             }
             catch (Exception ex)

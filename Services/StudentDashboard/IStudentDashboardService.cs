@@ -8,6 +8,8 @@ namespace QuizManager.Services.StudentDashboard
     public interface IStudentDashboardService
     {
         Task<StudentDashboardData> LoadDashboardDataAsync(CancellationToken cancellationToken = default);
+        
+        Task RefreshDashboardCacheAsync(CancellationToken cancellationToken = default);
 
         Task<IReadOnlyList<string>> GetJobTitleSuggestionsAsync(string searchTerm, CancellationToken cancellationToken = default);
 
