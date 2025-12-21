@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Forms;
 using QuizManager.ViewModels;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.EntityFrameworkCore;
@@ -53,6 +54,143 @@ namespace QuizManager.Components.Layout.ProfessorSections
         private ProfessorEvent professorEventDetails;
         private bool isExpandedModalVisibleToSeeCompanyDetailsAsProfessor = false;
 
+        // Professor Event Upload Form
+        private ProfessorEvent professorEvent = new ProfessorEvent();
+        private bool isUploadProfessorEventFormVisible = false;
+        private bool showErrorMessageForUploadingProfessorEvent = false;
+
+        // Areas and Skills
+        private List<Area> Areas = new();
+        private List<Area> SelectedAreasWhenUploadEventAsProfessor = new();
+        private bool showCheckboxesForProfessorEvent = false;
+        private Dictionary<string, List<string>> SelectedSubFieldsForProfessorEvent = new Dictionary<string, List<string>>();
+        private HashSet<int> ExpandedAreasForProfessorEvent = new HashSet<int>();
+
+        // Filtered Events
+        private List<ProfessorEvent> FilteredProfessorEvents { get; set; } = new List<ProfessorEvent>();
+
+        // Details for Expanded Interest Modals
+        private Company selectedCompanyToSeeDetailsOnExpandedInterestAsProfessor;
+        private Student currentStudentDetails = new Student();
+        private Company currentCompanyDetails = new Company();
+
+        // Pagination for Professor Events
+        private int currentPage_ProfessorEvents = 1;
+        private int itemsPerPage_ProfessorEvents = 10;
+        private int totalPages_ProfessorEvents =>
+            (int)Math.Ceiling((double)(FilteredProfessorEvents?.Count ?? 0) / itemsPerPage_ProfessorEvents);
+
+        // Bulk Edit for Professor Events
+        private bool isBulkEditModeForProfessorEvents = false;
+        private HashSet<int> selectedProfessorEventIds = new HashSet<int>();
+        private string bulkActionForProfessorEvents = "";
+        private bool showBulkActionModalForProfessorEvents = false;
+        private List<ProfessorEvent> selectedProfessorEventsForAction = new List<ProfessorEvent>();
+
+        // Status Filter
+        private string selectedStatusFilterForEventsAsProfessor = "Όλα";
+
+        // Loading States
+        private bool isLoadingUploadedEventsAsProfessor = false;
+        private bool isLoadingInterestedStudentsForProfessorEvent = false;
+        private int loadingProgress = 0;
+
+        // Visibility States
+        private bool isUploadedEventsVisibleAsProfessor = false;
+
+        // Current Event/Thesis
+        private ProfessorEvent currentProfessorEvent;
+        private ProfessorThesis currentProfessorThesis;
+
+        // Modal Visibility States
+        private bool isModalVisibleToShowStudentDetailsInNameAsHyperlinkForProfessorThesis = false;
+        private bool isModalVisibleToShowProfessorThesisAsProfessor = false;
+        private bool isModalVisibleToShowCompanyDetailsAtProfessorThesisInterest = false;
+
+        // Interest Data
+        private List<InterestInProfessorEvent> InterestedStudentsForProfessorEvent = new();
+        private List<InterestInProfessorEventAsCompany> filteredCompanyInterestForProfessorEvents = new();
+
+        // Data Caches
+        private Dictionary<string, Student> studentDataCache = new Dictionary<string, Student>();
+        private Dictionary<string, Company> companyDataCache = new Dictionary<string, Company>();
+
+        // Messages
+        private string saveEventAsProfessorMessage = string.Empty;
+        private bool isSaveAnnouncementAsProfessorSuccessful = false;
+
+        // Regions
+        private List<string> Regions = new List<string>
+        {
+            "Ανατολική Μακεδονία και Θράκη",
+            "Κεντρική Μακεδονία",
+            "Δυτική Μακεδονία",
+            "Ήπειρος",
+            "Θεσσαλία",
+            "Ιόνια Νησιά",
+            "Δυτική Ελλάδα",
+            "Κεντρική Ελλάδα",
+            "Αττική",
+            "Πελοπόννησος",
+            "Βόρειο Αιγαίο",
+            "Νότιο Αιγαίο",
+            "Κρήτη"
+        };
+
+        // Edit Modal
+        private bool isEditModalVisibleForEventsAsProfessor = false;
+
+        // Form Validation
+        private bool isFormValidToSaveEventAsProfessor = true;
+        private int remainingCharactersInEventTitleField = 200;
+        private int remainingCharactersInProfessorEventDescription = 2000;
+        private string ProfessorEventAttachmentErrorMessage = string.Empty;
+
+        // Event Counts
+        private int existingEventsCountToCheckAsProfessor = 0;
+        private bool hasExistingEventsOnSelectedDateForProfessor = false;
+        private int totalCountEventsAsProfessor = 0;
+        private int publishedCountEventsAsProfessor = 0;
+        private int unpublishedCountEventsAsProfessor = 0;
+
+        // Loading States for Interest
+        private bool isLoadingInterestedCompaniesForProfessorEvent = false;
+        private long? loadingProfessorEventRNGForCompanies = null;
+        private long? loadingProfessorEventRNGForStudents = null;
+        private long? selectedEventIdForCompaniesWhenShowInterestForProfessorEvent = null;
+        private long? selectedEventIdForStudentsWhenShowInterestForProfessorEvent = null;
+
+        // Loading Modals
+        private bool showLoadingModalForDeleteProfessorEvent = false;
+        private bool showLoadingModalForProfessorEvent = false;
+
+        // Bulk Action
+        private string newStatusForBulkActionForProfessorEvents = "Μη Δημοσιευμένη";
+
+        // Pagination Options
+        private int[] pageSizeOptions_SeeMyUploadedEventsAsProfessor = new[] { 10, 50, 100 };
+
+        // Menu Toggle
+        private int? activeProfessorEventMenuId = null;
+
+        // Region to Towns Map
+        private Dictionary<string, List<string>> RegionToTownsMap = new Dictionary<string, List<string>>
+        {
+            {"Ανατολική Μακεδονία και Θράκη", new List<string> {"Κομοτηνή", "Αλεξανδρούπολη", "Καβάλα", "Ξάνθη", "Δράμα", "Ορεστιάδα", "Διδυμότειχο", "Ίασμος", "Νέα Βύσσα", "Φέρες"}},
+            {"Κεντρική Μακεδονία", new List<string> {"Θεσσαλονίκη", "Κατερίνη", "Σέρρες", "Κιλκίς", "Πολύγυρος", "Ναούσα", "Έδεσσα", "Γιαννιτσά", "Καβάλα", "Άμφισσα"}},
+            {"Δυτική Μακεδονία", new List<string> {"Κοζάνη", "Φλώρινα", "Καστοριά", "Γρεβενά"}},
+            {"Ήπειρος", new List<string> {"Ιωάννινα", "Άρτα", "Πρέβεζα", "Ηγουμενίτσα"}},
+            {"Θεσσαλία", new List<string> {"Λάρισα", "Βόλος", "Τρίκαλα", "Καρδίτσα"}},
+            {"Ιόνια Νησιά", new List<string> {"Κέρκυρα", "Λευκάδα", "Κεφαλονιά", "Ζάκυνθος", "Ιθάκη", "Παξοί", "Κυθήρα"}},
+            {"Δυτική Ελλάδα", new List<string> {"Πάτρα", "Μεσολόγγι", "Αμφιλοχία", "Πύργος", "Αιγίο", "Ναύπακτος"}},
+            {"Κεντρική Ελλάδα", new List<string> {"Λαμία", "Χαλκίδα", "Λιβαδειά", "Θήβα", "Αλιάρτος", "Αμφίκλεια"}},
+            {"Αττική", new List<string> {"Αθήνα", "Πειραιάς", "Κηφισιά", "Παλλήνη", "Αγία Παρασκευή", "Χαλάνδρι", "Καλλιθέα", "Γλυφάδα", "Περιστέρι", "Αιγάλεω"}},
+            {"Πελοπόννησος", new List<string> {"Πάτρα", "Τρίπολη", "Καλαμάτα", "Κορίνθος", "Άργος", "Ναύπλιο", "Σπάρτη", "Κυπαρισσία", "Πύργος", "Μεσσήνη"}},
+            {"Βόρειο Αιγαίο", new List<string> {"Μυτιλήνη", "Χίος", "Λήμνος", "Σάμος", "Ίκαρος", "Λέσβος", "Θάσος", "Σκύρος", "Ψαρά"}},
+            {"Νότιο Αιγαίο", new List<string> {"Ρόδος", "Κως", "Κρήτη", "Κάρπαθος", "Σαντορίνη", "Μύκονος", "Νάξος", "Πάρος", "Σύρος", "Άνδρος"}},
+            {"Κρήτη", new List<string> {"Ηράκλειο", "Χανιά", "Ρέθυμνο", "Αγία Νικόλαος", "Ιεράπετρα", "Σητεία", "Κίσαμος", "Παλαιόχωρα", "Αρχάνες", "Ανώγεια"}},
+        };
+
         // Computed Properties
         private List<CompanyEvent> filteredCompanyEvents =>
             selectedEventFilter == "All" || selectedEventFilter == "Company"
@@ -70,6 +208,7 @@ namespace QuizManager.Components.Layout.ProfessorSections
         protected override async Task OnInitializedAsync()
         {
             await LoadInitialData();
+            await LoadAreasAsync();
         }
 
         private async Task LoadInitialData()
@@ -402,6 +541,411 @@ namespace QuizManager.Components.Layout.ProfessorSections
             return dbContext.InterestInCompanyEventsAsProfessor
                 .Any(i => i.RNGForCompanyEventInterestAsProfessor == companyEvent.RNGForEventUploadedAsCompany 
                         && i.ProfessorEmailShowInterestForCompanyEvent == CurrentUserEmail);
+        }
+
+        // Professor Event Upload Methods
+        private void ToggleFormVisibilityForUploadProfessorEvent()
+        {
+            isUploadProfessorEventFormVisible = !isUploadProfessorEventFormVisible;
+            StateHasChanged();
+        }
+
+        private void UpdateOrganizerVisibilityForProfessorEvents(bool value)
+        {
+            professorEvent.ProfessorEventOtherOrganizerToBeVisible = value;
+            StateHasChanged();
+        }
+
+        // Areas Loading
+        private async Task LoadAreasAsync()
+        {
+            Areas = await dbContext.Areas.ToListAsync();
+        }
+
+        // Area Selection Methods
+        private void ToggleCheckboxesForProfessorEvent()
+        {
+            showCheckboxesForProfessorEvent = !showCheckboxesForProfessorEvent;
+            StateHasChanged();
+        }
+
+        private void OnAreaCheckedChangedForProfessorEvent(ChangeEventArgs e, Area area)
+        {
+            var isChecked = (bool)e.Value!;
+        
+            if (isChecked)
+            {
+                if (!SelectedAreasWhenUploadEventAsProfessor.Contains(area))
+                {
+                    SelectedAreasWhenUploadEventAsProfessor.Add(area);
+                }
+            }
+            else
+            {
+                SelectedAreasWhenUploadEventAsProfessor.Remove(area);
+            
+                // Remove all subfields for this area when area is deselected
+                if (SelectedSubFieldsForProfessorEvent.ContainsKey(area.AreaName))
+                {
+                    SelectedSubFieldsForProfessorEvent.Remove(area.AreaName);
+                }
+            }
+            StateHasChanged();
+        }
+
+        private bool IsAreaSelectedForProfessorEvent(Area area)
+        {
+            return SelectedAreasWhenUploadEventAsProfessor.Contains(area);
+        }
+
+        private void ToggleSubFieldsForProfessorEvent(Area area)
+        {
+            if (ExpandedAreasForProfessorEvent.Contains(area.Id))
+            {
+                ExpandedAreasForProfessorEvent.Remove(area.Id);
+            }
+            else
+            {
+                ExpandedAreasForProfessorEvent.Add(area.Id);
+            }
+            StateHasChanged();
+        }
+
+        private void OnSubFieldCheckedChangedForProfessorEvent(ChangeEventArgs e, Area area, string subField)
+        {
+            var isChecked = (bool)e.Value!;
+        
+            if (!SelectedSubFieldsForProfessorEvent.ContainsKey(area.AreaName))
+            {
+                SelectedSubFieldsForProfessorEvent[area.AreaName] = new List<string>();
+            }
+
+            if (isChecked)
+            {
+                if (!SelectedSubFieldsForProfessorEvent[area.AreaName].Contains(subField))
+                {
+                    SelectedSubFieldsForProfessorEvent[area.AreaName].Add(subField);
+                }
+            }
+            else
+            {
+                SelectedSubFieldsForProfessorEvent[area.AreaName].Remove(subField);
+            
+                // Remove the area from subfields dictionary if no subfields are selected
+                if (!SelectedSubFieldsForProfessorEvent[area.AreaName].Any())
+                {
+                    SelectedSubFieldsForProfessorEvent.Remove(area.AreaName);
+                }
+            }
+            StateHasChanged();
+        }
+
+        private bool IsSubFieldSelectedForProfessorEvent(Area area, string subField)
+        {
+            return SelectedSubFieldsForProfessorEvent.ContainsKey(area.AreaName) && 
+                SelectedSubFieldsForProfessorEvent[area.AreaName].Contains(subField);
+        }
+
+        private bool HasAnySelectionForProfessorEvent()
+        {
+            return SelectedAreasWhenUploadEventAsProfessor.Any() || SelectedSubFieldsForProfessorEvent.Any();
+        }
+
+        // Pagination Methods
+        private IEnumerable<ProfessorEvent> GetPaginatedProfessorEvents()
+        {
+            return FilteredProfessorEvents?
+                .Skip((currentPage_ProfessorEvents - 1) * itemsPerPage_ProfessorEvents)
+                .Take(itemsPerPage_ProfessorEvents) ?? Enumerable.Empty<ProfessorEvent>();
+        }
+
+        private List<int> GetVisiblePages_ProfessorEvents()
+        {
+            var pages = new List<int>();
+            int current = currentPage_ProfessorEvents;
+            int total = totalPages_ProfessorEvents;
+
+            if (total == 0) return pages;
+
+            pages.Add(1);
+            if (current > 3) pages.Add(-1);
+
+            int start = Math.Max(2, current - 1);
+            int end = Math.Min(total - 1, current + 1);
+
+            for (int i = start; i <= end; i++) pages.Add(i);
+
+            if (current < total - 2) pages.Add(-1);
+            if (total > 1) pages.Add(total);
+
+            return pages;
+        }
+
+        private void GoToFirstPage_ProfessorEvents() => currentPage_ProfessorEvents = 1;
+        private void GoToLastPage_ProfessorEvents() => currentPage_ProfessorEvents = totalPages_ProfessorEvents;
+        private void PreviousPage_ProfessorEvents()
+        {
+            if (currentPage_ProfessorEvents > 1) currentPage_ProfessorEvents--;
+        }
+        private void NextPage_ProfessorEvents()
+        {
+            if (currentPage_ProfessorEvents < totalPages_ProfessorEvents) currentPage_ProfessorEvents++;
+        }
+        private void GoToPage_ProfessorEvents(int page)
+        {
+            if (page >= 1 && page <= totalPages_ProfessorEvents)
+                currentPage_ProfessorEvents = page;
+        }
+
+        // Menu Toggle
+        private void ToggleProfessorEventMenu(int eventId)
+        {
+            if (activeProfessorEventMenuId == eventId)
+            {
+                activeProfessorEventMenuId = null;
+            }
+            else
+            {
+                activeProfessorEventMenuId = eventId;
+            }
+            StateHasChanged();
+        }
+
+        // Helper Methods
+        private List<string> GetTownsForRegion(string region)
+        {
+            if (string.IsNullOrEmpty(region) || !RegionToTownsMap.ContainsKey(region))
+            {
+                return new List<string>();
+            }
+
+            return RegionToTownsMap[region];
+        }
+
+        // Bulk Edit Methods
+        private void EnableBulkEditModeForProfessorEvents()
+        {
+            isBulkEditModeForProfessorEvents = true;
+            selectedProfessorEventIds.Clear();
+            StateHasChanged();
+        }
+
+        private void CancelBulkEditForProfessorEvents()
+        {
+            isBulkEditModeForProfessorEvents = false;
+            selectedProfessorEventIds.Clear();
+            StateHasChanged();
+        }
+
+        private void ToggleProfessorEventSelection(int eventId, ChangeEventArgs e)
+        {
+            var isChecked = (bool)(e.Value ?? false);
+            if (isChecked)
+            {
+                selectedProfessorEventIds.Add(eventId);
+            }
+            else
+            {
+                selectedProfessorEventIds.Remove(eventId);
+            }
+            StateHasChanged();
+        }
+
+        private void CloseBulkActionModalForProfessorEvents()
+        {
+            showBulkActionModalForProfessorEvents = false;
+            bulkActionForProfessorEvents = "";
+            StateHasChanged();
+        }
+
+        private async Task ExecuteBulkActionForProfessorEvents()
+        {
+            // Implementation needed - complex method with status/copy logic
+            // For now, just close modal
+            CloseBulkActionModalForProfessorEvents();
+            await Task.CompletedTask;
+        }
+
+        private async Task ExecuteBulkStatusChangeForProfessorEvents(string newStatus)
+        {
+            if (selectedProfessorEventIds.Count == 0) return;
+            bulkActionForProfessorEvents = "status";
+            selectedProfessorEventsForAction = FilteredProfessorEvents
+                .Where(ev => selectedProfessorEventIds.Contains(ev.Id))
+                .ToList();
+            await ExecuteBulkActionForProfessorEvents();
+        }
+
+        private async Task ExecuteBulkCopyForProfessorEvents()
+        {
+            if (selectedProfessorEventIds.Count == 0) return;
+            bulkActionForProfessorEvents = "copy";
+            selectedProfessorEventsForAction = FilteredProfessorEvents
+                .Where(ev => selectedProfessorEventIds.Contains(ev.Id))
+                .ToList();
+            await ExecuteBulkActionForProfessorEvents();
+        }
+
+        // Event Management Methods
+        private async Task DeleteProfessorEvent(int professoreventId)
+        {
+            var isConfirmed = await JS.InvokeAsync<bool>("confirmActionWithHTML",
+                "Πρόκειται να διαγράψετε οριστικά αυτή την Εκδήλωση.<br><br>" + 
+                "<strong style='color: red;'>Είστε σίγουρος/η;</strong>");
+
+            if (isConfirmed)
+            {
+                var professorevent = await dbContext.ProfessorEvents.FindAsync(professoreventId);
+                if (professorevent != null)
+                {
+                    dbContext.ProfessorEvents.Remove(professorevent);
+                    await dbContext.SaveChangesAsync();
+                    // Refresh lists
+                    StateHasChanged();
+                }
+            }
+        }
+
+        private async Task ChangeProfessorEventStatus(int professoreventId, string newStatus)
+        {
+            var isConfirmed = await JS.InvokeAsync<bool>("confirmActionWithHTML", new object[] 
+            { 
+                $"Πρόκειται να αλλάξετε την κατάσταση αυτής της Εκδήλωσης σε '{newStatus}'. Είστε σίγουρος/η;" 
+            });
+
+            if (isConfirmed)
+            {
+                var professorevent = await dbContext.ProfessorEvents.FindAsync(professoreventId);
+                if (professorevent != null)
+                {
+                    professorevent.ProfessorEventStatus = newStatus;
+                    await dbContext.SaveChangesAsync();
+                    FilteredProfessorEvents = FilteredProfessorEvents.ToList(); // Refresh
+                    StateHasChanged();
+                }
+            }
+        }
+
+        private void CloseEditModalForProfessorEvent()
+        {
+            // Implementation depends on modal visibility property
+            StateHasChanged();
+        }
+
+        // Placeholder methods for remaining functionality
+        private void CheckCharacterLimitInEventTitleField() { }
+        private void CheckCharacterLimitInProfessorEventDescription() { }
+        private void HandleProfessorDateChange(ChangeEventArgs e) { }
+        private async Task HandlePublishSaveProfessorEvent() { await Task.CompletedTask; }
+        private async Task HandleTemporarySaveProfessorEvent() { await Task.CompletedTask; }
+        private bool IsTimeInRestrictedRangeWhenUploadEventAsProfessor(TimeSpan time) => true;
+        private void HandleStatusFilterChangeForProfessorEvents(ChangeEventArgs e) { }
+        private void OnPageSizeChange_SeeMyUploadedEventsAsProfessor(ChangeEventArgs e) { }
+        private async Task DownloadStudentListForInterestInProfessorEventAsProfessor(long eventRNG) { await Task.CompletedTask; }
+        private async Task DownloadCompanyListForInterestInProfessorEventAsProfessor(long eventRNG) { await Task.CompletedTask; }
+        private async Task DownloadStudentCVForProfessorThesis(string studentEmail) { await Task.CompletedTask; }
+
+        // Additional Methods
+        private async Task ToggleUploadedProfessorEventsVisibility()
+        {
+            isUploadedEventsVisibleAsProfessor = !isUploadedEventsVisibleAsProfessor;
+            if (isUploadedEventsVisibleAsProfessor)
+            {
+                isLoadingUploadedEventsAsProfessor = true;
+                StateHasChanged();
+                // Load events logic here
+                isLoadingUploadedEventsAsProfessor = false;
+            }
+            StateHasChanged();
+        }
+
+        private void OpenEditModalForProfessorEvent(ProfessorEvent professorevent)
+        {
+            var eventWithProfessor = dbContext.ProfessorEvents
+                .Include(pe => pe.Professor)
+                .FirstOrDefault(pe => pe.Id == professorevent.Id);
+            if (eventWithProfessor != null)
+            {
+                currentProfessorEvent = eventWithProfessor;
+                isEditModalVisibleForEventsAsProfessor = true;
+                StateHasChanged();
+            }
+        }
+
+        private async Task UpdateProfessorEvent(ProfessorEvent updatedProfessorEvent)
+        {
+            var existing = await dbContext.ProfessorEvents.FindAsync(updatedProfessorEvent.Id);
+            if (existing != null)
+            {
+                // Update properties
+                existing.ProfessorEventTitle = updatedProfessorEvent.ProfessorEventTitle;
+                existing.ProfessorEventDescriptionsUploaded = updatedProfessorEvent.ProfessorEventDescriptionsUploaded;
+                // Add more property updates as needed
+                await dbContext.SaveChangesAsync();
+                isEditModalVisibleForEventsAsProfessor = false;
+                StateHasChanged();
+            }
+        }
+
+        private void OnTransportOptionChangeForProfessorEvent(ChangeEventArgs e)
+        {
+            if (bool.TryParse(e.Value?.ToString(), out var result))
+            {
+                professorEvent.ProfessorEventOfferingTransportToEventLocation = result;
+            }
+        }
+
+        private async Task UploadProfessorEventAttachmentFile(InputFileChangeEventArgs e)
+        {
+            try
+            {
+                if (e.File == null)
+                {
+                    professorEvent.ProfessorEventAttachmentFile = null;
+                    ProfessorEventAttachmentErrorMessage = null;
+                    return;
+                }
+                // File upload logic here
+                ProfessorEventAttachmentErrorMessage = string.Empty;
+            }
+            catch (Exception ex)
+            {
+                ProfessorEventAttachmentErrorMessage = $"Σφάλμα: {ex.Message}";
+            }
+        }
+
+        private async Task ShowInterestedStudentsInProfessorEvent(long professoreventRNG)
+        {
+            loadingProfessorEventRNGForStudents = professoreventRNG;
+            isLoadingInterestedStudentsForProfessorEvent = true;
+            StateHasChanged();
+            // Load interested students logic
+            isLoadingInterestedStudentsForProfessorEvent = false;
+            StateHasChanged();
+        }
+
+        private async Task ShowInterestedCompaniesInProfessorEvent(long professoreventRNG)
+        {
+            loadingProfessorEventRNGForCompanies = professoreventRNG;
+            isLoadingInterestedCompaniesForProfessorEvent = true;
+            StateHasChanged();
+            // Load interested companies logic
+            isLoadingInterestedCompaniesForProfessorEvent = false;
+            StateHasChanged();
+        }
+
+        private void ShowStudentDetailsAtProfessorEventInterest(Student student)
+        {
+            currentStudentDetails = student;
+            isModalVisibleToShowStudentDetailsInNameAsHyperlinkForProfessorThesis = true;
+            StateHasChanged();
+        }
+
+        private void ShowCompanyDetailsAtProfessorEventInterest(Company company)
+        {
+            currentCompanyDetails = company;
+            isModalVisibleToShowCompanyDetailsAtProfessorThesisInterest = true;
+            StateHasChanged();
         }
     }
 }
