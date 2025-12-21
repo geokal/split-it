@@ -506,7 +506,7 @@ else
 						<label><strong>Μοναδικό ID Εταιρείας</strong><span style="color: red; font-weight: bold;"> *</span></label>
 						<div class="input-group">
 							<span class="input-group-text"><i class="fas fa-key"></i></span>
-							<InputText @bind-Value="newCompany.Company.UniqueID"
+							<InputText @bind-Value="newCompany.Company_UniqueID"
 									   readonly
 									   class="readonly-input form-control"
 									   style="color: blue;"
@@ -1778,7 +1778,7 @@ else
 			// UPDATED: Use the same area serialization as UpdateCompanyRegistration
 			newCompany.CompanyDesiredSkills = string.Join(",", selectedSkillsForCompany.Where(s => !string.IsNullOrWhiteSpace(s)));
 			newCompany.CompanyAreas = string.Join(",", selectedAreasForCompany.Select(a => a.FullName).Where(a => !string.IsNullOrWhiteSpace(a)));
-			newCompany.Company.UniqueID = "COMP_" + HashingHelper.HashString(newCompany.CompanyEmail);
+			newCompany.Company_UniqueID = "COMP_" + HashingHelper.HashString(newCompany.CompanyEmail);
 
 			// Step 3: Database operations
 			await UpdateProgressWhenSubmitCompanyForm(50, 200);
@@ -2819,7 +2819,7 @@ else
 			{
 				// Update existing company
 				var existingCompany = await dbContext.Companies
-					.FirstOrDefaultAsync(c => c.Company.UniqueID == newCompany.Company.UniqueID);
+					.FirstOrDefaultAsync(c => c.Company_UniqueID == newCompany.Company_UniqueID);
 
 				if (existingCompany != null)
 				{

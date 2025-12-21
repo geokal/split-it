@@ -283,7 +283,7 @@ else
                     <label><strong>Μοναδικό ID Μέλους</strong><span style="color: red; font-weight: bold;"> *</span></label>
                     <div class="input-group">
                         <span class="input-group-text"><i class="fas fa-key"></i></span>
-                        <InputText @bind-Value="newStudent.Student.UniqueID"
+                        <InputText @bind-Value="newStudent.Student_UniqueID"
                                    readonly
                                    class="readonly-input form-control"
                                    style="color: blue;"
@@ -2361,7 +2361,7 @@ else
             newStudent.SelfAssesmentSkills = string.Join(", ", selectedSkillsForAssessment.Select(sa => $"{sa.SkillName}:{sa.Assessment}"));
             newStudent.LastCVUpdate = DateTime.Now;
             newStudent.LastProfileUpdate = DateTime.Now;
-            newStudent.Student.UniqueID = "STU_" + HashingHelper.HashString(newStudent.Email);
+            newStudent.Student_UniqueID = "STU_" + HashingHelper.HashString(newStudent.Email);
 
             // Step 4: Database operations
             await UpdateProgressWhenSubmitStudentForm(70, 200);

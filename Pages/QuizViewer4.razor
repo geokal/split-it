@@ -1887,12 +1887,12 @@
                                                     <div class="col-md-6">
                                                         <div class="form-group">
                                                             <label class="small-label">Κωδικός ΕΛΚΕ</label>
-                                                            <InputText @bind-Value="project.ResearchGroup_ProjectELKECode" class="form-control" />
+                                                            <InputText @bind-Value="project.ProjectELKECode" class="form-control" />
                                                         </div>
 
                                                         <div class="form-group">
                                                             <label>Επιστημονικός Υπεύθυνος</label>
-                                                            <select @bind="project.ResearchGroup_ProjectScientificResponsibleEmail" class="form-control">
+                                                            <select @bind="project.ProjectScientificResponsibleEmail" class="form-control">
                                                                 <option value="">-- Επιλογή Επιστημονικού Υπεύθυνου --</option>
                                                                 @foreach (var professor in SelectedProfessors)
                                                                 {
@@ -1903,7 +1903,7 @@
 
                                                         <div class="form-group">
                                                             <label class="small-label">Project Framework</label>
-                                                            <select class="form-control form-control-sm" @bind="project.ResearchGroup_ProjectFramework">
+                                                            <select class="form-control form-control-sm" @bind="project.ProjectFramework">
                                                                 <option value=""> -- Επιλέξτε Πλαίσιο Χρηματοδότησης -- </option>
                                                                 @foreach (var framework in fundingFrameworks)
                                                                 {
@@ -1916,12 +1916,12 @@
                                                     <div class="col-md-6">
                                                         <div class="form-group">
                                                             <label class="small-label">Ιστότοπος Έργου</label>
-                                                            <InputText @bind-Value="project.ResearchGroup_ProjectWebsite" class="form-control" placeholder="https://..." />
+                                                            <InputText @bind-Value="project.ProjectWebsite" class="form-control" placeholder="https://..." />
                                                         </div>
 
                                                         <div class="form-group">
                                                             <label class="small-label">Προϋπολογισμός Ομάδας (€)</label>
-                                                            <InputText @bind-Value="project.ResearchGroup_OurProjectBudget" class="form-control" placeholder="...σε Ευρώ" />
+                                                            <InputText @bind-Value="project.OurProjectBudget" class="form-control" placeholder="...σε Ευρώ" />
                                                         </div>
                                                     </div>
                                                 </div>
@@ -5576,7 +5576,7 @@
         researchAction.ResearchGroup_ProjectStatus = IsProjectOngoing(project) ? "OnGoing" : "Past";
         researchAction.ResearchGroup_ProjectTitle = project.Title;
         researchAction.ResearchGroup_ProjectAcronym = project.Acronym;
-        researchAction.ResearchGroup_ProjectFramework = project.ResearchGroup_ProjectFramework;
+        researchAction.ResearchGroup_ProjectFramework = project.ProjectFramework;
 
         researchAction.ResearchGroup_ProjectGrantAgreementNumber = ExtractGrantId(project.GrantId);
 
@@ -5589,11 +5589,11 @@
         researchAction.ResearchGroup_ProjectProgramme = project.Programmes != null ? string.Join(", ", project.Programmes) : null;
         researchAction.ResearchGroup_ProjectTopic = project.Topics != null ? string.Join(", ", project.Topics) : null;
         researchAction.ResearchGroup_ProjectDescription = project.Description;
-        researchAction.ResearchGroup_ProjectELKECode = project.ResearchGroup_ProjectELKECode;
-        researchAction.ResearchGroup_ProjectScientificResponsibleEmail = project.ResearchGroup_ProjectScientificResponsibleEmail;
+        researchAction.ResearchGroup_ProjectELKECode = project.ProjectELKECode;
+        researchAction.ResearchGroup_ProjectScientificResponsibleEmail = project.ProjectScientificResponsibleEmail;
         researchAction.ResearchGroup_EuropaCordisWebsite = $"https://cordis.europa.eu/project/id/{ExtractGrantId(project.GrantId)}";
-        researchAction.ResearchGroup_ProjectWebsite = project.ResearchGroup_ProjectWebsite;
-        researchAction.ResearchGroup_OurProjectBudget = project.ResearchGroup_OurProjectBudget?.ToString();
+        researchAction.ResearchGroup_ProjectWebsite = project.ProjectWebsite;
+        researchAction.ResearchGroup_OurProjectBudget = project.OurProjectBudget?.ToString();
     }
 
     private ResearchGroup_ResearchActions CreateResearchActionFromProject(Project project, string researchGroupEmail)
@@ -5605,7 +5605,7 @@
                 ResearchGroup_ProjectStatus = IsProjectOngoing(project) ? "OnGoing" : "Past",
                 ResearchGroup_ProjectTitle = project.Title,
                 ResearchGroup_ProjectAcronym = project.Acronym,
-                ResearchGroup_ProjectFramework = project.ResearchGroup_ProjectFramework,
+                ResearchGroup_ProjectFramework = project.ProjectFramework,
                 ResearchGroup_ProjectGrantAgreementNumber = ExtractGrantId(project.GrantId),
                 ResearchGroup_ProjectStartDate = ParseDate(project.StartDate),
                 ResearchGroup_ProjectEndDate = ParseDate(project.EndDate),
@@ -5616,11 +5616,11 @@
                 ResearchGroup_ProjectProgramme = project.Programmes != null ? string.Join(", ", project.Programmes) : null,
                 ResearchGroup_ProjectTopic = project.Topics != null ? string.Join(", ", project.Topics) : null,
                 ResearchGroup_ProjectDescription = project.Description,
-                ResearchGroup_ProjectELKECode = project.ResearchGroup_ProjectELKECode,
-                ResearchGroup_ProjectScientificResponsibleEmail = project.ResearchGroup_ProjectScientificResponsibleEmail,
+                ResearchGroup_ProjectELKECode = project.ProjectELKECode,
+                ResearchGroup_ProjectScientificResponsibleEmail = project.ProjectScientificResponsibleEmail,
                 ResearchGroup_EuropaCordisWebsite = $"https://cordis.europa.eu/project/id/{ExtractGrantId(project.GrantId)}",
-                ResearchGroup_ProjectWebsite = project.ResearchGroup_ProjectWebsite,
-                ResearchGroup_OurProjectBudget = project.ResearchGroup_OurProjectBudget?.ToString()
+                ResearchGroup_ProjectWebsite = project.ProjectWebsite,
+                ResearchGroup_OurProjectBudget = project.OurProjectBudget?.ToString()
             };
     }
 
@@ -5868,11 +5868,11 @@
                 EuContribution = researchAction.ResearchGroup_ProjectTotalEUContribution,
                 Coordinator = researchAction.ResearchGroup_ProjectCoordinator,
                 Description = researchAction.ResearchGroup_ProjectDescription,
-                ResearchGroup_ProjectFramework = researchAction.ResearchGroup_ProjectFramework, // ADD THIS LINE
-                ResearchGroup_ProjectELKECode = researchAction.ResearchGroup_ProjectELKECode,
-                ResearchGroup_ProjectScientificResponsibleEmail = researchAction.ResearchGroup_ProjectScientificResponsibleEmail,
-                ResearchGroup_ProjectWebsite = researchAction.ResearchGroup_ProjectWebsite,
-                ResearchGroup_OurProjectBudget = researchAction.ResearchGroup_OurProjectBudget
+                ProjectFramework = researchAction.ResearchGroup_ProjectFramework,
+                ProjectELKECode = researchAction.ResearchGroup_ProjectELKECode,
+                ProjectScientificResponsibleEmail = researchAction.ResearchGroup_ProjectScientificResponsibleEmail,
+                ProjectWebsite = researchAction.ResearchGroup_ProjectWebsite,
+                OurProjectBudget = researchAction.ResearchGroup_OurProjectBudget
             };
 
         // Parse keywords

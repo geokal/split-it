@@ -568,7 +568,7 @@
                     <label><strong>Μοναδικό ID Καθηγητή</strong><span style="color: red; font-weight: bold;"> *</span></label>
                     <div class="input-group">
                         <span class="input-group-text"><i class="fas fa-key"></i></span>
-                        <InputText @bind-Value="newProfessor.Professor.UniqueID"
+                        <InputText @bind-Value="newProfessor.Professor_UniqueID"
                                    readonly
                                    class="readonly-input form-control"
                                    style="color: blue;"
@@ -1511,9 +1511,9 @@
             newProfessor.ProfGeneralSkills = string.Join(",", selectedSkillsForProfessor.Where(s => !string.IsNullOrWhiteSpace(s)));
             newProfessor.ProfGeneralFieldOfWork = string.Join(",", selectedAreasForProfessor.Select(a => a.FullName).Where(a => !string.IsNullOrWhiteSpace(a)));
 
-            if (string.IsNullOrEmpty(newProfessor.Professor.UniqueID))
+            if (string.IsNullOrEmpty(newProfessor.Professor_UniqueID))
             {
-                newProfessor.Professor.UniqueID = "PROF_" + HashingHelper.HashString(newProfessor.ProfEmail);
+                newProfessor.Professor_UniqueID = "PROF_" + HashingHelper.HashString(newProfessor.ProfEmail);
             }
 
             if (userAlreadyRegistered)
@@ -1973,7 +1973,7 @@
             {
                 // Update existing professor
                 var existingProfessor = await dbContext.Professors
-                    .FirstOrDefaultAsync(p => p.Professor.UniqueID == newProfessor.Professor.UniqueID);
+                    .FirstOrDefaultAsync(p => p.Professor_UniqueID == newProfessor.Professor_UniqueID);
 
                 if (existingProfessor != null)
                 {
@@ -2021,9 +2021,9 @@
                 newProfessor.ProfGeneralFieldOfWork = string.Join(",", selectedAreasForProfessor.Select(a => a.FullName).Where(a => !string.IsNullOrWhiteSpace(a)));
                 newProfessor.ProfGeneralSkills = string.Join(",", selectedSkillsForProfessor.Where(s => !string.IsNullOrWhiteSpace(s)));
 
-                if (string.IsNullOrEmpty(newProfessor.Professor.UniqueID))
+                if (string.IsNullOrEmpty(newProfessor.Professor_UniqueID))
                 {
-                    newProfessor.Professor.UniqueID = "PROF_" + HashingHelper.HashString(newProfessor.ProfEmail);
+                    newProfessor.Professor_UniqueID = "PROF_" + HashingHelper.HashString(newProfessor.ProfEmail);
                 }
 
                 dbContext.Professors.Add(newProfessor);
@@ -3479,4 +3479,3 @@
     }
 
 }
-
