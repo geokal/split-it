@@ -21,10 +21,9 @@ When fixing compilation errors, you may observe error counts that appear to incr
 
 See `ERROR_INVESTIGATION.md` for a detailed explanation.
 
-### Current Error Status
-- **CS0103** (name does not exist): 86 errors (86.4% reduction from initial 632)
-- **CS1061** (property not found): 406 errors (type resolution stage)
-- **CS1503** (type mismatch): 182 errors (signature matching stage)
+### Current Build Status
+- **Errors**: 0
+- **Warnings**: present (mostly net6.0 TFM support + nullable warnings)
 
 See `COMPONENT_EXTRACTION_PROGRESS.md` for current status and breakdown.
 

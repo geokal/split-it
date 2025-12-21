@@ -292,12 +292,50 @@ We minimized `MainLayout.razor.cs` **before** extracting component dependencies,
 
 ---
 
+## Phase 7: Component Dependency Extraction ✅ (Complete)
+
+### Status
+- **Started**: ~5,600 CS0103 errors (after MainLayout minimization)
+- **Current**: 0 CS0103 errors remaining
+- **Total Build Errors**: 0 (warnings only)
+
+### Error Count Fluctuations (Expected Behavior)
+⚠️ **Important**: Error counts may increase after fixes. This indicates **progress**:
+- Fixing CS0103/CS0102 allows compiler to proceed further
+- Next layer of errors (CS1061, CS1503) are revealed
+- Error type shifts: syntax → type → semantic errors = forward progress
+
+See `docs/ERROR_INVESTIGATION.md` for detailed explanation.
+
+### Fully Fixed Components (0 CS0103 errors) ✅
+1. ✅ StudentThesisDisplaySection (412→0)
+2. ✅ StudentJobsDisplaySection (474→0)
+3. ✅ StudentEventsSection (506→0)
+4. ✅ CompanyEventsSection (376→0)
+5. ✅ ProfessorEventsSection (754→0)
+6. ✅ CompanyJobsSection
+7. ✅ CompanyInternshipsSection
+8. ✅ CompanyThesesSection
+9. ✅ ProfessorThesesSection
+10. ✅ ResearchGroupAnnouncementsSection
+11. ✅ CompanyResearchGroupSearchSection
+12. ✅ ResearchGroupDetails
+13. ✅ QuizViewer (pages 1-4)
+
+### Extraction Strategy
+- **Source**: `backups/MainLayout.razor.cs.backup` (33,977 lines)
+- **Process**: Identify CS0103 errors → Find in backup → Extract to component `.cs` file
+- **Commits**: 16+ targeted commits for completed fixes
+
+See `docs/COMPONENT_EXTRACTION_PROGRESS.md` for detailed progress.
+
 ## Next Steps
 
 1. ✅ Update `_Imports.razor` with new namespaces
 2. ✅ Update `_Host.cshtml` to reference `Components/Layout/MainLayout`
 3. ✅ **Create Services Layer** - Extract DB logic from MainLayout to services
 4. ✅ **Minimize MainLayout** - Reduced to 127 lines
-5. ✅ Run `dotnet build` to verify (builds successfully)
-6. ⚠️ **Update Components** - Refactor components to use services instead of direct `DbContext` injection (future task)
-7. Upgrade to .NET 8 (change `<TargetFramework>net8.0</TargetFramework>`)
+5. ✅ **Extract Component Dependencies** - 100% complete (CS0103 cleared)
+6. ⚠️ **Triage warnings** - Nullable and async warnings
+7. ⚠️ **Update Components** - Refactor components to use services instead of direct `DbContext` injection (future task)
+8. Upgrade to .NET 8 (change `<TargetFramework>net8.0</TargetFramework>`)
