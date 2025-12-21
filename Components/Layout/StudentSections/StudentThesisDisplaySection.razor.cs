@@ -292,35 +292,40 @@ namespace QuizManager.Components.Layout.StudentSections
 
         private List<int> GetVisiblePages()
         {
+            return GetVisiblePages(currentPageForThesisToSee, totalPagesForThesisToSee);
+        }
+
+        private List<int> GetVisiblePages(int currentPage, int totalPages)
+        {
             var pages = new List<int>();
-            int current = currentPageForThesisToSee;
-            int total = totalPagesForThesisToSee;
-        
+            if (totalPages <= 1)
+                return pages;
+
             pages.Add(1);
-        
-            if (current > 3)
+
+            if (currentPage > 3)
             {
                 pages.Add(-1);
             }
-        
-            int start = Math.Max(2, current - 1);
-            int end = Math.Min(total - 1, current + 1);
-        
+
+            int start = Math.Max(2, currentPage - 1);
+            int end = Math.Min(totalPages - 1, currentPage + 1);
+
             for (int i = start; i <= end; i++)
             {
                 pages.Add(i);
             }
-        
-            if (current < total - 2)
+
+            if (currentPage < totalPages - 2)
             {
                 pages.Add(-1);
             }
-        
-            if (total > 1)
+
+            if (totalPages > 1)
             {
-                pages.Add(total);
+                pages.Add(totalPages);
             }
-        
+
             return pages;
         }
 
@@ -781,7 +786,7 @@ namespace QuizManager.Components.Layout.StudentSections
         private bool isSearchInternshipsAsStudentFiltersVisible = false;
         private bool isLoadingSearchThesisApplicationsAsStudent = false;
         private HashSet<int> expandedThesisAreas = new HashSet<int>();
-        private List<object> publishedTheses = new List<object>();
+        private List<AllTheses> publishedTheses = new List<AllTheses>();
         
         // Pagination for Thesis Search
         private int currentThesisPage = 1;
@@ -894,17 +899,19 @@ namespace QuizManager.Components.Layout.StudentSections
         }
 
         // Show Thesis Details
-        private void ShowCompanyThesisDetailsAsStudent(CompanyThesis thesis)
+        private async Task ShowCompanyThesisDetailsAsStudent(long thesisRng)
         {
-            selectedCompanyThesisDetails = thesis;
-            isModalOpenToSeeCompanyThesisDetails_ThesisStudentApplicationsToShow = true;
+            selectedCompanyThesisDetails = await dbContext.CompanyTheses
+                .FirstOrDefaultAsync(t => t.RNGForThesisUploadedAsCompany == thesisRng);
+            isModalOpenToSeeCompanyThesisDetails_ThesisStudentApplicationsToShow = selectedCompanyThesisDetails != null;
             StateHasChanged();
         }
 
-        private void ShowProfessorThesisDetailsAsStudent(ProfessorThesis thesis)
+        private async Task ShowProfessorThesisDetailsAsStudent(long thesisRng)
         {
-            selectedProfessorThesisDetails = thesis;
-            isModalOpenToSeeProfessorThesisDetails_ThesisStudentApplicationsToShow = true;
+            selectedProfessorThesisDetails = await dbContext.ProfessorTheses
+                .FirstOrDefaultAsync(t => t.RNGForThesisUploaded == thesisRng);
+            isModalOpenToSeeProfessorThesisDetails_ThesisStudentApplicationsToShow = selectedProfessorThesisDetails != null;
             StateHasChanged();
         }
 
@@ -936,19 +943,19 @@ namespace QuizManager.Components.Layout.StudentSections
             StateHasChanged();
         }
 
-        private void OnThesisAreaCheckboxChanged(Area area, object checkedValue)
+        private void OnThesisAreaCheckboxChanged(ChangeEventArgs e, string areaName)
         {
-            bool isChecked = (bool)(checkedValue ?? false);
+            bool isChecked = (bool)e.Value;
             if (isChecked)
-                selectedThesisAreas.Add(area.AreaName);
+                selectedThesisAreas.Add(areaName);
             else
-                selectedThesisAreas.Remove(area.AreaName);
+                selectedThesisAreas.Remove(areaName);
             StateHasChanged();
         }
 
-        private void OnThesisSubFieldCheckboxChanged(string subField, object checkedValue)
+        private void OnThesisSubFieldCheckboxChanged(ChangeEventArgs e, string subField)
         {
-            bool isChecked = (bool)(checkedValue ?? false);
+            bool isChecked = (bool)e.Value;
             if (isChecked)
                 selectedThesisSubFields.Add(subField);
             else
@@ -1048,4 +1055,3 @@ namespace QuizManager.Components.Layout.StudentSections
         }
     }
 }
-

@@ -579,10 +579,13 @@ namespace QuizManager.Components.Layout.StudentSections
             StateHasChanged();
         }
 
-        private void ShowJobDetails(CompanyJobApplied jobApplication)
+        private async Task ShowJobDetails(CompanyJobApplied jobApplication)
         {
-            currentJobApplicationMadeAsStudent = jobApplication.CompanyJob;
-            isJobDetailsModalVisibleToSeeJobApplicationsAsStudent = true;
+            currentJobApplicationMadeAsStudent = await dbContext.CompanyJobs
+                .Include(j => j.Company)
+                .FirstOrDefaultAsync(j => j.RNGForPositionUploaded == jobApplication.RNGForCompanyJobApplied);
+
+            isJobDetailsModalVisibleToSeeJobApplicationsAsStudent = currentJobApplicationMadeAsStudent != null;
             StateHasChanged();
         }
 
@@ -649,7 +652,7 @@ namespace QuizManager.Components.Layout.StudentSections
             var totalPages = (int)Math.Ceiling((double)jobApplications.Count / jobPageSize);
             if (newPage > 0 && newPage <= totalPages)
             {
-                currentJobPage = newPage;
+                currentPageForJobsToSee = newPage;
                 StateHasChanged();
             }
         }
@@ -722,19 +725,19 @@ namespace QuizManager.Components.Layout.StudentSections
             StateHasChanged();
         }
 
-        private void OnPositionAreaCheckboxChanged(Area area, object checkedValue)
+        private void OnPositionAreaCheckboxChanged(ChangeEventArgs e, string areaName)
         {
-            bool isChecked = (bool)(checkedValue ?? false);
+            bool isChecked = (bool)e.Value;
             if (isChecked)
-                selectedPositionAreas.Add(area.AreaName);
+                selectedPositionAreas.Add(areaName);
             else
-                selectedPositionAreas.Remove(area.AreaName);
+                selectedPositionAreas.Remove(areaName);
             StateHasChanged();
         }
 
-        private void OnPositionSubFieldCheckboxChanged(string subField, object checkedValue)
+        private void OnPositionSubFieldCheckboxChanged(ChangeEventArgs e, string subField)
         {
-            bool isChecked = (bool)(checkedValue ?? false);
+            bool isChecked = (bool)e.Value;
             if (isChecked)
                 selectedPositionSubFields.Add(subField);
             else
@@ -890,4 +893,3 @@ namespace QuizManager.Components.Layout.StudentSections
         }
     }
 }
-

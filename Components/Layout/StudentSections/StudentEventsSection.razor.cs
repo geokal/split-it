@@ -383,15 +383,17 @@ namespace QuizManager.Components.Layout.StudentSections
                         var student = await dbContext.Students.FirstOrDefaultAsync(s => s.Email == CurrentUserEmail);
                         if (student != null)
                         {
-                            alreadyInterestedCompanyEventIds = await dbContext.InterestInCompanyEventsAsStudent
-                                .Where(i => i.StudentEmailShowInterestForCompanyEvent == CurrentUserEmail)
-                                .Select(i => i.RNGForCompanyEventInterestAsStudent)
-                                .ToHashSetAsync();
+                            alreadyInterestedCompanyEventIds = (await dbContext.InterestInCompanyEvents
+                                    .Where(i => i.StudentEmailShowInterestForEvent == CurrentUserEmail)
+                                    .Select(i => i.RNGForCompanyEventInterest)
+                                    .ToListAsync())
+                                .ToHashSet();
 
-                            interestedProfessorEventIds = await dbContext.InterestInProfessorEventsAsStudent
-                                .Where(i => i.StudentEmailShowInterestForProfessorEvent == CurrentUserEmail)
-                                .Select(i => i.RNGForProfessorEventInterestAsStudent)
-                                .ToHashSetAsync();
+                            interestedProfessorEventIds = (await dbContext.InterestInProfessorEvents
+                                    .Where(i => i.StudentEmailShowInterestForEvent == CurrentUserEmail)
+                                    .Select(i => i.RNGForProfessorEventInterest)
+                                    .ToListAsync())
+                                .ToHashSet();
                         }
                     }
                 }
@@ -618,11 +620,11 @@ namespace QuizManager.Components.Layout.StudentSections
         }
 
         // Profile Image
-        private string ShowProfileImage(string imageBase64)
+        private string ShowProfileImage(byte[] imageBytes)
         {
-            if (string.IsNullOrEmpty(imageBase64))
+            if (imageBytes == null || imageBytes.Length == 0)
                 return "/images/default-profile.png";
-            return $"data:image/png;base64,{imageBase64}";
+            return $"data:image/png;base64,{Convert.ToBase64String(imageBytes)}";
         }
 
         // Event Status Change
@@ -746,4 +748,3 @@ namespace QuizManager.Components.Layout.StudentSections
         }
     }
 }
-

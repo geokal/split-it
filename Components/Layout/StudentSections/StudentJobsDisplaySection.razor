@@ -157,10 +157,10 @@
                                                                         @application.RNGForCompanyJobAppliedAsStudent_HashedAsUniqueID
                                                                     </td>
                                                                     <td>
-                                                                        @if (job != null)
+                                                                        @if (job?.Company != null)
                                                                         {
-                                                                            <a href="#" @onclick="() => ShowCompanyDetailsAsAHyperlinkInShowJobsAsStudent(job.EmailUsedToUploadJobs)" style="text-decoration: none;">
-                                                                                @(job.Company?.CompanyName ?? "Unknown Company")
+                                                                            <a href="#" @onclick="() => ShowCompanyDetailsAsAHyperlinkInShowJobsAsStudent(job.Company)" style="text-decoration: none;">
+                                                                                @job.Company.CompanyName
                                                                             </a>
                                                                         }
                                                                         else
@@ -886,7 +886,7 @@
                                                                                                checked="@selectedPositionAreas.Contains(area.AreaName)" />
                                                                                         <label class="form-check-label area-label" 
                                                                                                for="position_area_@area.Id"
-                                                                                               @onclick="@(() => TogglePositionSubFields(area))"
+                                                                                               @onclick="@(() => TogglePositionSubFields(area.Id))"
                                                                                                @onclick:stopPropagation="true"
                                                                                                style="cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: space-between; width: 100%;">
                                                                                             @area.AreaName
@@ -1033,7 +1033,7 @@
                                                                             <td>
                                                                                 @if (job.Company != null)
                                                                                 {
-                                                                                    <a href="#" @onclick="() => ShowCompanyDetailsAsAHyperlinkInJobSearchAsStudent(job.Company.CompanyName)" style="text-decoration: none;">
+                                                                                    <a href="#" @onclick="() => ShowCompanyDetailsAsAHyperlinkInJobSearchAsStudent(job.Company)" style="text-decoration: none;">
                                                                                         @job.Company.CompanyName
                                                                                     </a>
                                                                                 }
@@ -1612,4 +1612,3 @@
                                         <!-- Internships tab content -->
                                         @*<link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">*@
                                         
-

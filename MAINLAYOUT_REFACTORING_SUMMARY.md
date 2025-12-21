@@ -97,13 +97,33 @@ public partial class MainLayout : LayoutComponentBase
 - Minimal, focused responsibilities
 
 ## Build Status
-✅ **Build succeeds** with no errors (only warnings for unused fields and nullable references)
+⚠️ **Build has errors** (1,248 total errors)
+- **CS0103 errors**: 632 (missing properties/methods in components)
+- **Other errors**: ~616 (CS1061, CS1503, Razor syntax, etc.)
+- **Status**: Component dependency extraction in progress (88.7% complete)
+
+## Component Dependency Extraction (Phase 7)
+
+After minimizing MainLayout, all components lost their dependencies on MainLayout properties/methods. We're systematically extracting these dependencies from `backups/MainLayout.razor.cs.backup` to component code-behind files.
+
+### Progress
+- **Started**: ~5,600 CS0103 errors
+- **Current**: 632 CS0103 errors
+- **Fixed**: 4,968 errors (88.7% complete)
+
+### Fully Fixed Components (0 errors)
+- StudentThesisDisplaySection, StudentJobsDisplaySection, StudentEventsSection
+- CompanyEventsSection, ProfessorEventsSection
+
+See `docs/COMPONENT_EXTRACTION_PROGRESS.md` for detailed progress.
 
 ## Next Steps (Future Work)
-1. **Refactor Components**: Update components to use services instead of direct `DbContext` injection
-2. **Testing**: End-to-end testing to verify all functionality works
-3. **Performance**: Monitor performance with new service architecture
-4. **Documentation**: Update component documentation to reflect service usage
+1. ✅ **Extract Component Dependencies**: Finish remaining 632 CS0103 errors (88.7% complete)
+2. **Fix Remaining Build Errors**: Razor syntax, type mismatches, etc.
+3. **Refactor Components**: Update components to use services instead of direct `DbContext` injection
+4. **Testing**: End-to-end testing to verify all functionality works
+5. **Performance**: Monitor performance with new service architecture
+6. **Documentation**: Update component documentation to reflect service usage
 
 ## Files Modified
 - `Components/Layout/MainLayout.razor.cs` - Completely rewritten (127 lines)

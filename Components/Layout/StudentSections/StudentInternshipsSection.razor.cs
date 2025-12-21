@@ -31,6 +31,7 @@ namespace QuizManager.Components.Layout.StudentSections
         private bool showProfessorInternshipApplications = true;
         private Dictionary<long, CompanyInternship> internshipDataCache = new Dictionary<long, CompanyInternship>();
         private Dictionary<long, ProfessorInternship> professorInternshipDataCache = new Dictionary<long, ProfessorInternship>();
+        private List<AllInternships> publishedInternships = new List<AllInternships>();
         private int totalInternshipCountForInternshipsToSee = 0;
 
         // Pagination for Applications
@@ -71,7 +72,14 @@ namespace QuizManager.Components.Layout.StudentSections
         private bool isInternshipSearchAsStudentFiltersVisible = false;
         private bool isInternshipAreasVisible = false;
         private HashSet<int> expandedInternshipAreas = new HashSet<int>();
+        private string globalInternshipSearch = string.Empty;
+        private string companyinternshipSearch = string.Empty;
+        private string companyinternshipSearchByType = string.Empty;
+        private string companyinternshipSearchByESPA = string.Empty;
         private string companyinternshipSearchByRegion = "";
+        private string companyinternshipSearchByTown = string.Empty;
+        private bool companyinternshipSearchByTransportOffer;
+        private DateTime? finishEstimationDateToSearchInternship = null;
         private List<string> internshipTitleAutocompleteSuggestionsWhenSearchInternshipAsStudent = new List<string>();
         private bool isLoadingSearchInternshipsAsStudent = false;
 
@@ -80,6 +88,22 @@ namespace QuizManager.Components.Layout.StudentSections
         private int totalInternshipPages = 1;
 
         // Region to Towns Map
+        private List<string> Regions = new List<string>
+        {
+            "Ανατολική Μακεδονία και Θράκη",
+            "Κεντρική Μακεδονία",
+            "Δυτική Μακεδονία",
+            "Ήπειρος",
+            "Θεσσαλία",
+            "Ιόνια Νησιά",
+            "Δυτική Ελλάδα",
+            "Κεντρική Ελλάδα",
+            "Αττική",
+            "Πελοπόννησος",
+            "Βόρειο Αιγαίο",
+            "Νότιο Αιγαίο",
+            "Κρήτη"
+        };
         private Dictionary<string, List<string>> RegionToTownsMap = new Dictionary<string, List<string>>
         {
             {"Ανατολική Μακεδονία και Θράκη", new List<string> {"Κομοτηνή", "Αλεξανδρούπολη", "Καβάλα", "Ξάνθη", "Δράμα", "Ορεστιάδα", "Διδυμότειχο", "Ίασμος", "Νέα Βύσσα", "Φέρες"}},
@@ -679,6 +703,10 @@ namespace QuizManager.Components.Layout.StudentSections
         // Modal Visibility States
         private bool isProfessorDetailsModalVisible_StudentInternshipApplicationsShow = false;
         private bool isInternshipDetailsModalVisible_StudentInternshipApplicationsShow = false;
+        private bool isInternshipDetailsModalVisible = false;
+        private bool iscompanyDetailsModalVisible = false;
+        private Professor selectedProfessorDetailsFromInternship = null;
+        private bool showProfessorDetailsModalFromInternship = false;
 
         // Loading States for Withdrawal
         private bool showLoadingModalWhenWithdrawProfessorInternshipApplication = false;
@@ -915,6 +943,7 @@ namespace QuizManager.Components.Layout.StudentSections
         // Additional Missing Properties
         private List<Area> Areas = new List<Area>();
         private int InternshipsPerPage = 10;
+        private int TotalInternshipPages => (int)Math.Ceiling((double)publishedInternships.Count / InternshipsPerPage);
 
         // Search and Pagination Methods
         private void ClearSearchFieldsForInternshipsAsStudent()
@@ -925,62 +954,128 @@ namespace QuizManager.Components.Layout.StudentSections
             StateHasChanged();
         }
 
-        private void ConfirmApplyForInternship(object internship)
+        private async Task ConfirmApplyForInternship(CompanyInternship internship)
         {
-            // TODO: Implement confirmation logic
-            StateHasChanged();
+            var message = $"Πρόκεται να κάνετε αίτηση για την Θέση \"{internship.CompanyInternshipTitle}\". Είστε σίγουρος/η;";
+            var confirmed = await JS.InvokeAsync<bool>("confirmActionWithHTML", message);
+
+            if (confirmed)
+            {
+                // TODO: Wire to ApplyForInternshipAsStudent when service refactor is complete.
+            }
         }
 
-        private void ConfirmApplyForProfessorInternship(object internship)
+        private async Task ConfirmApplyForProfessorInternship(ProfessorInternship internship)
         {
-            // TODO: Implement confirmation logic
-            StateHasChanged();
+            var message = $"Πρόκεται να κάνετε αίτηση για την Θέση \"{internship.ProfessorInternshipTitle}\". Είστε σίγουρος/η;";
+            var confirmed = await JS.InvokeAsync<bool>("confirmActionWithHTML", message);
+
+            if (confirmed)
+            {
+                // TODO: Wire to ApplyForProfessorInternshipAsStudent when service refactor is complete.
+            }
         }
 
-        private object ConvertToCompanyInternship(object item)
+        private CompanyInternship ConvertToCompanyInternship(AllInternships internship)
         {
-            return item;
+            return new CompanyInternship
+            {
+                RNGForInternshipUploadedAsCompany = internship.RNGForCompanyInternship,
+                CompanyInternshipTitle = internship.InternshipTitle,
+                CompanyInternshipType = internship.InternshipType,
+                CompanyInternshipESPA = internship.InternshipFundingType,
+                CompanyInternshipActivePeriod = internship.InternshipActivePeriod,
+                CompanyInternshipFinishEstimation = internship.InternshipFinishEstimation,
+                CompanyUploadedInternshipStatus = internship.InternshipStatus,
+                CompanyInternshipTransportOffer = internship.InternshipTransportOffer,
+                CompanyInternshipDimosLocation = internship.InternshipDimosLocation,
+                CompanyInternshipPerifereiaLocation = internship.InternshipPerifereiaLocation,
+                CompanyInternshipDescription = internship.InternshipDescription,
+                CompanyInternshipAreas = internship.InternshipAreas,
+                CompanyInternshipUploadDate = internship.CompanyInternshipUploadDate
+            };
         }
 
-        private object ConvertToProfessorInternship(object item)
+        private ProfessorInternship ConvertToProfessorInternship(AllInternships internship)
         {
-            return item;
+            return new ProfessorInternship
+            {
+                RNGForInternshipUploadedAsProfessor = internship.RNGForProfessorInternship,
+                ProfessorInternshipTitle = internship.InternshipTitle,
+                ProfessorInternshipType = internship.InternshipType,
+                ProfessorInternshipESPA = internship.InternshipFundingType,
+                ProfessorInternshipActivePeriod = internship.InternshipActivePeriod,
+                ProfessorInternshipFinishEstimation = internship.InternshipFinishEstimation,
+                ProfessorUploadedInternshipStatus = internship.InternshipStatus,
+                ProfessorInternshipTransportOffer = internship.InternshipTransportOffer,
+                ProfessorInternshipDimosLocation = internship.InternshipDimosLocation,
+                ProfessorInternshipPerifereiaLocation = internship.InternshipPerifereiaLocation,
+                ProfessorInternshipDescription = internship.InternshipDescription,
+                ProfessorInternshipAreas = internship.ProfessorInternshipAreas,
+                ProfessorInternshipUploadDate = internship.ProfessorInternshipUploadDate
+            };
         }
 
-        private IEnumerable<object> GetPaginatedInternships()
+        private IEnumerable<AllInternships> GetPaginatedInternships()
         {
-            // TODO: Implement pagination logic
-            return Enumerable.Empty<object>();
+            return publishedInternships
+                .Skip((currentInternshipPage - 1) * InternshipsPerPage)
+                .Take(InternshipsPerPage);
         }
 
         private List<int> GetVisibleInternshipPages()
         {
-            // TODO: Implement pagination pages
-            return new List<int>();
+            var pages = new List<int>();
+            int current = currentInternshipPage;
+            int total = TotalInternshipPages;
+
+            if (total <= 0)
+                return pages;
+
+            pages.Add(1);
+            if (current > 3) pages.Add(-1);
+
+            int start = Math.Max(2, current - 1);
+            int end = Math.Min(total - 1, current + 1);
+
+            for (int i = start; i <= end; i++) pages.Add(i);
+            if (current < total - 2) pages.Add(-1);
+
+            if (total > 1) pages.Add(total);
+            return pages;
         }
 
         private void GoToFirstInternshipPage()
         {
+            currentInternshipPage = 1;
             StateHasChanged();
         }
 
         private void GoToInternshipPage(int page)
         {
+            if (page < 1 || page > TotalInternshipPages)
+                return;
+            currentInternshipPage = page;
             StateHasChanged();
         }
 
         private void GoToLastInternshipPage()
         {
+            currentInternshipPage = Math.Max(1, TotalInternshipPages);
             StateHasChanged();
         }
 
         private void NextInternshipPage()
         {
+            if (currentInternshipPage < TotalInternshipPages)
+                currentInternshipPage++;
             StateHasChanged();
         }
 
         private void PreviousInternshipPage()
         {
+            if (currentInternshipPage > 1)
+                currentInternshipPage--;
             StateHasChanged();
         }
 
@@ -991,19 +1086,19 @@ namespace QuizManager.Components.Layout.StudentSections
             StateHasChanged();
         }
 
-        private void OnInternshipAreaCheckboxChanged(Area area, object checkedValue)
+        private void OnInternshipAreaCheckboxChanged(ChangeEventArgs e, string areaName)
         {
-            bool isChecked = (bool)(checkedValue ?? false);
+            bool isChecked = (bool)e.Value;
             if (isChecked)
-                selectedInternshipAreas.Add(area.AreaName);
+                selectedInternshipAreas.Add(areaName);
             else
-                selectedInternshipAreas.Remove(area.AreaName);
+                selectedInternshipAreas.Remove(areaName);
             StateHasChanged();
         }
 
-        private void OnInternshipSubFieldCheckboxChanged(string subField, object checkedValue)
+        private void OnInternshipSubFieldCheckboxChanged(ChangeEventArgs e, string subField)
         {
-            bool isChecked = (bool)(checkedValue ?? false);
+            bool isChecked = (bool)e.Value;
             if (isChecked)
                 selectedInternshipSubFields.Add(subField);
             else
@@ -1033,6 +1128,140 @@ namespace QuizManager.Components.Layout.StudentSections
                 StateHasChanged();
             }
         }
+
+        // Missing Methods - extracted from MainLayout.razor.cs.backup
+        private async Task ShowProfessorDetailsinTitleAsHyperlink_StudentInternshipApplicationsShow(string professorEmail)
+        {
+            try
+            {
+                var professor = await dbContext.Professors
+                    .Where(p => p.ProfEmail == professorEmail)
+                    .FirstOrDefaultAsync();
+                
+                if (professor != null)
+                {
+                    selectedProfessorDetailsFromInternship = professor;
+                    showProfessorDetailsModalFromInternship = true;
+                    StateHasChanged();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error loading professor details: {ex.Message}");
+            }
+        }
+
+        private async Task ShowProfessorInternshipDetailsInInternshipTitleAsHyperlink_StudentInternshipApplicationsShow(long internshipId)
+        {
+            currentProfessorInternship = await dbContext.ProfessorInternships
+                .Include(i => i.Professor)
+                .FirstOrDefaultAsync(i => i.RNGForInternshipUploadedAsProfessor == internshipId);
+            
+            if (currentProfessorInternship != null)
+            {
+                isInternshipDetailsModalVisible_StudentInternshipApplicationsShow = true;
+                StateHasChanged();
+            }
+        }
+
+        private void SelectInternshipTitleAutocompleteSuggestionWhenSearchInternshipAsStudent(string suggestion)
+        {
+            companyinternshipSearch = suggestion;
+            internshipTitleAutocompleteSuggestionsWhenSearchInternshipAsStudent.Clear();
+            StateHasChanged();
+        }
+
+        private void ToggleInternshipAreasVisibility()
+        {
+            isInternshipAreasVisible = !isInternshipAreasVisible;
+            StateHasChanged();
+        }
+
+        private void ToggleInternshipSubFields(Area area)
+        {
+            if (expandedInternshipAreas.Contains(area.Id))
+                expandedInternshipAreas.Remove(area.Id);
+            else
+                expandedInternshipAreas.Add(area.Id);
+            StateHasChanged();
+        }
+
+        // Additional missing properties (checking for duplicates)
+        private HashSet<long> internshipIdsApplied = new HashSet<long>();
+        private bool isModalVisibleForInternshipsAsStudent = false;
+        private bool isCompanyDetailsModalOpenForHyperlinkNameAsStudentForCompanyInternship = false;
+        private int loadingProgressWhenApplyForCompanyInternshipAsStudent = 0;
+        private int loadingProgressWhenApplyForProfessorInternshipAsStudent = 0;
+        
+        // Helper methods
+        private string ShowProfileImage(byte[] imageData)
+        {
+            if (imageData == null || imageData.Length == 0)
+                return "/images/default-profile.png";
+            return $"data:image/png;base64,{Convert.ToBase64String(imageData)}";
+        }
+        
+        private async Task ShowCompanyHyperlinkNameDetailsModalInStudentInternship(string companyEmail)
+        {
+            var company = await dbContext.Companies.FirstOrDefaultAsync(c => c.CompanyEmail == companyEmail);
+            if (company != null)
+            {
+                selectedCompanyDetailsForHyperlinkNameInInternshipAsStudent = company;
+                showCompanyDetailsModalFromInternship = true;
+                StateHasChanged();
+            }
+        }
+        
+        private async Task ShowProfessorHyperlinkNameDetailsModalInStudentInternship(string professorEmail)
+        {
+            var professor = await dbContext.Professors.FirstOrDefaultAsync(p => p.ProfEmail == professorEmail);
+            if (professor != null)
+            {
+                selectedProfessorDetailsFromInternship = professor;
+                showProfessorDetailsModalFromInternship = true;
+                StateHasChanged();
+            }
+        }
+        
+        private async Task ShowCompanyInternshipDetailsAsStudent(long internshipRNG)
+        {
+            var internship = await dbContext.CompanyInternships
+                .Include(i => i.Company)
+                .FirstOrDefaultAsync(i => i.RNGForInternshipUploadedAsCompany == internshipRNG);
+            
+            if (internship != null)
+            {
+                selectedCompanyInternshipDetails_StudentInternshipApplications = internship;
+                showCompanyInternshipDetailsModal_StudentInternshipApplications = true;
+                StateHasChanged();
+            }
+        }
+        
+        private async Task ShowProfessorInternshipDetailsAsStudent(long internshipRNG)
+        {
+            currentProfessorInternship = await dbContext.ProfessorInternships
+                .Include(i => i.Professor)
+                .FirstOrDefaultAsync(i => i.RNGForInternshipUploadedAsProfessor == internshipRNG);
+            
+            if (currentProfessorInternship != null)
+            {
+                isInternshipDetailsModalVisible_StudentInternshipApplicationsShow = true;
+                StateHasChanged();
+            }
+        }
+        
+        // Search method
+        private async Task SearchInternshipsAsStudent()
+        {
+            isLoadingSearchInternshipsAsStudent = true;
+            StateHasChanged();
+            // TODO: Implement search logic
+            await Task.Delay(100);
+            isLoadingSearchInternshipsAsStudent = false;
+            StateHasChanged();
+        }
+        
+        // Additional missing properties
+        private int[] pageSizeOptions_SearchForInternshipsAsStudent = new[] { 10, 50, 100 };
     }
 }
-

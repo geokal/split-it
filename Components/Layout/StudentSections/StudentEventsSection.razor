@@ -852,7 +852,7 @@
                                                                                     <td>
                                                                                         @if (companyEvent?.Company != null)
                                                                                         {
-                                                                                            <a href="#" @onclick="() => ShowCompanyDetailsModalAtEventsAsStudent(companyEvent.CompanyEmailUsedToUploadEvent)" style="text-decoration: none;">
+                                                                                            <a href="#" @onclick="() => ShowCompanyDetailsModalAtEventsAsStudent(companyEvent.Company)" style="text-decoration: none;">
                                                                                                 @companyEvent.Company.CompanyName
                                                                                             </a>
                                                                                         }
@@ -971,7 +971,7 @@
                                                                                     <td>
                                                                                        @if (professorEvent?.Professor != null)
                                                                                        {
-                                                                                           <a href="#" @onclick="() => ShowProfessorDetailsModalAtEventsAsStudent(professorEvent.Professor.ProfEmail)" style="text-decoration: none;">
+                                                                                           <a href="#" @onclick="() => ShowProfessorDetailsModalAtEventsAsStudent(professorEvent.Professor)" style="text-decoration: none;">
                                                                                                @professorEvent.Professor.ProfName @professorEvent.Professor.ProfSurname
                                                                                             </a>
                                                                                        }
@@ -2324,4 +2324,3 @@
 
                                 }
                                             
-
