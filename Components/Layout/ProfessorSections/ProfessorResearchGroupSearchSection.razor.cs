@@ -16,6 +16,77 @@ namespace QuizManager.Components.Layout.ProfessorSections
         // Form Visibility
         private bool isProfessorSearchResearchGroupVisible = false;
 
+        // Selected Entities
+        private Company selectedCompany;
+        private ResearchGroup selectedResearchGroupWhenSearchForResearchGroupsAsProfessor;
+        private ProfessorEvent currentProfessorEvent;
+        private Student selectedStudentFromCache;
+        private ProfessorInternship selectedProfessorInternship;
+        private Company selectedCompanyNameAsHyperlinkToShowDetailsToTheProfessor;
+        private CompanyThesis selectedCompanyThesisToSeeDetailsOnEyeIconAsProfessor;
+        private ProfessorThesis currentThesisAsProfessor;
+        private InterestInProfessorEventAsCompany selectedCompanyToShowDetailsForInterestinProfessorEvent;
+        private Student selectedStudentToShowDetailsForInterestinProfessorEvent;
+
+        // Modal Visibility
+        private bool showErrorMessage = false;
+        private bool isThesisDetailEyeIconModalVisibleToSeeAsProfessor = false;
+        private bool showModalForCompaniesAtProfessorEventInterest = false;
+
+        // Edit Modal Flags
+        private bool showExpandedSkillsInProfessorThesisEditModal = false;
+        private bool showCheckboxesForEditProfessorThesis = false;
+        private bool showCheckboxesForEditProfessorInternship = false;
+        private bool showCheckboxesForEditProfessorEvent = false;
+        private HashSet<int> ExpandedAreasForEditProfessorEvent = new HashSet<int>();
+        private HashSet<int> ExpandedAreasForEditProfessorThesis = new HashSet<int>();
+        private HashSet<int> ExpandedAreasForEditProfessorInternship = new HashSet<int>();
+        private bool isEditModalVisibleForEventsAsProfessor = false;
+        private bool isEditPopupVisibleForProfessorInternships = false;
+        private bool isEditModalVisibleForThesesAsProfessor = false;
+        private bool showCompanyDetailsModal = false;
+        private bool showModalForStudentsAtProfessorEventInterest = false;
+
+        // Research Group Details
+        private List<Professor> professorFacultyMembers = new List<Professor>();
+        private List<Student> professorNonFacultyMembers = new List<Student>();
+        private List<Company> professorSpinOffCompanies = new List<Company>();
+        private int professorPatentsCount = 0;
+        private int professorActiveResearchActionsCount = 0;
+
+        // ForeasType
+        private List<string> ForeasType = new List<string>
+        {
+            "Ιδιωτικός Φορέας",
+            "Δημόσιος Φορέας",
+            "Μ.Κ.Ο.",
+            "Άλλο"
+        };
+
+        // Areas
+        private List<Area> Areas = new();
+
+        // Spin-off Companies
+        private List<Company> spinOffCompanies = new();
+
+        // Region to Towns Map
+        private Dictionary<string, List<string>> RegionToTownsMap = new Dictionary<string, List<string>>
+        {
+            {"Ανατολική Μακεδονία και Θράκη", new List<string> {"Κομοτηνή", "Αλεξανδρούπολη", "Καβάλα", "Ξάνθη", "Δράμα", "Ορεστιάδα", "Διδυμότειχο", "Ίασμος", "Νέα Βύσσα", "Φέρες"}},
+            {"Κεντρική Μακεδονία", new List<string> {"Θεσσαλονίκη", "Κατερίνη", "Σέρρες", "Κιλκίς", "Πολύγυρος", "Ναούσα", "Έδεσσα", "Γιαννιτσά", "Καβάλα", "Άμφισσα"}},
+            {"Δυτική Μακεδονία", new List<string> {"Κοζάνη", "Φλώρινα", "Καστοριά", "Γρεβενά"}},
+            {"Ήπειρος", new List<string> {"Ιωάννινα", "Άρτα", "Πρέβεζα", "Ηγουμενίτσα"}},
+            {"Θεσσαλία", new List<string> {"Λάρισα", "Βόλος", "Τρίκαλα", "Καρδίτσα"}},
+            {"Ιόνια Νησιά", new List<string> {"Κέρκυρα", "Λευκάδα", "Κεφαλονιά", "Ζάκυνθος", "Ιθάκη", "Παξοί", "Κυθήρα"}},
+            {"Δυτική Ελλάδα", new List<string> {"Πάτρα", "Μεσολόγγι", "Αμφιλοχία", "Πύργος", "Αιγίο", "Ναύπακτος"}},
+            {"Κεντρική Ελλάδα", new List<string> {"Λαμία", "Χαλκίδα", "Λιβαδειά", "Θήβα", "Αλιάρτος", "Αμφίκλεια"}},
+            {"Αττική", new List<string> {"Αθήνα", "Πειραιάς", "Κηφισιά", "Παλλήνη", "Αγία Παρασκευή", "Χαλάνδρι", "Καλλιθέα", "Γλυφάδα", "Περιστέρι", "Αιγάλεω"}},
+            {"Πελοπόννησος", new List<string> {"Πάτρα", "Τρίπολη", "Καλαμάτα", "Κορίνθος", "Άργος", "Ναύπλιο", "Σπάρτη", "Κυπαρισσία", "Πύργος", "Μεσσήνη"}},
+            {"Βόρειο Αιγαίο", new List<string> {"Μυτιλήνη", "Χίος", "Λήμνος", "Σάμος", "Ίκαρος", "Λέσβος", "Θάσος", "Σκύρος", "Ψαρά"}},
+            {"Νότιο Αιγαίο", new List<string> {"Ρόδος", "Κως", "Κρήτη", "Κάρπαθος", "Σαντορίνη", "Μύκονος", "Νάξος", "Πάρος", "Σύρος", "Άνδρος"}},
+            {"Κρήτη", new List<string> {"Ηράκλειο", "Χανιά", "Ρέθυμνο", "Αγία Νικόλαος", "Ιεράπετρα", "Σητεία", "Κίσαμος", "Παλαιόχωρα", "Αρχάνες", "Ανώγεια"}},
+        };
+
         // Search Fields
         private string searchResearchGroupNameAsProfessorToFindResearchGroup = "";
         private List<string> professorResearchGroupNameSuggestions = new List<string>();
@@ -24,6 +95,11 @@ namespace QuizManager.Components.Layout.ProfessorSections
         private string searchResearchGroupAreasAsProfessorToFindResearchGroup = "";
         private List<string> professorResearchGroupAreasSuggestions = new List<string>();
         private HashSet<string> professorSelectedResearchGroupAreas = new HashSet<string>();
+        private string searchResearchGroupSkillsAsProfessorToFindResearchGroup = "";
+        private List<string> professorResearchGroupSkillsSuggestions = new List<string>();
+        private HashSet<string> professorSelectedResearchGroupSkills = new HashSet<string>();
+        private string searchResearchGroupKeywordsAsProfessorToFindResearchGroup = "";
+        private bool showResearchGroupDetailsModalWhenSearchForResearchGroupsAsProfessor = false;
 
         // University Departments
         private Dictionary<string, List<string>> universityDepartments = new()
@@ -415,6 +491,55 @@ namespace QuizManager.Components.Layout.ProfessorSections
 
             return pages;
         }
+
+        // Helper Methods
+        private void ClearProfessorEventField(int fieldNumber)
+        {
+            if (currentProfessorEvent == null) return;
+            switch (fieldNumber)
+            {
+                case 1:
+                    currentProfessorEvent.ProfessorEventStartingPointLocationToTransportPeopleToEvent1 = string.Empty;
+                    break;
+                case 2:
+                    currentProfessorEvent.ProfessorEventStartingPointLocationToTransportPeopleToEvent2 = string.Empty;
+                    break;
+                case 3:
+                    currentProfessorEvent.ProfessorEventStartingPointLocationToTransportPeopleToEvent3 = string.Empty;
+                    break;
+            }
+            StateHasChanged();
+        }
+
+        private void CloseCompanyDetailsModalAtProfessorEventInterest()
+        {
+            showModalForCompaniesAtProfessorEventInterest = false;
+            selectedCompanyToShowDetailsForInterestinProfessorEvent = null;
+            StateHasChanged();
+        }
+
+        // Additional Missing Properties
+        private List<Professor> facultyMembers = new List<Professor>();
+        private List<Student> nonFacultyMembers = new List<Student>();
+        private List<string> Regions = new List<string>
+        {
+            "Ανατολική Μακεδονία και Θράκη",
+            "Κεντρική Μακεδονία",
+            "Δυτική Μακεδονία",
+            "Ήπειρος",
+            "Θεσσαλία",
+            "Ιόνια Νησιά",
+            "Δυτική Ελλάδα",
+            "Κεντρική Ελλάδα",
+            "Αττική",
+            "Πελοπόννησος",
+            "Βόρειο Αιγαίο",
+            "Νότιο Αιγαίο",
+            "Κρήτη"
+        };
+
+        // Additional Methods (already defined above, but ensuring they're accessible)
+        // These methods are already in the file, so no need to duplicate
     }
 }
 
