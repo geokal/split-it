@@ -1536,21 +1536,33 @@ td {
 
         <AuthorizeView>
             <Authorized>
-                <div class="card-container">
-                    <StudentSection />
-                           
-
-
-
-                    <CompanySection />
-
-                    <ProfessorSection />
-
-                    <AdminSection />
-
-                    <ResearchGroupSection />
-
-                </div>
+                <CascadingValue Value="UserRole" Name="UserRole">
+                    <CascadingValue Value="isStudentRegistered" Name="isStudentRegistered">
+                        <CascadingValue Value="isCompanyRegistered" Name="isCompanyRegistered">
+                            <CascadingValue Value="isProfessorRegistered" Name="isProfessorRegistered">
+                                <CascadingValue Value="isResearchGroupRegistered" Name="isResearchGroupRegistered">
+                                    <CascadingValue Value="isInitializedAsStudentUser" Name="isInitializedAsStudentUser">
+                                        <CascadingValue Value="isInitializedAsCompanyUser" Name="isInitializedAsCompanyUser">
+                                            <CascadingValue Value="isInitializedAsProfessorUser" Name="isInitializedAsProfessorUser">
+                                                <CascadingValue Value="isInitializedAsResearchGroupUser" Name="isInitializedAsResearchGroupUser">
+                                                    <CascadingValue Value="@HideAllInitialCards()" Name="HideAllInitialCards">
+                                                        <div class="card-container">
+                                                            <StudentSection />
+                                                            <CompanySection />
+                                                            <ProfessorSection />
+                                                            <AdminSection />
+                                                            <ResearchGroupSection />
+                                                        </div>
+                                                    </CascadingValue>
+                                                </CascadingValue>
+                                            </CascadingValue>
+                                        </CascadingValue>
+                                    </CascadingValue>
+                                </CascadingValue>
+                            </CascadingValue>
+                        </CascadingValue>
+                    </CascadingValue>
+                </CascadingValue>
             </Authorized>
         </AuthorizeView>
     </main>

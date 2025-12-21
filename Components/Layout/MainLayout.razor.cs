@@ -1,3 +1,4 @@
+using System;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using QuizManager.Models;
@@ -6,7 +7,7 @@ using QuizManager.Services.UserContext;
 
 namespace QuizManager.Components.Layout
 {
-    public partial class MainLayout : LayoutComponentBase
+    public partial class MainLayout : LayoutComponentBase, IDisposable
     {
         [Inject] private IUserContextService UserContextService { get; set; } = default!;
         
@@ -16,17 +17,17 @@ namespace QuizManager.Components.Layout
         public List<CompanyEvent> CompanyEventsToShowAtFrontPage { get; set; } = new();
         public List<ProfessorEvent> ProfessorEventsToShowAtFrontPage { get; set; } = new();
 
-        // User authentication state properties
-        private string UserRole = "";
+        // User authentication state properties (public for Razor file access)
+        public string UserRole { get; private set; } = "";
         private string CurrentUserEmail = "";
-        private bool isStudentRegistered;
-        private bool isCompanyRegistered;
-        private bool isProfessorRegistered;
-        private bool isResearchGroupRegistered;
-        private bool isInitializedAsStudentUser = false;
-        private bool isInitializedAsCompanyUser = false;
-        private bool isInitializedAsProfessorUser = false;
-        private bool isInitializedAsResearchGroupUser = false;
+        public bool isStudentRegistered { get; private set; }
+        public bool isCompanyRegistered { get; private set; }
+        public bool isProfessorRegistered { get; private set; }
+        public bool isResearchGroupRegistered { get; private set; }
+        public bool isInitializedAsStudentUser { get; private set; } = false;
+        public bool isInitializedAsCompanyUser { get; private set; } = false;
+        public bool isInitializedAsProfessorUser { get; private set; } = false;
+        public bool isInitializedAsResearchGroupUser { get; private set; } = false;
         
         private Student? userData;
         private Company? companyData;
@@ -40,27 +41,34 @@ namespace QuizManager.Components.Layout
 
         protected override async Task OnInitializedAsync()
         {
-            // Load front page data
-            await LoadFrontPageDataAsync();
+            // Subscribe to front page state changes
+            FrontPageService.StateChanged += HandleFrontPageStateChanged;
+            
+            // Load front page data (will trigger state change event)
+            await FrontPageService.EnsureDataLoadedAsync();
+            UpdateFrontPageDataFromState();
             
             // Load user authentication state
             await LoadUserAuthenticationState();
         }
 
-        private async Task LoadFrontPageDataAsync()
+        private void HandleFrontPageStateChanged(FrontPageDataState state)
         {
-            try
-            {
-                var frontPageData = await FrontPageService.LoadFrontPageDataAsync();
-                CompanyEventsToShowAtFrontPage = frontPageData.CompanyEvents.ToList();
-                ProfessorEventsToShowAtFrontPage = frontPageData.ProfessorEvents.ToList();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error loading front page data: {ex.Message}");
-                CompanyEventsToShowAtFrontPage = new List<CompanyEvent>();
-                ProfessorEventsToShowAtFrontPage = new List<ProfessorEvent>();
-            }
+            UpdateFrontPageDataFromState();
+            _ = InvokeAsync(StateHasChanged);
+        }
+
+        private void UpdateFrontPageDataFromState()
+        {
+            var state = FrontPageService.CurrentState;
+            CompanyEventsToShowAtFrontPage = state.CompanyEvents.ToList();
+            ProfessorEventsToShowAtFrontPage = state.ProfessorEvents.ToList();
+        }
+
+        public void Dispose()
+        {
+            FrontPageService.StateChanged -= HandleFrontPageStateChanged;
+            GC.SuppressFinalize(this);
         }
 
         private async Task LoadUserAuthenticationState()
@@ -118,6 +126,26 @@ namespace QuizManager.Components.Layout
                 Console.WriteLine($"Error loading user authentication state: {ex.Message}");
             }
         }
+
+        public bool HideAllInitialCards()
+        {
+            var uri = NavigationManager.Uri;
+            return uri.Contains("profile")
+                || uri.Contains("settings")
+                || uri.Contains("uploadjobs")
+                || uri.Contains("searchjobs")
+                || uri.Contains("companyRegistration")
+                || uri.Contains("studentRegistration")
+                || uri.Contains("uploadJobs")
+                || uri.Contains("professorRegistration")
+                || uri.Contains("uploadthesis")
+                || uri.Contains("searchthesis")
+                || uri.Contains("uploadinternship")
+                || uri.Contains("researchGroupRegistration");
+        }
+
+        // Wrapper method for CascadingValue (functions can't be cascaded directly)
+        private bool GetHideAllInitialCards() => HideAllInitialCards();
 
         private bool ShouldShowAdminTable()
         {
