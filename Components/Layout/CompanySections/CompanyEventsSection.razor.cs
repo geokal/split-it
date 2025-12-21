@@ -107,6 +107,7 @@ namespace QuizManager.Components.Layout.CompanySections
 
         // Edit Modal
         private bool isEditEventModalVisible = false;
+        private bool isEditModalVisibleForEventsAsCompany = false;
         private CompanyEvent currentEventForEdit;
 
         // Computed Properties
@@ -827,6 +828,170 @@ namespace QuizManager.Components.Layout.CompanySections
             CloseEditEventModal();
             await LoadUploadedEventsAsync();
             await ApplyFiltersAndUpdateCountsForEvents();
+        }
+
+        // Additional Missing Properties
+        private CompanyEvent currentCompanyEvent;
+        private Student selectedStudentFromCache;
+        private QuizManager.Models.Professor selectedProfessorToShowDetailsForInterestinCompanyEvent;
+        private Dictionary<string, Student> studentDataCache = new Dictionary<string, Student>();
+        private bool showModal = false;
+        private bool showProfessorModal = false;
+        private int selectedEventIdForStudents = 0;
+        
+        // Event Menu and Toggles
+        private Dictionary<long, bool> activeEventMenuId = new Dictionary<long, bool>();
+        
+        private void ToggleEventMenu(long eventId)
+        {
+            if (activeEventMenuId.ContainsKey(eventId))
+                activeEventMenuId[eventId] = !activeEventMenuId[eventId];
+            else
+                activeEventMenuId[eventId] = true;
+            StateHasChanged();
+        }
+
+        // Toggle Visibility
+        private void ToggleUploadedCompanyEventsVisibility()
+        {
+            isUploadedEventsVisible = !isUploadedEventsVisible;
+            StateHasChanged();
+        }
+
+        // Pagination
+        private int currentPageForCompanyEvents = 1;
+        private int totalPagesForCompanyEvents_CompanyEventsToSee =>
+            (int)Math.Ceiling((double)(FilteredCompanyEvents?.Count ?? 0) / pageSizeForEvents);
+
+        // Status Filter
+        private string selectedStatusFilterForEventsAsCompany = "Όλα";
+
+        // Edit Modal
+        private bool showCheckboxesForEditCompanyEvent = false;
+        private bool showCheckboxesForCompanyEvent = false;
+
+        // Interest Management
+        private List<InterestInCompanyEvent> InterestedStudents = new List<InterestInCompanyEvent>();
+        private List<InterestInCompanyEventAsProfessor> filteredProfessorInterestForCompanyEvents = new List<InterestInCompanyEventAsProfessor>();
+        private bool isLoadingInterestedStudents = false;
+        private bool isLoadingInterestedProfessors = false;
+
+        // Bulk Actions
+        private string bulkActionForEvents = "";
+
+        // Counts
+        private int unpublishedCountEventsAsCompany = 0;
+        private int totalCountEventsAsCompany = 0;
+
+        // Loading Modals
+        private bool showLoadingModalForDeleteCompanyEvent = false;
+
+        // Modal Close Methods
+        private void CloseEditModalForCompanyEvent()
+        {
+            isEditEventModalVisible = false;
+            isEditModalVisibleForEventsAsCompany = false;
+            currentEventForEdit = null;
+            StateHasChanged();
+        }
+
+        private void CloseStudentDetailsModal()
+        {
+            selectedStudentFromCache = null;
+            showModal = false;
+            StateHasChanged();
+        }
+
+        private void CloseProfessorDetailsModal()
+        {
+            selectedProfessorToShowDetailsForInterestinCompanyEvent = null;
+            showProfessorModal = false;
+            StateHasChanged();
+        }
+
+        // Status Change
+        private async Task ChangeCompanyEventStatus(CompanyEvent ev, string newStatus)
+        {
+            ev.CompanyEventStatus = newStatus;
+            await dbContext.SaveChangesAsync();
+            await LoadUploadedEventsAsync();
+            await ApplyFiltersAndUpdateCountsForEvents();
+            StateHasChanged();
+        }
+
+        // Clear Field Helper
+        private void ClearField(int fieldNumber)
+        {
+            if (companyEvent == null) return;
+            switch (fieldNumber)
+            {
+                case 1:
+                    companyEvent.CompanyEventStartingPointLocationToTransportPeopleToEvent1 = string.Empty;
+                    break;
+                case 2:
+                    companyEvent.CompanyEventStartingPointLocationToTransportPeopleToEvent2 = string.Empty;
+                    break;
+                case 3:
+                    companyEvent.CompanyEventStartingPointLocationToTransportPeopleToEvent3 = string.Empty;
+                    break;
+            }
+            StateHasChanged();
+        }
+
+        // Time Validation
+        private bool IsTimeInRestrictedRangeWhenUploadEventAsCompany(TimeSpan time)
+        {
+            var restrictedStart = new TimeSpan(22, 0, 0); // 10 PM
+            var restrictedEnd = new TimeSpan(6, 0, 0); // 6 AM
+            return time >= restrictedStart || time <= restrictedEnd;
+        }
+
+        // Bulk Status Change
+        private async Task ExecuteBulkStatusChangeForEvents(string newStatus)
+        {
+            var eventsToUpdate = UploadedCompanyEvents.Where(e => selectedEventIds.Contains(e.Id)).ToList();
+            foreach (var ev in eventsToUpdate)
+            {
+                ev.CompanyEventStatus = newStatus;
+            }
+            await dbContext.SaveChangesAsync();
+            await LoadUploadedEventsAsync();
+            await ApplyFiltersAndUpdateCountsForEvents();
+            CloseBulkActionModalForEvents();
+            CancelBulkEditForEvents();
+        }
+
+        // Get interested students/professors (placeholder - should delegate to CompanyDashboardService)
+        private async Task LoadInterestedStudentsForEvent(long eventRNG)
+        {
+            isLoadingInterestedStudents = true;
+            StateHasChanged();
+            try
+            {
+                // TODO: Call CompanyDashboardService.GetInterestedStudentsForEventAsync
+                await Task.Delay(100);
+            }
+            finally
+            {
+                isLoadingInterestedStudents = false;
+                StateHasChanged();
+            }
+        }
+
+        private async Task LoadInterestedProfessorsForEvent(long eventRNG)
+        {
+            isLoadingInterestedProfessors = true;
+            StateHasChanged();
+            try
+            {
+                // TODO: Call CompanyDashboardService.GetInterestedProfessorsForEventAsync
+                await Task.Delay(100);
+            }
+            finally
+            {
+                isLoadingInterestedProfessors = false;
+                StateHasChanged();
+            }
         }
     }
 }
