@@ -35,6 +35,7 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
         private bool isProfessorAnnouncementsVisible = false;
         private bool isResearchGroupPublicAnnouncementsVisible = false;
         private bool isUploadedResearchGroupAnnouncementsVisible = false;
+        private bool isLoadingUploadedResearchGroupAnnouncements = false;
 
         // News Data
         private List<NewsArticle> newsArticles = new List<NewsArticle>();
@@ -42,6 +43,7 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
 
         // Announcements Data
         private List<AnnouncementAsCompany> announcements = new List<AnnouncementAsCompany>();
+        private List<AnnouncementAsCompany> Announcements => announcements; // Alias for Razor markup
         private List<AnnouncementAsProfessor> ProfessorAnnouncements = new List<AnnouncementAsProfessor>();
         private List<AnnouncementAsResearchGroup> ResearchGroupAnnouncements = new List<AnnouncementAsResearchGroup>();
 
@@ -71,6 +73,8 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
 
         // Details Modal
         private AnnouncementAsResearchGroup? selectedResearchGroupAnnouncementToSeeDetails;
+        private bool showLoadingModalForDeleteResearchGroupAnnouncement = false;
+        private int loadingProgress = 0;
 
         // Bulk Edit
         private bool isBulkEditModeForResearchGroupAnnouncements = false;
@@ -398,8 +402,16 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
 
         private async Task LoadUploadedResearchGroupAnnouncementsAsync()
         {
-            UploadedResearchGroupAnnouncements = await GetUploadedResearchGroupAnnouncements();
-            FilterResearchGroupAnnouncements();
+            isLoadingUploadedResearchGroupAnnouncements = true;
+            try
+            {
+                UploadedResearchGroupAnnouncements = await GetUploadedResearchGroupAnnouncements();
+                FilterResearchGroupAnnouncements();
+            }
+            finally
+            {
+                isLoadingUploadedResearchGroupAnnouncements = false;
+            }
         }
 
         private async Task<List<AnnouncementAsResearchGroup>> GetUploadedResearchGroupAnnouncements()
@@ -494,6 +506,8 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
 
             if (isConfirmed)
             {
+                showLoadingModalForDeleteResearchGroupAnnouncement = true;
+                loadingProgress = 0;
                 var announcement = await dbContext.AnnouncementAsResearchGroup.FindAsync(announcementId);
                 if (announcement != null)
                 {
@@ -502,6 +516,8 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
                     UploadedResearchGroupAnnouncements = await GetUploadedResearchGroupAnnouncements();
                     FilterResearchGroupAnnouncements();
                 }
+                loadingProgress = 100;
+                showLoadingModalForDeleteResearchGroupAnnouncement = false;
                 StateHasChanged();
             }
         }
@@ -655,6 +671,55 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
             CancelBulkEditForResearchGroupAnnouncements();
         }
 
+        private void CloseBulkActionModalForResearchGroupAnnouncements()
+        {
+            showBulkActionModalForResearchGroupAnnouncements = false;
+            bulkActionForResearchGroupAnnouncements = "";
+            StateHasChanged();
+        }
+
+        private async Task ExecuteBulkActionForResearchGroupAnnouncements()
+        {
+            if (string.IsNullOrEmpty(bulkActionForResearchGroupAnnouncements) || selectedResearchGroupAnnouncementIds.Count == 0)
+                return;
+
+            if (bulkActionForResearchGroupAnnouncements == "status")
+            {
+                await ExecuteBulkStatusChangeForResearchGroupAnnouncements(newStatusForBulkActionForResearchGroupAnnouncements);
+            }
+            else if (bulkActionForResearchGroupAnnouncements == "copy")
+            {
+                await ExecuteBulkCopyForResearchGroupAnnouncements();
+            }
+
+            showBulkActionModalForResearchGroupAnnouncements = false;
+            StateHasChanged();
+        }
+
+        private async Task ExecuteBulkStatusChangeForResearchGroupAnnouncements(string newStatus)
+        {
+            if (selectedResearchGroupAnnouncementIds.Count == 0) return;
+
+            var isConfirmed = await JS.InvokeAsync<bool>("confirmActionWithHTML",
+                $"Πρόκειται να αλλάξετε την κατάσταση {selectedResearchGroupAnnouncementIds.Count} ανακοινώσεων σε <strong>{newStatus}</strong>.<br><br><strong style='color: red;'>Είστε σίγουρος/η;</strong>");
+
+            if (!isConfirmed) return;
+
+            var announcementsToUpdate = UploadedResearchGroupAnnouncements
+                .Where(a => selectedResearchGroupAnnouncementIds.Contains(a.Id))
+                .ToList();
+
+            foreach (var announcement in announcementsToUpdate)
+            {
+                announcement.ResearchGroupAnnouncementStatus = newStatus;
+            }
+
+            await dbContext.SaveChangesAsync();
+            UploadedResearchGroupAnnouncements = await GetUploadedResearchGroupAnnouncements();
+            FilterResearchGroupAnnouncements();
+            CancelBulkEditForResearchGroupAnnouncements();
+        }
+
         // Pagination for viewing Company Announcements
         private int totalPagesForCompanyAnnouncements => Math.Max(1, (int)Math.Ceiling((double)(announcements?.Where(a => a.CompanyAnnouncementStatus == "Δημοσιευμένη").Count() ?? 0) / pageSize));
 
@@ -747,4 +812,3 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
         }
     }
 }
-
