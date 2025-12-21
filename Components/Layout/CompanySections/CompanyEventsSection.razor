@@ -198,9 +198,7 @@
                                                                                                                 {
                                                                                                                     @foreach (var professorEvent in filteredProfessorEvents)
                                                                                                                     {                                                                                                                  
-                                                                                                                        bool hasAlreadyExpressedInterest = dbContext.InterestInProfessorEventsAsCompany
-                                                                                                                            .Any(i => i.RNGForProfessorEventInterestAsCompany == professorEvent.RNGForEventUploadedAsProfessor
-                                                                                                                                      && i.CompanyEmailShowInterestForProfessorEvent == CurrentUserEmail);
+                                                                                                                        bool hasAlreadyExpressedInterest = HasCompanyShownInterestInProfessorEvent(professorEvent.RNGForEventUploadedAsProfessor);
 
                                                                                                                         <tr style="cursor:pointer; text-align: center; background-color: @(hasAlreadyExpressedInterest ? "lightgreen" : "transparent");">
                                                                                                                             <td style="max-width: auto; overflow: hidden; text-overflow: ellipsis;">

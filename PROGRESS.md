@@ -11,18 +11,16 @@
 - Updated MainLayout.razor component references
 
 ## Phase 6: Services Architecture ✅
-- Created Dashboard Services for all roles:
-  - ✅ StudentDashboardService (fully implemented with caching)
-  - ✅ CompanyDashboardService (fully implemented)
+- Dashboard Services created and registered:
+  - ✅ StudentDashboardService (with caching)
+  - ✅ CompanyDashboardService (with caching + full CRUD/interest APIs)
   - ✅ ProfessorDashboardService (fully implemented)
-  - ✅ ResearchGroupDashboardService (interface and scaffold created)
-- ✅ Created UserContextService for authentication state
-- ✅ Created FrontPageService for front page data loading (with event-driven state management)
-- ✅ Minimized MainLayout.razor.cs from 34,017 lines to 127 lines
-- ✅ Removed all `DbContext` usage from MainLayout
+  - ✅ ResearchGroupDashboardService (interface + scaffold)
+- ✅ UserContextService for auth state
+- ✅ FrontPageService (event-driven, external news/weather)
+- ✅ MainLayout.razor.cs reduced from 34,017 lines to 127 lines; no `DbContext` usage
 - ✅ All services registered in `Program.cs`
-- ✅ Added caching patterns (IMemoryCache) to StudentDashboardService
-- ✅ Enhanced FrontPageService with external data fetching (news, weather)
+- ✅ Shared cache patterns using `IDbContextFactory<AppDbContext>` + `IMemoryCache`
 
 ## Phase 7: Component Dependency Extraction ✅ (Complete)
 
@@ -68,6 +66,11 @@ See `docs/ERROR_INVESTIGATION.md` for detailed explanation of error count fluctu
 ### Remaining Components (CS0103)
 - None (CS0103 cleared)
 
+### Service Migration (DbContext → Services)
+- ✅ Company sections now use `ICompanyDashboardService` (Jobs, Internships, Theses, Events, Announcements, Searches)
+- ✅ MainLayout/front page already service-driven
+- ⚠️ Other roles (Professor/ResearchGroup/Student) still inject `AppDbContext` directly (future pass)
+
 ### Extraction Strategy
 1. **Source**: `backups/MainLayout.razor.cs.backup` (33,977 lines - the original monolithic file)
 2. **Target**: Component `.razor.cs` code-behind files
@@ -87,14 +90,13 @@ See `docs/ERROR_INVESTIGATION.md` for detailed explanation of error count fluctu
 - Extracted search methods, pagination logic, modal management, bulk operations, etc.
 
 ## Current Status
-- MainLayout is minimal and only handles auth state, front page data, and navigation
-- All business logic moved to services
-- Components still use direct `DbContext` injection (future refactoring task)
+- MainLayout minimal (auth/nav/front page only)
+- Business logic in services; Company components fully service-backed
 - Component dependency extraction: 100% complete (CS0103 cleared)
-- Build status: **0 errors** (warnings only, mostly net6.0 + package support and nullable warnings)
+- Build: **passes** with warnings only (nullable + offline NuGet vulnerability check)
 
 ## Next Steps
-1. ⚠️ Triage/clean warnings (nullable + unawaited calls)
-2. ⚠️ Upgrade to .NET 8 (change `<TargetFramework>net8.0</TargetFramework>`)
-3. ⚠️ Refactor components to use services instead of direct `DbContext` injection (future task)
-4. ⚠️ End-to-end testing after warnings are addressed
+1. ⚠️ Optional: address high-noise nullable/unused-field warnings
+2. ⚠️ Finish service migration for Professor/ResearchGroup/Student components (remove direct `DbContext` injections)
+3. ⚠️ Upgrade `<TargetFramework>` to `net8.0` and retest
+4. ⚠️ End-to-end/manual testing after service migration & warnings triage

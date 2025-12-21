@@ -1,12 +1,12 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Forms;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.JSInterop;
 using QuizManager.Data;
-using QuizManager.ViewModels;
 using QuizManager.Models;
 using QuizManager.Services;
+using QuizManager.Services.CompanyDashboard;
+using QuizManager.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,7 +16,7 @@ namespace QuizManager.Components.Layout.CompanySections
 {
     public partial class CompanyJobsSection : ComponentBase
     {
-        [Inject] private AppDbContext dbContext { get; set; } = default!;
+        [Inject] private ICompanyDashboardService CompanyDashboardService { get; set; } = default!;
         [Inject] private IJSRuntime JS { get; set; } = default!;
         [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
         [Inject] private NavigationManager NavigationManager { get; set; } = default!;
@@ -121,13 +121,19 @@ namespace QuizManager.Components.Layout.CompanySections
             if (user.Identity.IsAuthenticated)
             {
                 CurrentUserEmail = user.FindFirst("name")?.Value ?? "";
-                companyData = await dbContext.Companies.FirstOrDefaultAsync(c => c.CompanyEmail == CurrentUserEmail);
+                var dashboard = await CompanyDashboardService.LoadDashboardDataAsync();
+                companyData = dashboard.CompanyProfile;
                 if (companyData != null) companyName = companyData.CompanyName;
             }
 
-            Areas = await dbContext.Areas.ToListAsync();
-            // Regions loading - check if Regions DbSet exists in your DbContext
-            // Regions = await dbContext.Regions.Include(r => r.Towns).ToListAsync();
+            var lookups = await CompanyDashboardService.GetLookupsAsync();
+            Areas = lookups.Areas.ToList();
+            Regions = lookups.RegionToTownsMap
+                .Select(kvp => new Region { RegionName = kvp.Key, Towns = kvp.Value.Select(t => new Town { TownName = t }).ToList() })
+                .ToList();
+            RegionToTownsMap = lookups.RegionToTownsMap.ToDictionary(
+                kvp => kvp.Key,
+                kvp => kvp.Value.ToList());
         }
 
         // Character Limits
@@ -310,8 +316,11 @@ namespace QuizManager.Components.Layout.CompanySections
                 job.PositionStatus = publishJob ? "Δημοσιευμένη" : "Μη Δημοσιευμένη";
 
                 await UpdateProgressWhenSaveJobAsCompany(70);
-                dbContext.CompanyJobs.Add(job);
-                await dbContext.SaveChangesAsync();
+                var result = await CompanyDashboardService.CreateOrUpdateJobAsync(job);
+                if (!result.Success)
+                {
+                    throw new InvalidOperationException(result.Error ?? "Failed to save job.");
+                }
 
                 await UpdateProgressWhenSaveJobAsCompany(90);
                 showSuccessMessage = true;
@@ -429,10 +438,11 @@ namespace QuizManager.Components.Layout.CompanySections
 
         private async Task LoadUploadedJobsAsync()
         {
-            UploadedJobs = await dbContext.CompanyJobs
+            var data = await CompanyDashboardService.LoadDashboardDataAsync();
+            UploadedJobs = data.Jobs
                 .Where(j => j.EmailUsedToUploadJobs == CurrentUserEmail)
                 .OrderByDescending(j => j.UploadDateTime)
-                .ToListAsync();
+                .ToList();
         }
 
         private async Task ApplyFiltersAndUpdateCountsForJobs()
@@ -545,14 +555,10 @@ namespace QuizManager.Components.Layout.CompanySections
 
         private async Task ExecuteBulkStatusChangeForJobs(string newStatus)
         {
-            var jobsToUpdate = await dbContext.CompanyJobs
-                .Where(j => selectedJobIds.Contains(j.Id))
-                .ToListAsync();
-
-            foreach (var j in jobsToUpdate)
-                j.PositionStatus = newStatus;
-
-            await dbContext.SaveChangesAsync();
+            foreach (var jobId in selectedJobIds)
+            {
+                await CompanyDashboardService.UpdateJobStatusAsync(jobId, newStatus);
+            }
             CancelBulkEdit();
             await LoadUploadedJobsAsync();
             await ApplyFiltersAndUpdateCountsForJobs();
@@ -560,9 +566,9 @@ namespace QuizManager.Components.Layout.CompanySections
 
         private async Task ExecuteBulkCopyForJobs()
         {
-            var jobsToCopy = await dbContext.CompanyJobs
+            var jobsToCopy = UploadedJobs
                 .Where(j => selectedJobIds.Contains(j.Id))
-                .ToListAsync();
+                .ToList();
 
             foreach (var j in jobsToCopy)
             {
@@ -578,10 +584,9 @@ namespace QuizManager.Components.Layout.CompanySections
                     RNGForPositionUploaded = new Random().NextInt64()
                 };
                 copy.RNGForPositionUploaded_HashedAsUniqueID = HashingHelper.HashLong(copy.RNGForPositionUploaded);
-                dbContext.CompanyJobs.Add(copy);
+                await CompanyDashboardService.CreateOrUpdateJobAsync(copy);
             }
 
-            await dbContext.SaveChangesAsync();
             CancelBulkEdit();
             await LoadUploadedJobsAsync();
             await ApplyFiltersAndUpdateCountsForJobs();
@@ -597,11 +602,10 @@ namespace QuizManager.Components.Layout.CompanySections
                 await ExecuteBulkCopyForJobs();
             else if (bulkAction == "Διαγραφή")
             {
-                var jobsToDelete = await dbContext.CompanyJobs
-                    .Where(j => selectedJobIds.Contains(j.Id))
-                    .ToListAsync();
-                dbContext.CompanyJobs.RemoveRange(jobsToDelete);
-                await dbContext.SaveChangesAsync();
+                foreach (var jobId in selectedJobIds)
+                {
+                    await CompanyDashboardService.DeleteJobAsync(jobId);
+                }
                 CancelBulkEdit();
                 await LoadUploadedJobsAsync();
                 await ApplyFiltersAndUpdateCountsForJobs();
@@ -619,23 +623,18 @@ namespace QuizManager.Components.Layout.CompanySections
 
         private async Task DeleteJobPosition(int jobId)
         {
-            var jobToDelete = await dbContext.CompanyJobs.FindAsync(jobId);
-            if (jobToDelete != null)
-            {
-                dbContext.CompanyJobs.Remove(jobToDelete);
-                await dbContext.SaveChangesAsync();
-                await LoadUploadedJobsAsync();
-                await ApplyFiltersAndUpdateCountsForJobs();
-            }
+            await CompanyDashboardService.DeleteJobAsync(jobId);
+            await LoadUploadedJobsAsync();
+            await ApplyFiltersAndUpdateCountsForJobs();
         }
 
         private async Task DownloadAttachmentForCompanyJobs(int jobId)
         {
-            var jobWithAttachment = await dbContext.CompanyJobs.FindAsync(jobId);
-            if (jobWithAttachment?.PositionAttachment != null)
+            var attachment = await CompanyDashboardService.GetJobAttachmentAsync(jobId);
+            if (attachment?.Data != null && attachment.Data.Length > 0)
             {
                 await JS.InvokeVoidAsync("BlazorDownloadAttachmentPositionFile",
-                    $"job-attachment-{jobId}.pdf", "application/pdf", jobWithAttachment.PositionAttachment);
+                    attachment.FileName, attachment.ContentType, attachment.Data);
             }
         }
 
@@ -649,9 +648,10 @@ namespace QuizManager.Components.Layout.CompanySections
         {
             if (job.Company == null)
             {
-                await dbContext.Entry(job)
-                    .Reference(j => j.Company)
-                    .LoadAsync();
+                if (!string.IsNullOrWhiteSpace(job.EmailUsedToUploadJobs))
+                {
+                    job.Company = await CompanyDashboardService.GetCompanyByEmailAsync(job.EmailUsedToUploadJobs);
+                }
             }
 
             currentJob = job;
@@ -807,14 +807,9 @@ namespace QuizManager.Components.Layout.CompanySections
 
         private async Task UpdateJobStatusAsCompany(int jobId, string newStatus)
         {
-            var jobToUpdate = await dbContext.CompanyJobs.FindAsync(jobId);
-            if (jobToUpdate != null)
-            {
-                jobToUpdate.PositionStatus = newStatus;
-                await dbContext.SaveChangesAsync();
-                await LoadUploadedJobsAsync();
-                await ApplyFiltersAndUpdateCountsForJobs();
-            }
+            await CompanyDashboardService.UpdateJobStatusAsync(jobId, newStatus);
+            await LoadUploadedJobsAsync();
+            await ApplyFiltersAndUpdateCountsForJobs();
         }
 
         private async Task ChangeJobStatusToUnpublished(int jobId)
@@ -842,19 +837,19 @@ namespace QuizManager.Components.Layout.CompanySections
 
             if (!isConfirmed) return;
 
-            var application = await dbContext.CompanyJobsApplied
-                .FirstOrDefaultAsync(a => a.RNGForCompanyJobApplied == jobRNG &&
-                                          a.StudentUniqueIDAppliedForCompanyJob == studentUniqueID);
-
-            if (application == null)
+            var result = await CompanyDashboardService.DecideOnApplicationAsync(new ApplicationDecisionRequest
             {
-                await JS.InvokeVoidAsync("confirmActionWithHTML2", "Δεν βρέθηκε η Αίτηση ή ο Φοιτητής.");
+                ApplicationType = ApplicationType.Job,
+                ApplicationRng = jobRNG,
+                StudentUniqueId = studentUniqueID,
+                Decision = ApplicationDecision.Accept
+            });
+
+            if (!result.Success)
+            {
+                await JS.InvokeVoidAsync("confirmActionWithHTML2", result.Error ?? "Δεν βρέθηκε η Αίτηση ή ο Φοιτητής.");
                 return;
             }
-
-            application.CompanyPositionStatusAppliedAtTheCompanySide = "Επιτυχής";
-            application.CompanyPositionStatusAppliedAtTheStudentSide = "Επιτυχής";
-            await dbContext.SaveChangesAsync();
 
             acceptedApplicantsCountPerJob_ForCompanyJob[jobRNG] = acceptedCount + 1;
             await LoadUploadedJobsAsync();
@@ -868,19 +863,19 @@ namespace QuizManager.Components.Layout.CompanySections
 
             if (!isConfirmed) return;
 
-            var application = await dbContext.CompanyJobsApplied
-                .FirstOrDefaultAsync(a => a.RNGForCompanyJobApplied == jobRNG &&
-                                          a.StudentUniqueIDAppliedForCompanyJob == studentUniqueID);
-
-            if (application == null)
+            var result = await CompanyDashboardService.DecideOnApplicationAsync(new ApplicationDecisionRequest
             {
-                await JS.InvokeVoidAsync("confirmActionWithHTML2", "Δεν βρέθηκε η Αίτηση ή ο Φοιτητής.");
+                ApplicationType = ApplicationType.Job,
+                ApplicationRng = jobRNG,
+                StudentUniqueId = studentUniqueID,
+                Decision = ApplicationDecision.Reject
+            });
+
+            if (!result.Success)
+            {
+                await JS.InvokeVoidAsync("confirmActionWithHTML2", result.Error ?? "Δεν βρέθηκε η Αίτηση ή ο Φοιτητής.");
                 return;
             }
-
-            application.CompanyPositionStatusAppliedAtTheCompanySide = "Απορρίφθηκε";
-            application.CompanyPositionStatusAppliedAtTheStudentSide = "Απορρίφθηκε";
-            await dbContext.SaveChangesAsync();
 
             await LoadUploadedJobsAsync();
             await ApplyFiltersAndUpdateCountsForJobs();
@@ -895,16 +890,17 @@ namespace QuizManager.Components.Layout.CompanySections
 
             try
             {
-                var applicants = await dbContext.CompanyJobsApplied
+                var applicants = await CompanyDashboardService.GetJobApplicationsAsync();
+                var filteredApplicants = applicants
                     .Where(a => a.RNGForCompanyJobApplied == positionRng &&
                                a.CompanysEmailWhereStudentAppliedForCompanyJob != null &&
-                               a.CompanysEmailWhereStudentAppliedForCompanyJob.ToLower() == CurrentUserEmail.ToLower())
+                               a.CompanysEmailWhereStudentAppliedForCompanyJob.Equals(CurrentUserEmail, StringComparison.OrdinalIgnoreCase))
                     .OrderByDescending(a => a.DateTimeStudentAppliedForCompanyJob)
-                    .ToListAsync();
+                    .ToList();
 
-                jobApplicantsMap[positionRng] = applicants;
+                jobApplicantsMap[positionRng] = filteredApplicants;
 
-                var acceptedCount = applicants.Count(a => a.CompanyPositionStatusAppliedAtTheCompanySide == "Επιτυχής");
+                var acceptedCount = filteredApplicants.Count(a => a.CompanyPositionStatusAppliedAtTheCompanySide == "Επιτυχής");
                 acceptedApplicantsCountPerJob_ForCompanyJob[positionRng] = acceptedCount;
 
                 var job = UploadedJobs.FirstOrDefault(j => j.RNGForPositionUploaded == positionRng);
@@ -943,26 +939,20 @@ namespace QuizManager.Components.Layout.CompanySections
             if (string.IsNullOrEmpty(pendingBulkActionForApplicants) || !selectedApplicantIds.Any())
                 return;
 
-            var selectedRngs = selectedApplicantIds.Select(a => a.Item1).ToList();
-            var selectedStudentIds = selectedApplicantIds.Select(a => a.Item2).ToList();
-            var selectedLookup = new HashSet<(long, string)>(selectedApplicantIds);
+            var decision = pendingBulkActionForApplicants == "accept"
+                ? ApplicationDecision.Accept
+                : ApplicationDecision.Reject;
 
-            var applicantsToUpdate = await dbContext.CompanyJobsApplied
-                .Where(a => selectedRngs.Contains(a.RNGForCompanyJobApplied) &&
-                            selectedStudentIds.Contains(a.StudentUniqueIDAppliedForCompanyJob))
-                .ToListAsync();
-
-            foreach (var applicant in applicantsToUpdate)
+            foreach (var (rng, studentId) in selectedApplicantIds)
             {
-                if (!selectedLookup.Contains((applicant.RNGForCompanyJobApplied, applicant.StudentUniqueIDAppliedForCompanyJob)))
-                    continue;
-
-                var status = pendingBulkActionForApplicants == "accept" ? "Επιτυχής" : "Απορρίφθηκε";
-                applicant.CompanyPositionStatusAppliedAtTheCompanySide = status;
-                applicant.CompanyPositionStatusAppliedAtTheStudentSide = status;
+                await CompanyDashboardService.DecideOnApplicationAsync(new ApplicationDecisionRequest
+                {
+                    ApplicationType = ApplicationType.Job,
+                    ApplicationRng = rng,
+                    StudentUniqueId = studentId,
+                    Decision = decision
+                });
             }
-
-            await dbContext.SaveChangesAsync();
             CancelBulkEditForApplicants();
         }
 
@@ -972,6 +962,7 @@ namespace QuizManager.Components.Layout.CompanySections
             currentJob = new CompanyJob
             {
                 Id = jobToEdit.Id,
+                RNGForPositionUploaded = jobToEdit.RNGForPositionUploaded,
                 PositionTitle = jobToEdit.PositionTitle,
                 PositionDescription = jobToEdit.PositionDescription,
                 PositionStatus = jobToEdit.PositionStatus,
@@ -1007,7 +998,12 @@ namespace QuizManager.Components.Layout.CompanySections
         {
             if (currentJob == null) return;
 
-            var jobToUpdate = await dbContext.CompanyJobs.FindAsync(currentJob.Id);
+            var jobToUpdate = UploadedJobs.FirstOrDefault(j => j.Id == currentJob.Id);
+            if (jobToUpdate == null)
+            {
+                var data = await CompanyDashboardService.LoadDashboardDataAsync();
+                jobToUpdate = data.Jobs.FirstOrDefault(j => j.Id == currentJob.Id);
+            }
             if (jobToUpdate != null)
             {
                 jobToUpdate.PositionTitle = currentJob.PositionTitle;
@@ -1016,7 +1012,7 @@ namespace QuizManager.Components.Layout.CompanySections
                 if (currentJob.PositionAttachment != null)
                     jobToUpdate.PositionAttachment = currentJob.PositionAttachment;
 
-                await dbContext.SaveChangesAsync();
+                await CompanyDashboardService.CreateOrUpdateJobAsync(jobToUpdate);
             }
 
             CloseEditPopupForJobs();
@@ -1096,7 +1092,7 @@ namespace QuizManager.Components.Layout.CompanySections
 
         private async Task ShowStudentDetailsInNameAsHyperlink(string studentUniqueId, int applicationId, string source)
         {
-            var student = await dbContext.Students.FirstOrDefaultAsync(s => s.Student_UniqueID == studentUniqueId);
+            var student = await CompanyDashboardService.GetStudentByUniqueIdAsync(studentUniqueId);
             if (student != null)
             {
                 studentDataCache[student.Email] = student;

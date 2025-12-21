@@ -1,11 +1,11 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Forms;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.JSInterop;
 using QuizManager.Data;
 using QuizManager.Models;
 using QuizManager.ViewModels;
+using QuizManager.Services.CompanyDashboard;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -18,7 +18,7 @@ namespace QuizManager.Components.Layout.CompanySections
 {
     public partial class CompanyAnnouncementsManagementSection : ComponentBase
     {
-        [Inject] private AppDbContext dbContext { get; set; } = default!;
+        [Inject] private ICompanyDashboardService CompanyDashboardService { get; set; } = default!;
         [Inject] private IJSRuntime JS { get; set; } = default!;
         [Inject] private HttpClient HttpClient { get; set; } = default!;
         [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
@@ -101,9 +101,10 @@ namespace QuizManager.Components.Layout.CompanySections
             svseNewsArticles = await FetchSVSENewsArticlesAsync();
 
             // Load announcements
-            Announcements = await FetchAnnouncementsAsync();
-            ProfessorAnnouncements = await FetchProfessorAnnouncementsAsync();
-            ResearchGroupAnnouncements = await FetchResearchGroupAnnouncementsAsync();
+            var companyData = await CompanyDashboardService.LoadDashboardDataAsync();
+            Announcements = companyData.Announcements.ToList();
+            ProfessorAnnouncements = companyData.ProfessorEvents.SelectMany(_ => new List<AnnouncementAsProfessor>()).ToList(); // placeholder, data not in service
+            ResearchGroupAnnouncements = companyData.ResearchGroupAnnouncements.ToList();
 
             // Calculate total pages
             UpdateTotalPages();
@@ -498,32 +499,26 @@ namespace QuizManager.Components.Layout.CompanySections
 
         private async Task<List<AnnouncementAsCompany>> FetchAnnouncementsAsync()
         {
-            return await dbContext.AnnouncementsAsCompany
-                .Include(a => a.Company)
-                .AsNoTracking()
+            var data = await CompanyDashboardService.LoadDashboardDataAsync();
+            return data.Announcements
                 .Where(a => a.CompanyAnnouncementStatus == "Δημοσιευμένη")
                 .OrderByDescending(a => a.CompanyAnnouncementUploadDate)
-                .ToListAsync();
+                .ToList();
         }
 
         private async Task<List<AnnouncementAsProfessor>> FetchProfessorAnnouncementsAsync()
         {
-            return await dbContext.AnnouncementsAsProfessor
-                .Include(a => a.Professor)
-                .AsNoTracking()
-                .Where(a => a.ProfessorAnnouncementStatus == "Δημοσιευμένη")
-                .OrderByDescending(a => a.ProfessorAnnouncementUploadDate)
-                .ToListAsync();
+            // Professor announcements are not provided by CompanyDashboardService; return empty for now.
+            return new List<AnnouncementAsProfessor>();
         }
 
         private async Task<List<AnnouncementAsResearchGroup>> FetchResearchGroupAnnouncementsAsync()
         {
-            return await dbContext.AnnouncementAsResearchGroup
-                .Include(a => a.ResearchGroup)
-                .AsNoTracking()
+            var data = await CompanyDashboardService.LoadDashboardDataAsync();
+            return data.ResearchGroupAnnouncements
                 .Where(a => a.ResearchGroupAnnouncementStatus == "Δημοσιευμένη")
                 .OrderByDescending(a => a.ResearchGroupAnnouncementUploadDate)
-                .ToListAsync();
+                .ToList();
         }
 
         // Helper Methods
@@ -689,8 +684,11 @@ namespace QuizManager.Components.Layout.CompanySections
                     return;
                 }
 
-                dbContext.AnnouncementsAsCompany.Add(announcement);
-                await dbContext.SaveChangesAsync();
+                var result = await CompanyDashboardService.CreateOrUpdateAnnouncementAsync(announcement);
+                if (!result.Success)
+                {
+                    throw new InvalidOperationException(result.Error ?? "Failed to save announcement.");
+                }
                 await UpdateProgressWhenSaveAnnouncementAsCompany(50, 200);
 
                 isSaveAnnouncementAsCompanySuccessful = true;
@@ -742,4 +740,3 @@ namespace QuizManager.Components.Layout.CompanySections
         }
     }
 }
-

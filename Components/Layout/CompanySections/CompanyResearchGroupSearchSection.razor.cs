@@ -1,8 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
-using Microsoft.EntityFrameworkCore;
-using QuizManager.Data;
 using QuizManager.Models;
+using QuizManager.Services.CompanyDashboard;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,7 +11,7 @@ namespace QuizManager.Components.Layout.CompanySections
 {
     public partial class CompanyResearchGroupSearchSection : ComponentBase
     {
-        [Inject] private AppDbContext dbContext { get; set; } = default!;
+        [Inject] private ICompanyDashboardService CompanyDashboardService { get; set; } = default!;
 
         // Form Visibility
         private bool isCompanySearchResearchGroupVisible = false;
@@ -146,13 +145,18 @@ namespace QuizManager.Components.Layout.CompanySections
             {
                 try
                 {
-                    researchgroupNameSuggestions = await Task.Run(() =>
-                        dbContext.ResearchGroups
-                            .Where(rg => rg.ResearchGroupName.Contains(searchResearchGroupNameAsCompanyToFindResearchGroup))
-                            .Select(rg => rg.ResearchGroupName)
-                            .Distinct()
-                            .Take(10)
-                            .ToList());
+                    var results = await CompanyDashboardService.SearchResearchGroupsAsync(new ResearchGroupSearchFilter
+                    {
+                        Name = searchResearchGroupNameAsCompanyToFindResearchGroup,
+                        MaxResults = 10
+                    });
+
+                    researchgroupNameSuggestions = results
+                        .Select(rg => rg.ResearchGroupName)
+                        .Where(name => !string.IsNullOrWhiteSpace(name))
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .Take(10)
+                        .ToList()!;
                 }
                 catch (Exception ex)
                 {
@@ -192,38 +196,8 @@ namespace QuizManager.Components.Layout.CompanySections
             {
                 try
                 {
-                    var allAreas = await dbContext.Areas
-                        .Where(a => a.AreaName.Contains(searchResearchGroupAreasAsCompanyToFindResearchGroup) ||
-                                (a.AreaSubFields != null && a.AreaSubFields.Contains(searchResearchGroupAreasAsCompanyToFindResearchGroup)))
-                        .ToListAsync();
-
-                    var suggestionsSet = new HashSet<string>();
-
-                    foreach (var area in allAreas)
-                    {
-                        if (area.AreaName.Contains(searchResearchGroupAreasAsCompanyToFindResearchGroup, StringComparison.OrdinalIgnoreCase))
-                        {
-                            suggestionsSet.Add(area.AreaName);
-                        }
-
-                        if (!string.IsNullOrEmpty(area.AreaSubFields))
-                        {
-                            var subfields = area.AreaSubFields
-                                .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                                .Select(sub => sub.Trim())
-                                .Where(sub => !string.IsNullOrEmpty(sub) &&
-                                            sub.Contains(searchResearchGroupAreasAsCompanyToFindResearchGroup, StringComparison.OrdinalIgnoreCase))
-                                .ToList();
-
-                            foreach (var subfield in subfields)
-                            {
-                                var combination = $"{area.AreaName} - {subfield}";
-                                suggestionsSet.Add(combination);
-                            }
-                        }
-                    }
-
-                    researchGroupAreasSuggestions = suggestionsSet.Take(10).ToList();
+                    var suggestions = await CompanyDashboardService.SearchAreasAsync(searchResearchGroupAreasAsCompanyToFindResearchGroup);
+                    researchGroupAreasSuggestions = suggestions.Take(10).ToList();
                 }
                 catch (Exception ex)
                 {
@@ -281,12 +255,8 @@ namespace QuizManager.Components.Layout.CompanySections
             {
                 try
                 {
-                    researchGroupSkillsSuggestions = await dbContext.Skills
-                        .Where(s => s.SkillName.Contains(searchResearchGroupSkillsAsCompanyToFindResearchGroup))
-                        .Select(s => s.SkillName)
-                        .Distinct()
-                        .Take(10)
-                        .ToListAsync();
+                    var suggestions = await CompanyDashboardService.SearchSkillsAsync(searchResearchGroupSkillsAsCompanyToFindResearchGroup);
+                    researchGroupSkillsSuggestions = suggestions.Take(10).ToList();
                 }
                 catch (Exception ex)
                 {
@@ -341,8 +311,27 @@ namespace QuizManager.Components.Layout.CompanySections
             {
                 hasSearchedForResearchGroups = true;
 
-                var allResearchGroups = await dbContext.ResearchGroups.ToListAsync();
-                var filteredResearchGroups = allResearchGroups.AsEnumerable();
+                var areas = selectedResearchGroupAreas.ToList();
+                if (!string.IsNullOrWhiteSpace(searchResearchGroupAreasAsCompanyToFindResearchGroup))
+                {
+                    areas.Add(searchResearchGroupAreasAsCompanyToFindResearchGroup);
+                }
+
+                var skills = selectedResearchGroupSkills.ToList();
+                if (!string.IsNullOrWhiteSpace(searchResearchGroupSkillsAsCompanyToFindResearchGroup))
+                {
+                    skills.Add(searchResearchGroupSkillsAsCompanyToFindResearchGroup);
+                }
+
+                var filter = new ResearchGroupSearchFilter
+                {
+                    Name = searchResearchGroupNameAsCompanyToFindResearchGroup,
+                    Areas = areas.Any() ? string.Join(", ", areas) : null,
+                    Skills = skills.Any() ? string.Join(", ", skills) : null,
+                    MaxResults = 200
+                };
+
+                var filteredResearchGroups = (await CompanyDashboardService.SearchResearchGroupsAsync(filter)).AsEnumerable();
 
                 if (!string.IsNullOrEmpty(searchResearchGroupNameAsCompanyToFindResearchGroup))
                 {
@@ -603,4 +592,3 @@ namespace QuizManager.Components.Layout.CompanySections
         }
     }
 }
-

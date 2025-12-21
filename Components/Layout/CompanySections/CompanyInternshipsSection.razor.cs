@@ -1,12 +1,12 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Forms;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.JSInterop;
 using QuizManager.Data;
 using QuizManager.Models;
 using QuizManager.ViewModels;
 using QuizManager.Services;
+using QuizManager.Services.CompanyDashboard;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,7 +16,7 @@ namespace QuizManager.Components.Layout.CompanySections
 {
     public partial class CompanyInternshipsSection : ComponentBase
     {
-        [Inject] private AppDbContext dbContext { get; set; } = default!;
+        [Inject] private ICompanyDashboardService CompanyDashboardService { get; set; } = default!;
         [Inject] private IJSRuntime JS { get; set; } = default!;
         [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
         [Inject] private NavigationManager NavigationManager { get; set; } = default!;
@@ -126,13 +126,16 @@ namespace QuizManager.Components.Layout.CompanySections
             if (user.Identity.IsAuthenticated)
             {
                 CurrentUserEmail = user.FindFirst("name")?.Value ?? "";
-                companyData = await dbContext.Companies.FirstOrDefaultAsync(c => c.CompanyEmail == CurrentUserEmail);
+                var dashboard = await CompanyDashboardService.LoadDashboardDataAsync();
+                companyData = dashboard.CompanyProfile;
             }
 
-            Areas = await dbContext.Areas.ToListAsync();
-            // Regions loading - check if Regions DbSet exists in your DbContext
-            // Regions = await dbContext.Regions.Include(r => r.Towns).ToListAsync();
-            professors = await dbContext.Professors.ToListAsync();
+            var lookups = await CompanyDashboardService.GetLookupsAsync();
+            Areas = lookups.Areas.ToList();
+            professors = lookups.Professors.ToList();
+            Regions = lookups.RegionToTownsMap
+                .Select(kvp => new Region { RegionName = kvp.Key, Towns = kvp.Value.Select(t => new Town { TownName = t }).ToList() })
+                .ToList();
         }
 
         // Form Visibility
@@ -307,8 +310,11 @@ namespace QuizManager.Components.Layout.CompanySections
                 companyInternship.CompanyUploadedInternshipStatus = publishInternship ? "Δημοσιευμένη" : "Μη Δημοσιευμένη";
 
                 await UpdateProgress(70);
-                dbContext.CompanyInternships.Add(companyInternship);
-                await dbContext.SaveChangesAsync();
+                var result = await CompanyDashboardService.CreateOrUpdateInternshipAsync(companyInternship);
+                if (!result.Success)
+                {
+                    throw new InvalidOperationException(result.Error ?? "Failed to save internship.");
+                }
 
                 await UpdateProgress(90);
                 showSuccessMessage = true;
@@ -361,10 +367,11 @@ namespace QuizManager.Components.Layout.CompanySections
 
         private async Task LoadUploadedInternshipsAsync()
         {
-            UploadedInternships = await dbContext.CompanyInternships
+            var data = await CompanyDashboardService.LoadDashboardDataAsync();
+            UploadedInternships = data.Internships
                 .Where(i => i.CompanyEmailUsedToUploadInternship == CurrentUserEmail)
                 .OrderByDescending(i => i.CompanyInternshipUploadDate)
-                .ToListAsync();
+                .ToList();
         }
 
         private async Task ApplyFiltersAndUpdateCounts()
@@ -477,14 +484,10 @@ namespace QuizManager.Components.Layout.CompanySections
 
         private async Task ExecuteBulkStatusChangeForInternships(string newStatus)
         {
-            var internshipsToUpdate = await dbContext.CompanyInternships
-                .Where(i => selectedInternshipIds.Contains(i.Id))
-                .ToListAsync();
-
-            foreach (var i in internshipsToUpdate)
-                i.CompanyUploadedInternshipStatus = newStatus;
-
-            await dbContext.SaveChangesAsync();
+            foreach (var id in selectedInternshipIds)
+            {
+                await CompanyDashboardService.UpdateInternshipStatusAsync(id, newStatus);
+            }
             CancelBulkEditForInternships();
             await LoadUploadedInternshipsAsync();
             await ApplyFiltersAndUpdateCounts();
@@ -492,9 +495,9 @@ namespace QuizManager.Components.Layout.CompanySections
 
         private async Task ExecuteBulkCopyForInternships()
         {
-            var internshipsToCopy = await dbContext.CompanyInternships
+            var internshipsToCopy = UploadedInternships
                 .Where(i => selectedInternshipIds.Contains(i.Id))
-                .ToListAsync();
+                .ToList();
 
             foreach (var i in internshipsToCopy)
             {
@@ -509,10 +512,9 @@ namespace QuizManager.Components.Layout.CompanySections
                     RNGForInternshipUploadedAsCompany = new Random().NextInt64()
                 };
                 copy.RNGForInternshipUploadedAsCompany_HashedAsUniqueID = HashingHelper.HashLong(copy.RNGForInternshipUploadedAsCompany);
-                dbContext.CompanyInternships.Add(copy);
+                await CompanyDashboardService.CreateOrUpdateInternshipAsync(copy);
             }
 
-            await dbContext.SaveChangesAsync();
             CancelBulkEditForInternships();
             await LoadUploadedInternshipsAsync();
             await ApplyFiltersAndUpdateCounts();
@@ -528,11 +530,10 @@ namespace QuizManager.Components.Layout.CompanySections
                 await ExecuteBulkCopyForInternships();
             else if (bulkActionForInternships == "Διαγραφή")
             {
-                var internshipsToDelete = await dbContext.CompanyInternships
-                    .Where(i => selectedInternshipIds.Contains(i.Id))
-                    .ToListAsync();
-                dbContext.CompanyInternships.RemoveRange(internshipsToDelete);
-                await dbContext.SaveChangesAsync();
+                foreach (var id in selectedInternshipIds)
+                {
+                    await CompanyDashboardService.DeleteInternshipAsync(id);
+                }
                 CancelBulkEditForInternships();
                 await LoadUploadedInternshipsAsync();
                 await ApplyFiltersAndUpdateCounts();
@@ -555,14 +556,9 @@ namespace QuizManager.Components.Layout.CompanySections
 
             try
             {
-                var internshipToDelete = await dbContext.CompanyInternships.FindAsync(internshipId);
-                if (internshipToDelete != null)
-                {
-                    dbContext.CompanyInternships.Remove(internshipToDelete);
-                    await dbContext.SaveChangesAsync();
-                    await LoadUploadedInternshipsAsync();
-                    await ApplyFiltersAndUpdateCounts();
-                }
+                await CompanyDashboardService.DeleteInternshipAsync(internshipId);
+                await LoadUploadedInternshipsAsync();
+                await ApplyFiltersAndUpdateCounts();
             }
             finally
             {
@@ -579,11 +575,13 @@ namespace QuizManager.Components.Layout.CompanySections
 
         private async Task DownloadAttachmentForCompanyInternships(int internshipId)
         {
-            var internshipWithAttachment = await dbContext.CompanyInternships.FindAsync(internshipId);
-            if (internshipWithAttachment?.CompanyInternshipAttachment != null)
+            var attachment = await CompanyDashboardService.GetInternshipAttachmentAsync(internshipId);
+            if (attachment != null && attachment.Data.Length > 0)
             {
                 await JS.InvokeVoidAsync("BlazorDownloadAttachmentPositionFile",
-                    $"internship-attachment-{internshipId}.pdf", "application/pdf", internshipWithAttachment.CompanyInternshipAttachment);
+                    attachment.FileName ?? $"internship-attachment-{internshipId}.pdf",
+                    attachment.ContentType ?? "application/pdf",
+                    attachment.Data);
             }
         }
 
@@ -608,14 +606,9 @@ namespace QuizManager.Components.Layout.CompanySections
 
         private async Task UpdateInternshipStatusAsCompany(int internshipId, string newStatus)
         {
-            var internshipToUpdate = await dbContext.CompanyInternships.FindAsync(internshipId);
-            if (internshipToUpdate != null)
-            {
-                internshipToUpdate.CompanyUploadedInternshipStatus = newStatus;
-                await dbContext.SaveChangesAsync();
-                await LoadUploadedInternshipsAsync();
-                await ApplyFiltersAndUpdateCounts();
-            }
+            await CompanyDashboardService.UpdateInternshipStatusAsync(internshipId, newStatus);
+            await LoadUploadedInternshipsAsync();
+            await ApplyFiltersAndUpdateCounts();
         }
 
         private async Task ChangeInternshipStatusToUnpublished(int internshipId)
@@ -632,16 +625,17 @@ namespace QuizManager.Components.Layout.CompanySections
 
             try
             {
-                var applicants = await dbContext.InternshipsApplied
+                var applicants = await CompanyDashboardService.GetInternshipApplicationsAsync();
+                var filteredApplicants = applicants
                     .Where(a => a.RNGForInternshipApplied == internshipRng &&
                                a.CompanyEmailWhereStudentAppliedForInternship != null &&
-                               a.CompanyEmailWhereStudentAppliedForInternship.ToLower() == CurrentUserEmail.ToLower())
+                               a.CompanyEmailWhereStudentAppliedForInternship.Equals(CurrentUserEmail, StringComparison.OrdinalIgnoreCase))
                     .OrderByDescending(a => a.DateTimeStudentAppliedForInternship)
-                    .ToListAsync();
+                    .ToList();
 
-                internshipApplicantsMap[internshipRng] = applicants;
+                internshipApplicantsMap[internshipRng] = filteredApplicants;
 
-                var acceptedCount = applicants.Count(a => a.InternshipStatusAppliedAtTheCompanySide == "Επιτυχής");
+                var acceptedCount = filteredApplicants.Count(a => a.InternshipStatusAppliedAtTheCompanySide == "Επιτυχής");
                 acceptedApplicantsCountPerInternship_ForCompanyInternship[internshipRng] = acceptedCount;
 
                 var internship = UploadedInternships.FirstOrDefault(i => i.RNGForInternshipUploadedAsCompany == internshipRng);
@@ -712,17 +706,7 @@ namespace QuizManager.Components.Layout.CompanySections
         {
             if (currentInternship == null) return;
 
-            var internshipToUpdate = await dbContext.CompanyInternships.FindAsync(currentInternship.Id);
-            if (internshipToUpdate != null)
-            {
-                internshipToUpdate.CompanyInternshipTitle = currentInternship.CompanyInternshipTitle;
-                internshipToUpdate.CompanyInternshipDescription = currentInternship.CompanyInternshipDescription;
-                internshipToUpdate.CompanyInternshipActivePeriod = currentInternship.CompanyInternshipActivePeriod;
-                if (currentInternship.CompanyInternshipAttachment != null)
-                    internshipToUpdate.CompanyInternshipAttachment = currentInternship.CompanyInternshipAttachment;
-
-                await dbContext.SaveChangesAsync();
-            }
+            await CompanyDashboardService.CreateOrUpdateInternshipAsync(currentInternship);
 
             CloseEditPopupForInternships();
             await LoadUploadedInternshipsAsync();
@@ -733,7 +717,7 @@ namespace QuizManager.Components.Layout.CompanySections
         private async Task DownloadStudentCVFromCompanyInternships(string studentEmail)
         {
             // TODO: Student model doesn't have a CV property - check if CV is in StudentDetails or Attachment property
-            var student = await dbContext.Students.FirstOrDefaultAsync(s => s.Email == studentEmail);
+            var student = await CompanyDashboardService.GetStudentByEmailAsync(studentEmail);
             if (student?.Attachment != null)
             {
                 await JS.InvokeVoidAsync("BlazorDownloadAttachmentPositionFile",
@@ -819,7 +803,7 @@ namespace QuizManager.Components.Layout.CompanySections
 
         private async Task ShowStudentDetailsInNameAsHyperlink(string studentUniqueId, int applicationId, string source)
         {
-            var student = await dbContext.Students.FirstOrDefaultAsync(s => s.Student_UniqueID == studentUniqueId);
+            var student = await CompanyDashboardService.GetStudentByUniqueIdAsync(studentUniqueId);
             if (student != null)
             {
                 selectedStudentFromCache = student;

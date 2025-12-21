@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Components;
-using Microsoft.EntityFrameworkCore;
-using QuizManager.Data;
 using QuizManager.Models;
+using QuizManager.Services.CompanyDashboard;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,7 +10,7 @@ namespace QuizManager.Components.Layout.CompanySections
 {
     public partial class CompanyProfessorSearchSection : ComponentBase
     {
-        [Inject] private AppDbContext dbContext { get; set; } = default!;
+        [Inject] private ICompanyDashboardService CompanyDashboardService { get; set; } = default!;
 
         // Form Visibility
         private bool isCompanySearchProfessorVisible = false;
@@ -131,15 +130,21 @@ namespace QuizManager.Components.Layout.CompanySections
         }
 
         // Search Field Handlers
-        private void HandleProfessorInput(ChangeEventArgs e)
+        private async Task HandleProfessorInput(ChangeEventArgs e)
         {
             searchNameSurnameAsCompanyToFindProfessor = e.Value?.ToString();
             if (!string.IsNullOrWhiteSpace(searchNameSurnameAsCompanyToFindProfessor) && searchNameSurnameAsCompanyToFindProfessor.Length >= 2)
             {
-                professorNameSurnameSuggestions = dbContext.Professors
-                    .Where(p => (p.ProfName + " " + p.ProfSurname).Contains(searchNameSurnameAsCompanyToFindProfessor))
-                    .Select(p => p.ProfName + " " + p.ProfSurname)
-                    .Distinct()
+                var results = await CompanyDashboardService.SearchProfessorsAsync(new ProfessorSearchFilter
+                {
+                    Name = searchNameSurnameAsCompanyToFindProfessor,
+                    MaxResults = 25
+                });
+
+                professorNameSurnameSuggestions = results
+                    .Select(p => $"{p.ProfName} {p.ProfSurname}".Trim())
+                    .Where(s => !string.IsNullOrWhiteSpace(s))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
                     .ToList();
             }
             else
@@ -178,38 +183,8 @@ namespace QuizManager.Components.Layout.CompanySections
             {
                 try
                 {
-                    var allAreas = await dbContext.Areas
-                        .Where(a => a.AreaName.Contains(searchAreasOfInterestAsCompanyToFindProfessor) ||
-                                (a.AreaSubFields != null && a.AreaSubFields.Contains(searchAreasOfInterestAsCompanyToFindProfessor)))
-                        .ToListAsync();
-
-                    var suggestionsSet = new HashSet<string>();
-
-                    foreach (var area in allAreas)
-                    {
-                        if (area.AreaName.Contains(searchAreasOfInterestAsCompanyToFindProfessor, StringComparison.OrdinalIgnoreCase))
-                        {
-                            suggestionsSet.Add(area.AreaName);
-                        }
-
-                        if (!string.IsNullOrEmpty(area.AreaSubFields))
-                        {
-                            var subfields = area.AreaSubFields
-                                .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                                .Select(sub => sub.Trim())
-                                .Where(sub => !string.IsNullOrEmpty(sub) &&
-                                            sub.Contains(searchAreasOfInterestAsCompanyToFindProfessor, StringComparison.OrdinalIgnoreCase))
-                                .ToList();
-
-                            foreach (var subfield in subfields)
-                            {
-                                var combination = $"{area.AreaName} - {subfield}";
-                                suggestionsSet.Add(combination);
-                            }
-                        }
-                    }
-
-                    areasOfInterestSuggestions = suggestionsSet.Take(10).ToList();
+                    var suggestions = await CompanyDashboardService.SearchAreasAsync(searchAreasOfInterestAsCompanyToFindProfessor);
+                    areasOfInterestSuggestions = suggestions.Take(10).ToList();
                 }
                 catch (Exception ex)
                 {
@@ -257,62 +232,33 @@ namespace QuizManager.Components.Layout.CompanySections
         }
 
         // Search Method
-        private void SearchProfessorsAsCompanyToFindProfessor()
+        private async Task SearchProfessorsAsCompanyToFindProfessor()
         {
-            var professorsQuery = dbContext.Professors.AsQueryable();
-
-            if (!string.IsNullOrEmpty(searchNameSurnameAsCompanyToFindProfessor))
+            var filter = new ProfessorSearchFilter
             {
-                professorsQuery = professorsQuery.Where(p =>
-                    (p.ProfName + " " + p.ProfSurname).Contains(searchNameSurnameAsCompanyToFindProfessor));
-            }
+                Name = searchNameSurnameAsCompanyToFindProfessor,
+                Department = string.IsNullOrWhiteSpace(searchDepartmentAsCompanyToFindProfessor) ? null : searchDepartmentAsCompanyToFindProfessor,
+                School = string.IsNullOrWhiteSpace(searchSchoolAsCompanyToFindProfessor) ? null : searchSchoolAsCompanyToFindProfessor,
+                AreasOfInterest = BuildAreasOfInterestFilter(),
+                MaxResults = 200
+            };
 
-            if (!string.IsNullOrEmpty(searchSchoolAsCompanyToFindProfessor))
-            {
-                var schoolDepartments = universityDepartments[searchSchoolAsCompanyToFindProfessor];
-                professorsQuery = professorsQuery.Where(p => schoolDepartments.Contains(p.ProfDepartment));
-            }
-
-            if (!string.IsNullOrEmpty(searchDepartmentAsCompanyToFindProfessor))
-            {
-                professorsQuery = professorsQuery.Where(p => p.ProfDepartment == searchDepartmentAsCompanyToFindProfessor);
-            }
-
-            var professorsList = professorsQuery.ToList();
-
-            // Apply area filtering with subfield support
-            searchResultsAsCompanyToFindProfessor = professorsList
-                .Where(p =>
-                {
-                    if (string.IsNullOrEmpty(searchAreasOfInterestAsCompanyToFindProfessor) && !selectedAreasOfInterest.Any())
-                        return true;
-
-                    if (string.IsNullOrEmpty(p.ProfGeneralFieldOfWork))
-                        return false;
-
-                    var professorAreas = NormalizeAreas(p.ProfGeneralFieldOfWork).ToList();
-                    var expandedProfessorAreas = ExpandAreasWithSubfields(professorAreas);
-
-                    var selectedAreaMatch = !selectedAreasOfInterest.Any() ||
-                        selectedAreasOfInterest.Any(selectedArea =>
-                        {
-                            var normalizedSelectedArea = selectedArea.Trim().ToLower();
-                            return expandedProfessorAreas.Any(professorArea =>
-                                professorArea.Contains(normalizedSelectedArea) ||
-                                normalizedSelectedArea.Contains(professorArea));
-                        });
-
-                    var searchInputMatch = string.IsNullOrEmpty(searchAreasOfInterestAsCompanyToFindProfessor) ||
-                        expandedProfessorAreas.Any(professorArea =>
-                            professorArea.Contains(searchAreasOfInterestAsCompanyToFindProfessor.Trim().ToLower()) ||
-                            searchAreasOfInterestAsCompanyToFindProfessor.Trim().ToLower().Contains(professorArea));
-
-                    return selectedAreaMatch && searchInputMatch;
-                })
-                .ToList();
+            var results = await CompanyDashboardService.SearchProfessorsAsync(filter);
+            searchResultsAsCompanyToFindProfessor = results.ToList();
 
             currentProfessorPage_SearchForProfessorsAsStudent = 1;
             StateHasChanged();
+        }
+
+        private string? BuildAreasOfInterestFilter()
+        {
+            var areas = selectedAreasOfInterest.ToList();
+            if (!string.IsNullOrWhiteSpace(searchAreasOfInterestAsCompanyToFindProfessor))
+            {
+                areas.Add(searchAreasOfInterestAsCompanyToFindProfessor);
+            }
+
+            return areas.Any() ? string.Join(", ", areas) : null;
         }
 
         // Pagination Methods
@@ -456,4 +402,3 @@ namespace QuizManager.Components.Layout.CompanySections
         }
     }
 }
-

@@ -2,6 +2,7 @@ using Auth0.AspNetCore.Authentication;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using QuizManager.Data;
+using QuizManager.Components;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -40,7 +41,8 @@ builder.Services.AddHttpClient("Auth0Api", client =>
 
 // 5. APP SERVICES
 builder.Services.AddRazorPages();
-builder.Services.AddServerSideBlazor();
+builder.Services.AddRazorComponents()
+    .AddInteractiveServerComponents();
 
 builder.Services.AddScoped<InternshipEmailService>(provider =>
 {
@@ -90,12 +92,12 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
-app.UseRouting();
-
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseAntiforgery();
 
-app.MapBlazorHub();
-app.MapFallbackToPage("/_Host");
+app.MapRazorPages();
+app.MapRazorComponents<QuizManager.Components.App>()
+    .AddInteractiveServerRenderMode();
 
 app.Run();

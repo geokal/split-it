@@ -1,11 +1,11 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Forms;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.JSInterop;
 using QuizManager.Data;
 using QuizManager.Models;
 using QuizManager.Services;
+using QuizManager.Services.CompanyDashboard;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,7 +15,7 @@ namespace QuizManager.Components.Layout.CompanySections
 {
     public partial class CompanyThesesSection : ComponentBase
     {
-        [Inject] private AppDbContext dbContext { get; set; } = default!;
+        [Inject] private ICompanyDashboardService CompanyDashboardService { get; set; } = default!;
         [Inject] private IJSRuntime JS { get; set; } = default!;
         [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
         [Inject] private NavigationManager NavigationManager { get; set; } = default!;
@@ -149,11 +149,13 @@ namespace QuizManager.Components.Layout.CompanySections
             if (user.Identity.IsAuthenticated)
             {
                 CurrentUserEmail = user.FindFirst("name")?.Value ?? "";
-                companyData = await dbContext.Companies.FirstOrDefaultAsync(c => c.CompanyEmail == CurrentUserEmail);
+                var dashboard = await CompanyDashboardService.LoadDashboardDataAsync();
+                companyData = dashboard.CompanyProfile;
             }
 
-            Areas = await dbContext.Areas.ToListAsync();
-            Skills = await dbContext.Skills.ToListAsync();
+            var lookups = await CompanyDashboardService.GetLookupsAsync();
+            Areas = lookups.Areas.ToList();
+            Skills = lookups.Skills.ToList();
         }
 
         // Form Visibility
@@ -344,8 +346,11 @@ namespace QuizManager.Components.Layout.CompanySections
                 thesis.CompanyThesisStatus = publishThesis ? "Δημοσιευμένη" : "Μη Δημοσιευμένη";
 
                 await UpdateProgress(70);
-                dbContext.CompanyTheses.Add(thesis);
-                await dbContext.SaveChangesAsync();
+                var result = await CompanyDashboardService.CreateOrUpdateThesisAsync(thesis);
+                if (!result.Success)
+                {
+                    throw new InvalidOperationException(result.Error ?? "Failed to save thesis.");
+                }
 
                 await UpdateProgress(90);
                 showSuccessMessage = true;
@@ -399,10 +404,11 @@ namespace QuizManager.Components.Layout.CompanySections
 
         private async Task LoadUploadedThesesAsync()
         {
-            UploadedTheses = await dbContext.CompanyTheses
+            var data = await CompanyDashboardService.LoadDashboardDataAsync();
+            UploadedTheses = data.Theses
                 .Where(t => t.CompanyEmailUsedToUploadThesis == CurrentUserEmail)
                 .OrderByDescending(t => t.CompanyThesisUploadDateTime)
-                .ToListAsync();
+                .ToList();
         }
 
         private async Task ApplyFiltersAndUpdateCounts()
@@ -515,14 +521,10 @@ namespace QuizManager.Components.Layout.CompanySections
 
         private async Task ExecuteBulkStatusChangeForTheses(string newStatus)
         {
-            var thesesToUpdate = await dbContext.CompanyTheses
-                .Where(t => selectedThesisIds.Contains(t.Id))
-                .ToListAsync();
-
-            foreach (var t in thesesToUpdate)
-                t.CompanyThesisStatus = newStatus;
-
-            await dbContext.SaveChangesAsync();
+            foreach (var id in selectedThesisIds)
+            {
+                await CompanyDashboardService.UpdateThesisStatusAsync(id, newStatus);
+            }
             CancelBulkEditForTheses();
             await LoadUploadedThesesAsync();
             await ApplyFiltersAndUpdateCounts();
@@ -530,9 +532,9 @@ namespace QuizManager.Components.Layout.CompanySections
 
         private async Task ExecuteBulkCopyForTheses()
         {
-            var thesesToCopy = await dbContext.CompanyTheses
+            var thesesToCopy = UploadedTheses
                 .Where(t => selectedThesisIds.Contains(t.Id))
-                .ToListAsync();
+                .ToList();
 
             foreach (var t in thesesToCopy)
             {
@@ -548,10 +550,9 @@ namespace QuizManager.Components.Layout.CompanySections
                     RNGForThesisUploadedAsCompany = new Random().NextInt64()
                 };
                 copy.RNGForThesisUploadedAsCompany_HashedAsUniqueID = HashingHelper.HashLong(copy.RNGForThesisUploadedAsCompany);
-                dbContext.CompanyTheses.Add(copy);
+                await CompanyDashboardService.CreateOrUpdateThesisAsync(copy);
             }
 
-            await dbContext.SaveChangesAsync();
             CancelBulkEditForTheses();
             await LoadUploadedThesesAsync();
             await ApplyFiltersAndUpdateCounts();
@@ -567,11 +568,10 @@ namespace QuizManager.Components.Layout.CompanySections
                 await ExecuteBulkCopyForTheses();
             else if (bulkActionForTheses == "Διαγραφή")
             {
-                var thesesToDelete = await dbContext.CompanyTheses
-                    .Where(t => selectedThesisIds.Contains(t.Id))
-                    .ToListAsync();
-                dbContext.CompanyTheses.RemoveRange(thesesToDelete);
-                await dbContext.SaveChangesAsync();
+                foreach (var id in selectedThesisIds)
+                {
+                    await CompanyDashboardService.DeleteThesisAsync(id);
+                }
                 CancelBulkEditForTheses();
                 await LoadUploadedThesesAsync();
                 await ApplyFiltersAndUpdateCounts();
@@ -594,14 +594,9 @@ namespace QuizManager.Components.Layout.CompanySections
 
             try
             {
-                var thesisToDelete = await dbContext.CompanyTheses.FindAsync(thesisId);
-                if (thesisToDelete != null)
-                {
-                    dbContext.CompanyTheses.Remove(thesisToDelete);
-                    await dbContext.SaveChangesAsync();
-                    await LoadUploadedThesesAsync();
-                    await ApplyFiltersAndUpdateCounts();
-                }
+                await CompanyDashboardService.DeleteThesisAsync(thesisId);
+                await LoadUploadedThesesAsync();
+                await ApplyFiltersAndUpdateCounts();
             }
             finally
             {
@@ -619,11 +614,11 @@ namespace QuizManager.Components.Layout.CompanySections
 
         private async Task DownloadAttachmentForCompanyTheses(int thesisId)
         {
-            var thesisWithAttachment = await dbContext.CompanyTheses.FindAsync(thesisId);
-            if (thesisWithAttachment?.CompanyThesisAttachmentUpload != null)
+            var attachment = await CompanyDashboardService.GetThesisAttachmentAsync(thesisId);
+            if (attachment?.Data != null && attachment.Data.Length > 0)
             {
                 await JS.InvokeVoidAsync("BlazorDownloadAttachmentPositionFile",
-                    $"thesis-attachment-{thesisId}.pdf", "application/pdf", thesisWithAttachment.CompanyThesisAttachmentUpload);
+                    attachment.FileName, attachment.ContentType, attachment.Data);
             }
         }
 
@@ -650,14 +645,9 @@ namespace QuizManager.Components.Layout.CompanySections
 
         private async Task UpdateThesisStatusAsCompany(int thesisId, string newStatus)
         {
-            var thesisToUpdate = await dbContext.CompanyTheses.FindAsync(thesisId);
-            if (thesisToUpdate != null)
-            {
-                thesisToUpdate.CompanyThesisStatus = newStatus;
-                await dbContext.SaveChangesAsync();
-                await LoadUploadedThesesAsync();
-                await ApplyFiltersAndUpdateCounts();
-            }
+            await CompanyDashboardService.UpdateThesisStatusAsync(thesisId, newStatus);
+            await LoadUploadedThesesAsync();
+            await ApplyFiltersAndUpdateCounts();
         }
 
         private async Task ChangeCompanyThesisStatusToUnpublished(int thesisId)
@@ -674,16 +664,17 @@ namespace QuizManager.Components.Layout.CompanySections
 
             try
             {
-                var applicants = await dbContext.CompanyThesesApplied
+                var applicants = await CompanyDashboardService.GetThesisApplicationsAsync();
+                var filteredApplicants = applicants
                     .Where(a => a.RNGForCompanyThesisApplied == thesisRng &&
                                a.CompanyEmailWhereStudentAppliedForThesis != null &&
-                               a.CompanyEmailWhereStudentAppliedForThesis.ToLower() == CurrentUserEmail.ToLower())
+                               a.CompanyEmailWhereStudentAppliedForThesis.Equals(CurrentUserEmail, StringComparison.OrdinalIgnoreCase))
                     .OrderByDescending(a => a.DateTimeStudentAppliedForThesis)
-                    .ToListAsync();
+                    .ToList();
 
-                companyThesisApplicantsMap[thesisRng] = applicants;
+                companyThesisApplicantsMap[thesisRng] = filteredApplicants;
 
-                var acceptedCount = applicants.Count(a => a.CompanyThesisStatusAppliedAtCompanySide == "Έχει γίνει Αποδοχή");
+                var acceptedCount = filteredApplicants.Count(a => a.CompanyThesisStatusAppliedAtCompanySide == "Έχει γίνει Αποδοχή");
                 acceptedApplicantsCountPerThesis_ForCompanyThesis[thesisRng] = acceptedCount;
 
                 var thesis = UploadedTheses.FirstOrDefault(t => t.RNGForThesisUploadedAsCompany == thesisRng);
@@ -722,6 +713,21 @@ namespace QuizManager.Components.Layout.CompanySections
             if (string.IsNullOrEmpty(pendingBulkActionForThesisApplicants) || !selectedThesisApplicantIds.Any())
                 return;
 
+            var decision = pendingBulkActionForThesisApplicants == "accept"
+                ? ApplicationDecision.Accept
+                : ApplicationDecision.Reject;
+
+            foreach (var (rng, studentId) in selectedThesisApplicantIds)
+            {
+                await CompanyDashboardService.DecideOnApplicationAsync(new ApplicationDecisionRequest
+                {
+                    ApplicationType = ApplicationType.Thesis,
+                    ApplicationRng = rng,
+                    StudentUniqueId = studentId,
+                    Decision = decision
+                });
+            }
+
             CancelBulkEditForThesisApplicants();
         }
 
@@ -744,53 +750,33 @@ namespace QuizManager.Components.Layout.CompanySections
         // Search Professor Theses
         private async Task SearchProfessorThesesAsCompany()
         {
-            var query = dbContext.ProfessorTheses
-                .Include(t => t.Professor)
-                .Where(t =>
-                    t.ThesisStatus == "Δημοσιευμένη" &&
-                    (t.IsCompanyInterestedInProfessorThesisStatus == "Δεν έχει γίνει Αποδοχή" ||
-                    t.IsCompanyInterestedInProfessorThesisStatus == "Έχετε Αποδεχτεί"));
-
-            // Apply search filters
-            if (!string.IsNullOrEmpty(searchProfessorNameToFindThesesAsCompany))
+            var filter = new ProfessorThesisSearchFilter
             {
-                query = query.Where(t => t.Professor != null && 
-                                    t.Professor.ProfName.Contains(searchProfessorNameToFindThesesAsCompany));
-            }
+                ProfessorName = searchProfessorNameToFindThesesAsCompany,
+                ProfessorSurname = searchProfessorSurnameToFindThesesAsCompany,
+                ThesisTitle = searchProfessorThesisTitleToFindThesesAsCompany,
+                EarliestStartDate = searchStartingDateToFindThesesAsCompany,
+                MaxResults = 500
+            };
 
-            if (!string.IsNullOrEmpty(searchProfessorThesisTitleToFindThesesAsCompany))
-            {
-                query = query.Where(t => t.ThesisTitle.Contains(searchProfessorThesisTitleToFindThesesAsCompany));
-            }
+            var results = await CompanyDashboardService.SearchProfessorThesesAsync(filter);
 
-            if (!string.IsNullOrEmpty(searchProfessorSurnameToFindThesesAsCompany))
-            {
-                query = query.Where(t => t.Professor != null && 
-                                    t.Professor.ProfSurname.Contains(searchProfessorSurnameToFindThesesAsCompany));
-            }
-
-            if (searchStartingDateToFindThesesAsCompany.HasValue)
-            {
-                query = query.Where(t => t.ThesisActivePeriod.Date >= searchStartingDateToFindThesesAsCompany.Value.Date);
-            }
-
-            // Areas filter
             if (selectedAreasToFindThesesAsCompany.Any())
             {
-                query = query.Where(t => selectedAreasToFindThesesAsCompany.Any(area =>
-                    (t.ThesisAreas != null && t.ThesisAreas.Contains(area))));
+                results = results.Where(t => t.ThesisAreas != null &&
+                    selectedAreasToFindThesesAsCompany.Any(area => t.ThesisAreas.Contains(area, StringComparison.OrdinalIgnoreCase)))
+                    .ToList();
             }
 
-            // Skills filter
             if (selectedSkillsToFindThesesAsCompany.Any())
             {
-                query = query.Where(t => selectedSkillsToFindThesesAsCompany.Any(skill =>
-                    (t.ThesisSkills != null && t.ThesisSkills.Contains(skill))));
+                results = results.Where(t => t.ThesisSkills != null &&
+                    selectedSkillsToFindThesesAsCompany.Any(skill => t.ThesisSkills.Contains(skill, StringComparison.OrdinalIgnoreCase)))
+                    .ToList();
             }
 
-            var initialQuery = await query.ToListAsync();
-            professorThesesResultsToFindThesesAsCompany = initialQuery;
-            professorThesesSearchResults = initialQuery;
+            professorThesesResultsToFindThesesAsCompany = results.ToList();
+            professorThesesSearchResults = results.ToList();
             searchPerformedToFindThesesAsCompany = true;
             currentPageForProfessorTheses = 1;
             StateHasChanged();
@@ -861,14 +847,14 @@ namespace QuizManager.Components.Layout.CompanySections
                 return;
             }
 
-            // Get unique professor names from the database that match the input
-            professorNameSuggestions = await dbContext.ProfessorTheses
-                .Include(t => t.Professor)
-                .Where(t => t.Professor != null && 
-                        t.Professor.ProfName.Contains(searchProfessorNameToFindThesesAsCompany))
-                .Select(t => t.Professor.ProfName)
-                .Distinct()
-                .ToListAsync();
+            var lookups = await CompanyDashboardService.GetLookupsAsync();
+            professorNameSuggestions = lookups.Professors
+                .Where(p => !string.IsNullOrEmpty(p.ProfName) &&
+                            p.ProfName.Contains(searchProfessorNameToFindThesesAsCompany, StringComparison.OrdinalIgnoreCase))
+                .Select(p => p.ProfName)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Take(10)
+                .ToList();
         }
 
         private async Task HandleProfessorSurnameInput(ChangeEventArgs e)
@@ -881,14 +867,14 @@ namespace QuizManager.Components.Layout.CompanySections
                 return;
             }
 
-            // Get unique professor surnames from the database that match the input
-            professorSurnameSuggestions = await dbContext.ProfessorTheses
-                .Include(t => t.Professor)
-                .Where(t => t.Professor != null && 
-                        t.Professor.ProfSurname.Contains(searchProfessorSurnameToFindThesesAsCompany))
-                .Select(t => t.Professor.ProfSurname)
-                .Distinct()
-                .ToListAsync();
+            var lookups = await CompanyDashboardService.GetLookupsAsync();
+            professorSurnameSuggestions = lookups.Professors
+                .Where(p => !string.IsNullOrEmpty(p.ProfSurname) &&
+                            p.ProfSurname.Contains(searchProfessorSurnameToFindThesesAsCompany, StringComparison.OrdinalIgnoreCase))
+                .Select(p => p.ProfSurname)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Take(10)
+                .ToList();
         }
 
         private void SelectProfessorNameSuggestion(string name)
@@ -914,15 +900,13 @@ namespace QuizManager.Components.Layout.CompanySections
             {
                 try
                 {
-                    var allAreas = await dbContext.Areas
-                        .Where(a => a.AreaName.Contains(searchAreasInputToFindThesesAsCompany) ||
-                                (a.AreaSubFields != null && a.AreaSubFields.Contains(searchAreasInputToFindThesesAsCompany)))
-                        .ToListAsync();
+                    var lookups = await CompanyDashboardService.GetLookupsAsync();
+                    var suggestionsSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-                    var suggestionsSet = new HashSet<string>();
-                    foreach (var area in allAreas)
+                    foreach (var area in lookups.Areas)
                     {
-                        if (area.AreaName.Contains(searchAreasInputToFindThesesAsCompany, StringComparison.OrdinalIgnoreCase))
+                        if (area.AreaName != null &&
+                            area.AreaName.Contains(searchAreasInputToFindThesesAsCompany, StringComparison.OrdinalIgnoreCase))
                         {
                             suggestionsSet.Add(area.AreaName);
                         }
@@ -979,12 +963,14 @@ namespace QuizManager.Components.Layout.CompanySections
             {
                 try
                 {
-                    skillSuggestionsToFindThesesAsCompany = await dbContext.Skills
-                        .Where(s => s.SkillName.Contains(searchSkillsInputToFindThesesAsCompany))
+                    var lookups = await CompanyDashboardService.GetLookupsAsync();
+                    skillSuggestionsToFindThesesAsCompany = lookups.Skills
+                        .Where(s => s.SkillName != null &&
+                                    s.SkillName.Contains(searchSkillsInputToFindThesesAsCompany, StringComparison.OrdinalIgnoreCase))
                         .Select(s => s.SkillName)
-                        .Distinct()
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
                         .Take(10)
-                        .ToListAsync();
+                        .ToList();
                 }
                 catch (Exception ex)
                 {
@@ -1030,8 +1016,10 @@ namespace QuizManager.Components.Layout.CompanySections
 
         private async Task ShowProfessorDetailsFromHyperlinkName(ProfessorThesis thesis)
         {
-            selectedProfessorDetails = await dbContext.Professors
-                .FirstOrDefaultAsync(p => p.ProfEmail == thesis.ProfessorEmailUsedToUploadThesis);
+            var lookups = await CompanyDashboardService.GetLookupsAsync();
+            selectedProfessorDetails = lookups.Professors
+                .FirstOrDefault(p => p.ProfEmail != null &&
+                                     p.ProfEmail.Equals(thesis.ProfessorEmailUsedToUploadThesis, StringComparison.OrdinalIgnoreCase));
             StateHasChanged();
         }
 
@@ -1067,13 +1055,18 @@ namespace QuizManager.Components.Layout.CompanySections
         {
             if (currentThesis == null) return;
 
-            var thesisToUpdate = await dbContext.CompanyTheses.FindAsync(currentThesis.Id);
+            var thesisToUpdate = UploadedTheses.FirstOrDefault(t => t.Id == currentThesis.Id);
+            if (thesisToUpdate == null)
+            {
+                var data = await CompanyDashboardService.LoadDashboardDataAsync();
+                thesisToUpdate = data.Theses.FirstOrDefault(t => t.Id == currentThesis.Id);
+            }
             if (thesisToUpdate != null)
             {
                 thesisToUpdate.CompanyThesisTitle = currentThesis.CompanyThesisTitle;
                 thesisToUpdate.CompanyThesisDescriptionsUploaded = currentThesis.CompanyThesisDescriptionsUploaded;
 
-                await dbContext.SaveChangesAsync();
+                await CompanyDashboardService.CreateOrUpdateThesisAsync(thesisToUpdate);
             }
 
             isModalVisibleToEditCompanyThesisDetails = false;
@@ -1168,6 +1161,19 @@ namespace QuizManager.Components.Layout.CompanySections
             bool isConfirmed = await JS.InvokeAsync<bool>("confirmActionWithHTML", "- ΑΠΟΔΟΧΗ ΑΙΤΗΣΗΣ - \n Η ενέργεια αυτή δεν θα μπορεί να αναιρεθεί. Είστε σίγουρος/η;");
             if (isConfirmed)
             {
+                var result = await CompanyDashboardService.DecideOnApplicationAsync(new ApplicationDecisionRequest
+                {
+                    ApplicationType = ApplicationType.Thesis,
+                    ApplicationRng = companythesisId,
+                    StudentUniqueId = studentUniqueID,
+                    Decision = ApplicationDecision.Accept
+                });
+                if (!result.Success)
+                {
+                    await JS.InvokeVoidAsync("alert", result.Error ?? "Σφάλμα κατά την αποδοχή της αίτησης.");
+                    return;
+                }
+
                 acceptedApplicantsCountPerThesis_ForCompanyThesis[companythesisId] = acceptedCount + 1;
                 StateHasChanged();
             }
@@ -1178,14 +1184,31 @@ namespace QuizManager.Components.Layout.CompanySections
             bool isConfirmed = await JS.InvokeAsync<bool>("confirmActionWithHTML", "- ΑΠΟΡΡΙΨΗ ΑΙΤΗΣΗΣ - \n Η ενέργεια αυτή δεν θα μπορεί να αναιρεθεί. Είστε σίγουρος/η;");
             if (isConfirmed)
             {
+                var result = await CompanyDashboardService.DecideOnApplicationAsync(new ApplicationDecisionRequest
+                {
+                    ApplicationType = ApplicationType.Thesis,
+                    ApplicationRng = companythesisId,
+                    StudentUniqueId = studentUniqueID,
+                    Decision = ApplicationDecision.Reject
+                });
+                if (!result.Success)
+                {
+                    await JS.InvokeVoidAsync("alert", result.Error ?? "Σφάλμα κατά την απόρριψη της αίτησης.");
+                    return;
+                }
+
                 StateHasChanged();
             }
         }
 
         private async Task ShowStudentDetailsInNameAsHyperlink(string studentUniqueId, int applicationId, string source)
         {
-            // TODO: Implement student details modal
-            await Task.CompletedTask;
+            var student = await CompanyDashboardService.GetStudentByUniqueIdAsync(studentUniqueId);
+            if (student != null)
+            {
+                studentDataCache[student.Email] = student;
+                StateHasChanged();
+            }
         }
 
         private void ToggleThesisApplicantSelection(long thesisRng, string studentId, ChangeEventArgs e)
@@ -1333,12 +1356,11 @@ namespace QuizManager.Components.Layout.CompanySections
 
         private async Task DownloadProfessorThesisAttachmentWhenSearchForProfessorThesisAsCompany(int thesisId)
         {
-            var thesis = await dbContext.ProfessorTheses.FindAsync(thesisId);
-            if (thesis?.ThesisAttachment != null)
+            var attachment = await CompanyDashboardService.GetProfessorThesisAttachmentAsync(thesisId);
+            if (attachment?.Data != null && attachment.Data.Length > 0)
             {
-                string base64String = Convert.ToBase64String(thesis.ThesisAttachment);
-                string fileName = $"Thesis_Attachment_{thesisId}.pdf";
-                await JS.InvokeVoidAsync("downloadInternshipAttachmentAsStudent", fileName, base64String);
+                await JS.InvokeVoidAsync("BlazorDownloadAttachmentPositionFile",
+                    attachment.FileName, attachment.ContentType, attachment.Data);
             }
         }
 

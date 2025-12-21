@@ -1032,3 +1032,1266 @@
     }
 
 }
+
+<script>
+    // ========== CHART FUNCTIONS ==========
+    window.currentCharts = {};
+
+    function generateColors(count) {
+        const colors = [];
+        for (let i = 0; i < count; i++) {
+            const r = Math.floor(Math.random() * 255);
+            const g = Math.floor(Math.random() * 255);
+            const b = Math.floor(Math.random() * 255);
+            colors.push(`rgba(${r}, ${g}, ${b}, 0.7)`);
+        }
+        return colors;
+    }
+
+    window.renderCharts = function (areaData, skillData) {
+        if (areaData) {
+            if (window.currentCharts?.areasChart) window.currentCharts.areasChart.destroy();
+            const ctxAreas = document.getElementById("areasChart").getContext("2d");
+            window.currentCharts.areasChart = new Chart(ctxAreas, {
+                type: 'pie',
+                data: {
+                    labels: areaData.labels,
+                    datasets: [{
+                        data: areaData.values,
+                        backgroundColor: generateColors(areaData.labels.length)
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                title: function () { return ''; },
+                                label: function (context) { return context.label + ': ' + context.raw + ' Φοιτητές'; }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        if (skillData) {
+            if (window.currentCharts?.skillsChart) window.currentCharts.skillsChart.destroy();
+            const ctxSkills = document.getElementById("skillsChart").getContext("2d");
+            window.currentCharts.skillsChart = new Chart(ctxSkills, {
+                type: 'pie',
+                data: {
+                    labels: skillData.labels,
+                    datasets: [{
+                        data: skillData.values,
+                        backgroundColor: generateColors(skillData.labels.length)
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                title: function () { return ''; },
+                                label: function (context) { return context.label + ': ' + context.raw + ' Φοιτητές'; }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    };
+
+    window.updateSkillsChart = function (skillData) {
+        if (window.currentCharts?.skillsChart) window.currentCharts.skillsChart.destroy();
+        if (skillData) {
+            const ctxSkills = document.getElementById("skillsChart").getContext("2d");
+            window.currentCharts.skillsChart = new Chart(ctxSkills, {
+                type: 'pie',
+                data: {
+                    labels: skillData.labels,
+                    datasets: [{
+                        data: skillData.values,
+                        backgroundColor: generateColors(skillData.labels.length)
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                title: function () { return ''; },
+                                label: function (context) { return context.label + ': ' + context.raw + ' Φοιτητές'; }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    };
+
+    window.createDoughnutChart = (canvasId, data) => {
+        var ctx = document.getElementById(canvasId).getContext('2d');
+        if (!window.charts) window.charts = {};
+        if (!window.charts[canvasId]) {
+            window.charts[canvasId] = new Chart(ctx, {
+                type: 'doughnut',
+                data: data,
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    var label = context.label || '';
+                                    if (label) label += ': ';
+                                    if (context.raw !== null) label += context.raw + '%';
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    };
+
+    window.showDoughnutChart = function (canvasId) {
+        var canvas = document.getElementById(canvasId);
+        if (canvas) canvas.style.display = "block";
+    };
+
+    window.hideDoughnutChart = function (canvasId) {
+        var canvas = document.getElementById(canvasId);
+        if (canvas) canvas.style.display = "none";
+    };
+
+    // ========== FILE DOWNLOAD FUNCTIONS ==========
+    window.BlazorDownloadFile = function (fileName, fileContent) {
+        const blob = new Blob([fileContent], { type: 'application/octet-stream' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+    };
+
+    window.BlazorPreviewFile = function (content) {
+        const blob = new Blob([atob(content)], { type: 'application/pdf' });
+        const url = window.URL.createObjectURL(blob);
+        window.open(url, '_blank');
+        window.URL.revokeObjectURL(url);
+    };
+
+    window.BlazorDownloadAttachmentPositionFile = (fileName, mimeType, content) => {
+        const byteArray = new Uint8Array(content);
+        const blob = new Blob([byteArray], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        link.click();
+        URL.revokeObjectURL(url);
+    };
+
+    window.BlazorDownloadAttachmentThesisFile = (fileName, mimeType, base64Content) => {
+        const byteCharacters = atob(base64Content);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: mimeType });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.href = url;
+        link.download = fileName;
+        link.click();
+        URL.revokeObjectURL(url);
+    };
+
+    window.BlazorDownloadAttachmentProfessorThesisFile = (fileName, mimeType, base64Content) => {
+        try {
+            const byteCharacters = atob(base64Content);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: mimeType });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.href = url;
+            link.download = fileName;
+            link.click();
+            URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Error downloading file:', error);
+        }
+    };
+
+    function downloadFile(fileName, contentType, base64Data) {
+        const link = document.createElement('a');
+        link.download = fileName;
+        link.href = `data:${contentType};base64,${base64Data}`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    function downloadStudentCVFromCompanyInternships(fileName, base64Data) {
+        const link = document.createElement('a');
+        link.href = 'data:application/pdf;base64,' + base64Data;
+        link.download = fileName;
+        link.click();
+    }
+
+    function downloadInternshipAttachmentAsStudent(fileName, base64Data) {
+        const byteCharacters = atob(base64Data);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: 'application/pdf' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    function saveStudentShownInterestForCompanyEventAsExcelListFile(filename, bytesBase64) {
+        var link = document.createElement('a');
+        link.href = "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64," + bytesBase64;
+        link.download = filename;
+        link.click();
+    }
+
+    function saveStudentShownInterestForProfessorEventAsExcelListFile(filename, bytesBase64) {
+        var link = document.createElement('a');
+        link.href = "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64," + bytesBase64;
+        link.download = filename;
+        link.click();
+    }
+
+    function saveProfessorShownInterestForCompanyEventAsExcelListFile(filename, bytesBase64) {
+        var link = document.createElement('a');
+        link.href = "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64," + bytesBase64;
+        link.download = filename;
+        link.click();
+    }
+
+    function saveCompanyShownInterestForProfessorEventAsExcelListFile(filename, bytesBase64) {
+        var link = document.createElement('a');
+        link.href = "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64," + bytesBase64;
+        link.download = filename;
+        link.click();
+    }
+
+    // ========== MODAL MANAGEMENT FUNCTIONS ==========
+    window.showModal = (modalId) => {
+        var modalElement = document.getElementById(modalId);
+        var modal = new bootstrap.Modal(modalElement);
+        modal.show();
+    };
+
+    window.hideModal = (modalId) => {
+        var modalElement = document.getElementById(modalId);
+        var modal = bootstrap.Modal.getInstance(modalElement);
+        if (modal) modal.hide();
+    };
+
+    window.showUserAgreementModal = () => {
+        var modal = document.getElementById("userAgreementModal");
+        var mainContent = document.getElementById("mainContent");
+        if (modal) {
+            modal.classList.add("show");
+            modal.style.display = "block";
+            modal.removeAttribute("aria-hidden");
+            if (mainContent) mainContent.setAttribute("inert", "");
+            document.body.classList.add("modal-open");
+        } else {
+            console.error("Modal element with id 'userAgreementModal' not found.");
+        }
+    };
+
+    window.hideUserAgreementModal = () => {
+        var modal = document.getElementById("userAgreementModal");
+        var mainContent = document.getElementById("mainContent");
+        if (modal) {
+            modal.classList.remove("show");
+            modal.style.display = "none";
+            modal.setAttribute("aria-hidden", "true");
+            document.body.classList.remove("modal-open");
+            document.body.style.overflow = "auto";
+            let backdrop = document.querySelector(".modal-backdrop");
+            if (backdrop) backdrop.parentNode.removeChild(backdrop);
+            if (mainContent) mainContent.removeAttribute("inert");
+        } else {
+            console.error("Modal element with id 'userAgreementModal' not found.");
+        }
+    };
+
+    function showModal(modalId) {
+        var modalElement = document.getElementById(modalId);
+        var modal = new bootstrap.Modal(modalElement);
+        modal.show();
+    }
+
+    function showModal1(modalId) {
+        var modalElement = document.querySelector(modalId);
+        if (modalElement) {
+            var modal = new bootstrap.Modal(modalElement);
+            modal.show();
+        } else {
+            console.error("Modal element not found: " + modalId);
+        }
+    }
+
+    function ShowBootstrapModal(modalId) {
+        var modalElement = document.querySelector(modalId);
+        var modal = new bootstrap.Modal(modalElement);
+        modal.show();
+    }
+
+    function showCompanyDetailsModal() {
+        console.log("JavaScript: Opening Modal...");
+        $('#companyDetailsModal').modal('show');
+    }
+
+    function hideCompanyDetailsModal() {
+        console.log("JavaScript: Hiding Modal...");
+        $('#companyDetailsModal').modal('hide');
+        $('body').removeClass('modal-open');
+        $('.modal-backdrop').remove();
+    }
+
+    function showCompanyDetailsAsAHyperlinkInJobSearchAsStudent() {
+        console.log("JavaScript: Opening Modal...");
+        $('#companyDetailsModal3').modal('show');
+    }
+
+    function hideCompanyDetailsAsAHyperlinkInJobSearchAsStudent() {
+        console.log("JavaScript: Hiding Modal...");
+        $('#companyDetailsModal3').modal('hide');
+    }
+
+    function showCompanyDetailsModal2() {
+        $('#companyDetailsModal2').modal('show');
+    }
+
+    function showInternshipDetailsModal2() {
+        $('#internshipDetailsModal').modal('show');
+    }
+
+    function showJobDetailsModal() {
+        $('#jobDetailsModal2').modal('show');
+    }
+
+    function showProfessorThesisDetailsModal() {
+        $('#professorthesisDetailsModal').modal('show');
+    }
+
+    function hideProfessorThesisDetailsModal() {
+        $('#professorthesisDetailsModal').modal('hide');
+    }
+
+    function showCompanyThesisDetailsModal() {
+        $('#companythesisDetailsModal').modal('show');
+    }
+
+    function hideCompanyThesisDetailsModal() {
+        $('#companythesisDetailsModal').modal('hide');
+    }
+
+    function showCompanyInternshipDetailsModal() {
+        $('#companyinternshipDetailsModal').modal('show');
+    }
+
+    function hideCompanyInternshipDetailsModal() {
+        $('#companyinternshipDetailsModal').modal('hide');
+    }
+
+    function showProfessorInternshipDetailsModal() {
+        $('#professorinternshipDetailsModal').modal('show');
+    }
+
+    function hideProfessorInternshipDetailsModal() {
+        $('#professorinternshipDetailsModal').modal('hide');
+    }
+
+    function showProfessorInternshipDetailsModalAsStudent() {
+        $('#professorinternshipDetailsModalAsStudent').modal('show');
+    }
+
+    function hideProfessorInternshipDetailsModalAsStudent() {
+        $('#professorinternshipDetailsModalAsStudent').modal('hide');
+    }
+
+    function showCompanyInternshipDetailsModalAsStudent() {
+        $('#companyinternshipDetailsModalAsStudent').modal('show');
+    }
+
+    function hideCompanyInternshipDetailsModalAsStudent() {
+        $('#companyinternshipDetailsModalAsStudent').modal('hide');
+    }
+
+    function showProfessorThesisDetailsModalAsProfessor() {
+        $('#professorthesisDetailsModalAsProfessor').modal('show');
+    }
+
+    function hideProfessorThesisDetailsModalAsProfessor() {
+        $('#professorthesisDetailsModalAsProfessor').modal('hide');
+    }
+
+    function showProfessorDetailsModal() {
+        $('#professorDetailsModal').modal('show');
+    }
+
+    function hideProfessorDetailsModal() {
+        $('#professorDetailsModal').modal('hide');
+    }
+
+    function showProfessorDetailsModalForThesisInterest() {
+        $('#ProfessorDetailsModalForThesisInterest').modal('show');
+    }
+
+    function hideProfessorDetailsModalForThesisInterest() {
+        $('#ProfessorDetailsModalForThesisInterest').modal('hide');
+    }
+
+    function ShowCompanyEventDetails() {
+        $('#CompanyDetailsModalForThesisInterest').modal('show');
+    }
+
+    function hideCompanyDetailsModalForThesisInterest() {
+        $('#CompanyDetailsModalForThesisInterest').modal('hide');
+    }
+
+    function showCompanyEventDetailsModalForEventsAsStudent() {
+        $('#companyEventDetailsModal').modal('show');
+    }
+
+    function hideCompanyEventDetailsModalForEventsAsStudent() {
+        $('#companyEventDetailsModal').modal('hide');
+    }
+
+    function showProfessorEventDetailsModalForEventsAsStudent() {
+        $('#professorEventDetailsModal').modal('show');
+    }
+
+    function hideProfessorEventDetailsModalForEventsAsStudent() {
+        $('#professorEventDetailsModal').modal('hide');
+    }
+
+    function showCompanyDetailsModalForEventsAsStudent() {
+        $('#companyTitleDetailsModal').modal('show');
+    }
+
+    function hideCompanyDetailsModalForEventsAsStudent() {
+        $('#companyTitleDetailsModal').modal('hide');
+    }
+
+    function showProfessorDetailsModalForEventsAsStudent() {
+        $('#professorTitleDetailsModal').modal('show');
+    }
+
+    function hideProfessorDetailsModalForEventsAsStudent() {
+        $('#professorTitleDetailsModal').modal('hide');
+    }
+
+    function showCompanyDetailsModalFromHyperlink() {
+        $('#companyDetailsFromHyperlinkNameModal').modal('show');
+    }
+
+    function hideCompanyDetailsModalFromHyperlink() {
+        $('#companyDetailsFromHyperlinkNameModal').modal('hide');
+    }
+
+    function showProfessorDetailsModalFromHypelinkName() {
+        $('#professorDetailsModalFromHyperlinkName').modal('show');
+    }
+
+    function hideProfessorDetailsModalFromHypelinkName() {
+        $('#professorDetailsModalFromHyperlinkName').modal('hide');
+    }
+
+    function showCompanyDetailsAsProfessorModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            var bsModal = new bootstrap.Modal(modal);
+            bsModal.show();
+        }
+    }
+
+    function hideCompanyDetailsAsProfessorModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            var bsModal = bootstrap.Modal.getInstance(modal);
+            if (bsModal) bsModal.hide();
+        }
+    }
+
+    // ========== DROPDOWN AND CHECKBOX FUNCTIONS ==========
+    window.bootstrapDropdown = {
+        toggleDropdown: function (elementId) {
+            var dropdown = document.getElementById(elementId);
+            if (dropdown) {
+                var bootstrapDropdown = new bootstrap.Dropdown(dropdown);
+                bootstrapDropdown.toggle();
+            }
+        }
+    };
+
+    function toggleCompanyInternshipCheckboxes() {
+        var checkboxes = document.querySelector('.checkbox-container');
+        if (checkboxes.style.display === 'none' || checkboxes.style.display === '') {
+            checkboxes.style.display = 'block';
+        } else {
+            checkboxes.style.display = 'none';
+        }
+    }
+
+    function toggleProfessorInternshipCheckboxes() {
+        var checkboxes = document.querySelector('.checkbox-container');
+        if (checkboxes.style.display === 'none' || checkboxes.style.display === '') {
+            checkboxes.style.display = 'block';
+        } else {
+            checkboxes.style.display = 'none';
+        }
+    }
+
+    function toggleCompanyJobCheckboxes() {
+        var checkboxes = document.querySelector('.checkbox-container');
+        if (checkboxes.style.display === 'none' || checkboxes.style.display === '') {
+            checkboxes.style.display = 'block';
+        } else {
+            checkboxes.style.display = 'none';
+        }
+    }
+
+    function toggleCompanyThesisAreasCheckboxes() {
+        var checkboxes = document.querySelector('.checkbox-containerThesisAreas');
+        if (checkboxes.style.display === 'none' || checkboxes.style.display === '') {
+            checkboxes.style.display = 'block';
+        } else {
+            checkboxes.style.display = 'none';
+        }
+    }
+
+    function toggleCompanyThesisSkillsCheckboxes() {
+        var checkboxes = document.querySelector('.checkbox-containerThesisSkills');
+        if (checkboxes.style.display === 'none' || checkboxes.style.display === '') {
+            checkboxes.style.display = 'block';
+        } else {
+            checkboxes.style.display = 'none';
+        }
+    }
+
+    function toggleCompanyEventAreasCheckboxes() {
+        var checkboxes = document.getElementById('toggleCheckboxesForAreasOfInterest');
+        if (checkboxes.style.display === 'none' || checkboxes.style.display === '') {
+            checkboxes.style.display = 'block';
+        } else {
+            checkboxes.style.display = 'none';
+        }
+    }
+
+    function toggleProfessorEventAreasCheckboxes() {
+        var checkboxes = document.getElementById('toggleCheckboxesForAreasOfInterest');
+        if (checkboxes.style.display === 'none' || checkboxes.style.display === '') {
+            checkboxes.style.display = 'block';
+        } else {
+            checkboxes.style.display = 'none';
+        }
+    }
+
+    function toggleProfessorThesisAreasCheckboxes() {
+        const container = document.getElementById('toggleCheckboxesForThesisAreasAsProfessor');
+        if (container.style.display === 'none') {
+            container.style.display = 'block';
+        } else {
+            container.style.display = 'none';
+        }
+    }
+
+    function toggleProfessorThesisSkillsCheckboxes() {
+        const container = document.getElementById('toggleCheckboxesForThesisSkillsAsProfessor');
+        if (container.style.display === 'none') {
+            container.style.display = 'block';
+        } else {
+            container.style.display = 'none';
+        }
+    }
+
+    // ========== TAB AND SECTION FUNCTIONS ==========
+    function activateTab(tabId) {
+        var tab = document.getElementById(tabId);
+        if (tab) {
+            var tabInstance = new bootstrap.Tab(tab);
+            tabInstance.show();
+        }
+    }
+
+    function toggleSection(contentId) {
+        var content = document.getElementById(contentId);
+        if (content.style.display === "none") {
+            content.style.display = "block";
+        } else {
+            content.style.display = "none";
+        }
+    }
+
+    // ========== CONFIRMATION DIALOGS ==========
+    function confirmAction(message) {
+        return confirm(message);
+    }
+
+    function confirmActionToAcceptOrRejectInternshipAppliedByStudentAsACompany(message) {
+        return confirm(message);
+    }
+
+    function confirmActionToAcceptOrRejectJobAppliedByStudentAsACompany(message) {
+        return confirm(message);
+    }
+
+    function confirmActionToAcceptOrRejectThesisAppliedByStudentAsACompany(message) {
+        return confirm(message);
+    }
+
+    function confirmActionToAcceptOrRejectThesisAppliedByStudentAsAProfessor(message) {
+        return confirm(message);
+    }
+
+    function confirmSaveForInternshipsAsCompany(message) {
+        return confirm(message);
+    }
+
+    function confirmSaveForCompanyEvent(message) {
+        return confirm(message);
+    }
+
+    function confirmSaveForProfessorEvent(message) {
+        return confirm(message);
+    }
+
+    function confirmSaveForJobsAsCompany(message) {
+        return confirm(message);
+    }
+
+    function confirmSaveForThesesAsCompany(message) {
+        return confirm(message);
+    }
+
+    function confirmActionWithHTML(message) {
+        return new Promise((resolve) => {
+            Swal.fire({
+                title: "Επιβεβαίωση",
+                html: message,
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonText: "Ναι, συνεχίστε",
+                cancelButtonText: "Ακύρωση"
+            }).then((result) => {
+                resolve(result.isConfirmed);
+            });
+        });
+    }
+
+    function confirmActionWithHTML2(message) {
+        return new Promise((resolve) => {
+            Swal.fire({
+                title: "Ειδοποίηση",
+                html: message,
+                icon: "warning",
+                showCancelButton: false,
+                confirmButtonText: "Εντάξει!",
+            }).then((result) => {
+                resolve(result.isConfirmed);
+            });
+        });
+    }
+
+    // ========== INPUT VALIDATION FUNCTIONS ==========
+    window.initializeInputMask = () => {
+        const inputMaskOptions = {
+            mask: '9999-9999-99999',
+            placeholder: 'XXXX-YYYY-ZZZZZ',
+            clearMaskOnLostFocus: false,
+            oncomplete: validateRegistryNumber,
+            onincomplete: validateRegistryNumber
+        };
+        $("#registryNumber").inputmask(inputMaskOptions);
+        $("#registryNumber").on("blur", validateRegistryNumber);
+    };
+
+    function validateRegistryNumber() {
+        const value = $("#registryNumber").val();
+        const regex = /^\d{4}-\d{4}-\d{5}$/;
+
+        if (regex.test(value)) {
+            const parts = value.split("-");
+            const xxxx = parseInt(parts[0]);
+            const yyyy = parseInt(parts[1]);
+            const zzzzz = parseInt(parts[2]);
+
+            let isValid = true;
+
+            if (![1115, 1116, 1117].includes(xxxx)) {
+                isValid = false;
+                $("#xxxxValidationMessage").show();
+            } else {
+                $("#xxxxValidationMessage").hide();
+            }
+
+            const currentYear = new Date().getFullYear();
+            if (yyyy < 2010 || yyyy > currentYear) {
+                isValid = false;
+                $("#yyyyValidationMessage").show();
+            } else {
+                $("#yyyyValidationMessage").hide();
+            }
+
+            const zStr = zzzzz.toString().padStart(5, '0');
+            const zPart = parseInt(zStr.slice(2));
+            if (!zStr.startsWith("00") || zPart <= 0 || zPart > 300) {
+                isValid = false;
+                $("#zzzzzValidationMessage").show();
+            } else {
+                $("#zzzzzValidationMessage").hide();
+            }
+
+            if (isValid) {
+                $("#registryNumber").removeClass("invalid").addClass("valid");
+                $("#registryNumberValidationMessage").hide();
+                return;
+            }
+        }
+
+        $("#registryNumber").removeClass("valid").addClass("invalid");
+        $("#registryNumberValidationMessage").show();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        initializeInputMask();
+    });
+
+    // ========== DROPDOWN CLICK LISTENER ==========
+    function addClickListener(dotNetHelper) {
+        window.dotNetHelper = dotNetHelper;
+        document.addEventListener('click', handleDocumentClick);
+    }
+
+    function removeClickListener() {
+        document.removeEventListener('click', handleDocumentClick);
+    }
+
+    function handleDocumentClick(event) {
+        if (!event.target.closest('.dropdown-combo')) {
+            window.dotNetHelper.invokeMethodAsync('OnDocumentClick');
+        }
+    }
+
+    // ========== UTILITY FUNCTIONS ==========
+    window.redirectToAuth0 = function (uri) {
+        window.location.href = uri;
+    };
+
+    window.getSelectedValues = (selectId) => {
+        const selectElement = document.getElementById(selectId);
+        const selectedOptions = Array.from(selectElement.selectedOptions).map(option => option.value);
+        return selectedOptions;
+    };
+
+    window.getSelectedAreas = () => {
+        let selectedAreas = [];
+        let checkboxes = document.querySelectorAll("input[name='area']:checked");
+        checkboxes.forEach(checkbox => {
+            selectedAreas.push(checkbox.value);
+        });
+        return selectedAreas;
+    };
+
+    function showMessage(elementId, message) {
+        var messageElement = document.getElementById(elementId);
+        messageElement.textContent = message;
+        messageElement.style.display = 'block';
+    }
+
+    function hideMessage(elementId) {
+        var messageElement = document.getElementById(elementId);
+        messageElement.style.display = 'none';
+    }
+
+    window.showCustomAlert = (message) => {
+        let alertBox = document.createElement('div');
+        alertBox.style.position = 'fixed';
+        alertBox.style.top = '60px';
+        alertBox.style.right = '20px';
+        alertBox.style.padding = '10px 20px';
+        alertBox.style.backgroundColor = '#f8d7da';
+        alertBox.style.color = '#721c24';
+        alertBox.style.border = '1px solid #f5c6cb';
+        alertBox.style.borderRadius = '5px';
+        alertBox.style.zIndex = '1000';
+        alertBox.innerText = message;
+        document.body.appendChild(alertBox);
+        setTimeout(() => {
+            document.body.removeChild(alertBox);
+        }, 3000);
+    };
+
+    // ========== SCROLL AND NAVIGATION FUNCTIONS ==========
+    window.scrollToElementById = (id) => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.scrollIntoView({ behavior: "smooth", block: "center" });
+            el.focus();
+        }
+    };
+
+    function scrollToElement(id) {
+        const element = document.getElementById(id);
+        if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            element.style.transition = 'box-shadow 0.5s';
+            element.style.boxShadow = '0 0 10px gold';
+            setTimeout(() => {
+                element.style.boxShadow = 'none';
+            }, 1000);
+        }
+    }
+
+    window.scrollToSection = function (sectionId) {
+        const element = document.getElementById(sectionId);
+        if (element) {
+            element.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
+    };
+
+    // ========== GOOGLE PLACES AUTOCOMPLETE FUNCTIONS ==========
+    function initializeAutocomplete() {
+        const inputField = document.getElementById("autocomplete");
+        if (inputField) {
+            const autocomplete = new google.maps.places.Autocomplete(inputField);
+            autocomplete.setFields(['address_components', 'geometry', 'name']);
+            autocomplete.addListener('place_changed', function () {
+                const place = autocomplete.getPlace();
+                if (place) {
+                    const addressComponents = place.address_components || [];
+                    DotNet.invokeMethodAsync('QuizManager', 'UpdatePlaceDetails', addressComponents);
+                }
+            });
+            console.log("Autocomplete initialized successfully.");
+        } else {
+            console.error("Autocomplete input field not found: autocomplete");
+        }
+    }
+
+    function initializeAutocomplete2() {
+        const inputField = document.getElementById("autocomplete2");
+        if (inputField) {
+            const autocomplete2 = new google.maps.places.Autocomplete(inputField);
+            autocomplete2.setFields(['address_components', 'geometry', 'name']);
+            autocomplete2.addListener('place_changed', function () {
+                const place = autocomplete2.getPlace();
+                if (place) {
+                    const addressComponents = place.address_components || [];
+                    DotNet.invokeMethodAsync('QuizManager', 'UpdatePlaceDetails', addressComponents);
+                }
+            });
+            console.log("Autocomplete2 initialized successfully.");
+        }
+    }
+
+    function initializeAutocomplete3() {
+        const inputField = document.getElementById("autocomplete3");
+        if (inputField) {
+            const autocomplete3 = new google.maps.places.Autocomplete(inputField);
+            autocomplete3.setFields(['address_components', 'geometry', 'name']);
+            autocomplete3.addListener('place_changed', function () {
+                const place = autocomplete3.getPlace();
+                if (place) {
+                    const addressComponents = place.address_components || [];
+                    DotNet.invokeMethodAsync('QuizManager', 'UpdatePlaceDetails', addressComponents);
+                }
+            });
+            console.log("Autocomplete3 initialized successfully.");
+        }
+    }
+
+    function initializeAutocomplete4() {
+        const inputField = document.getElementById("autocomplete4");
+        if (inputField) {
+            const autocomplete4 = new google.maps.places.Autocomplete(inputField);
+            autocomplete4.setFields(['address_components', 'geometry', 'name']);
+            autocomplete4.addListener('place_changed', function () {
+                const place = autocomplete4.getPlace();
+                if (place) {
+                    const addressComponents = place.address_components || [];
+                    DotNet.invokeMethodAsync('QuizManager', 'UpdatePlaceDetails', addressComponents);
+                }
+            });
+            console.log("Autocomplete4 initialized successfully.");
+        }
+    }
+
+    function initializeAutocomplete6() {
+        const inputField = document.getElementById("autocomplete6");
+        if (inputField) {
+            const autocomplete6 = new google.maps.places.Autocomplete(inputField);
+            autocomplete6.setFields(['address_components', 'geometry', 'name']);
+            autocomplete6.addListener('place_changed', function () {
+                const place = autocomplete6.getPlace();
+                if (place) {
+                    const addressComponents = place.address_components || [];
+                    DotNet.invokeMethodAsync('QuizManager', 'UpdatePlaceDetails', addressComponents);
+                }
+            });
+            console.log("Autocomplete6 initialized successfully.");
+        }
+    }
+
+    function initializeAutocomplete7() {
+        const inputField = document.getElementById("autocomplete7");
+        if (inputField) {
+            const autocomplete7 = new google.maps.places.Autocomplete(inputField);
+            autocomplete7.setFields(['address_components', 'geometry', 'name']);
+            autocomplete7.addListener('place_changed', function () {
+                const place = autocomplete7.getPlace();
+                if (place) {
+                    const addressComponents = place.address_components || [];
+                    DotNet.invokeMethodAsync('QuizManager', 'UpdatePlaceDetails', addressComponents);
+                }
+            });
+            console.log("Autocomplete7 initialized successfully.");
+        }
+    }
+
+    function initializeAutocomplete8() {
+        const inputField = document.getElementById("autocomplete8");
+        if (inputField) {
+            const autocomplete8 = new google.maps.places.Autocomplete(inputField);
+            autocomplete8.setFields(['address_components', 'geometry', 'name']);
+            autocomplete8.addListener('place_changed', function () {
+                const place = autocomplete8.getPlace();
+                if (place) {
+                    const addressComponents = place.address_components || [];
+                    DotNet.invokeMethodAsync('QuizManager', 'UpdatePlaceDetails', addressComponents);
+                }
+            });
+            console.log("Autocomplete8 initialized successfully.");
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        initializeAutocomplete();
+        initializeAutocomplete2();
+        initializeAutocomplete3();
+        initializeAutocomplete4();
+        initializeAutocomplete6();
+        initializeAutocomplete7();
+        initializeAutocomplete8();
+    });
+
+    // ========== TABLE FILTERING FUNCTIONS ==========
+    function filterTable() {
+        var dropdown = document.getElementById("positionFilter");
+        var filter = dropdown.value;
+        var table = document.getElementById("jobApplicationsTable");
+        var rows = table.getElementsByTagName("tr");
+
+        for (var i = 0; i < rows.length; i++) {
+            var jobTypeCell = rows[i].getElementsByClassName("job-type")[0];
+            if (jobTypeCell) {
+                var jobType = jobTypeCell.textContent || jobTypeCell.innerText;
+                if (filter === "All" || jobType === filter) {
+                    rows[i].style.display = "";
+                } else {
+                    rows[i].style.display = "none";
+                }
+            }
+        }
+    }
+
+    function moveSelectedItems(sourceId, targetId) {
+        var source = document.getElementById(sourceId);
+        var target = document.getElementById(targetId);
+        var selectedOptions = Array.from(source.selectedOptions);
+        selectedOptions.forEach(option => {
+            target.appendChild(option);
+        });
+    }
+
+    function clearSelection(elementId) {
+        const selectElement = document.getElementById(elementId);
+        if (selectElement) {
+            selectElement.selectedIndex = -1;
+        }
+    }
+
+    function getSelectedOptions(selectId) {
+        const select = document.getElementById(selectId);
+        if (!select) return [];
+        return Array.from(select.selectedOptions).map(opt => opt.value);
+    }
+
+    // ========== LOCATION DROPDOWN FUNCTIONS ==========
+    var selectedRegion = '';
+    var selectedTown = '';
+
+    document.addEventListener('DOMContentLoaded', function () {
+        var regionDropdown = document.getElementById('internshipPerifereiaLocation');
+        if (regionDropdown) {
+            regionDropdown.addEventListener('change', function () {
+                selectedRegion = this.value;
+                var townsDropdown = document.getElementById('internshipDimosLocation');
+                townsDropdown.innerHTML = '<option value="">-- Επιλέξτε Δήμο --</option>';
+
+                if (selectedRegion && selectedRegion in window.regionToTownsMap) {
+                    window.regionToTownsMap[selectedRegion].forEach(function (town) {
+                        var option = document.createElement('option');
+                        option.value = town;
+                        option.text = town;
+                        townsDropdown.appendChild(option);
+                    });
+                }
+            });
+        }
+    });
+
+    // ========== RESEARCH GROUP REDIRECT PROTECTION ==========
+    (function () {
+        if (window.location.pathname === '/researchGroupDetails' ||
+            window.location.pathname.includes('/researchGroupDetails')) {
+
+            console.log('Research group page detected - applying redirect protection');
+
+            const originalPushState = history.pushState;
+            history.pushState = function () {
+                console.log('Blocked pushState navigation from research group page');
+                return;
+            };
+
+            const originalReplaceState = history.replaceState;
+            history.replaceState = function () {
+                console.log('Blocked replaceState navigation from research group page');
+                return;
+            };
+
+            window.addEventListener('beforeunload', function (e) {
+                if (!window.location.pathname.includes('/researchGroupDetails')) {
+                    console.log('Preventing navigation away from research group page');
+                    e.preventDefault();
+                    e.returnValue = '';
+                    return '';
+                }
+            });
+
+            setTimeout(function () {
+                if (!window.location.pathname.includes('/researchGroupDetails')) {
+                    console.log('Redirect detected, returning to research group page');
+                    window.history.replaceState(null, '', window.location.href);
+                }
+            }, 100);
+        }
+    })();
+
+    // ========== CONTAINER TOGGLE FUNCTIONS ==========
+    let isHidden = false;
+
+    function ToggleContainer() {
+        const mainContainer = document.getElementById("main-container");
+        const arrowIcon = document.getElementById("arrow-icon");
+
+        if (isHidden) {
+            mainContainer.classList.remove("hidden");
+            arrowIcon.classList.remove("fa-arrow-left");
+            arrowIcon.classList.add("fa-arrow-right");
+        } else {
+            mainContainer.classList.add("hidden");
+            arrowIcon.classList.remove("fa-arrow-right");
+            arrowIcon.classList.add("fa-arrow-left");
+        }
+        isHidden = !isHidden;
+    }
+
+    window.triggerDownload = (fileUrl, fileName) => {
+        const link = document.createElement('a');
+        link.href = fileUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    // ========== PROJECT SEARCH FUNCTIONS ==========
+    function searchProject() {
+        const projectId = document.getElementById('projectIdInput').value.trim();
+        if (!projectId) {
+            alert("Please enter a Project ID");
+            return;
+        }
+
+        const resultsDiv = document.getElementById('projectResults');
+        resultsDiv.style.display = 'block';
+        resultsDiv.innerHTML = '<p>Loading project information...</p>';
+
+        fetchProjectData(projectId)
+            .then(projectInfo => {
+                if (projectInfo.error) {
+                    resultsDiv.innerHTML = `<p class="text-danger">${projectInfo.error}</p>`;
+                    return;
+                }
+
+                document.getElementById('projectTitle').textContent = projectInfo.title;
+                document.getElementById('projectAcronym').textContent = projectInfo.acronym;
+                document.getElementById('projectGrantId').textContent = projectInfo.grant_id;
+                document.getElementById('projectStatus').textContent = projectInfo.status;
+                document.getElementById('projectDuration').textContent = `${projectInfo.start_date} to ${projectInfo.end_date}`;
+                document.getElementById('projectTotalCost').textContent = projectInfo.total_cost;
+                document.getElementById('projectEuContribution').textContent = projectInfo.eu_contribution;
+                document.getElementById('projectCoordinator').textContent = projectInfo.coordinator;
+                document.getElementById('projectDescription').textContent = projectInfo.description;
+            })
+            .catch(error => {
+                resultsDiv.innerHTML = `<p class="text-danger">Error fetching project data: ${error.message}</p>`;
+            });
+    }
+
+    function fetchProjectData(projectId) {
+        return Promise.resolve({
+            title: "OPTIMised video content delivery chains leveraging data analysis over joint multI-accesS edge computing and 5G radio network infrasTructures",
+            acronym: "OPTIMIST",
+            grant_id: "872866",
+            status: "Project closed",
+            start_date: "1 May 2020",
+            end_date: "30 April 2025",
+            total_cost: "€ 1,490,400.00",
+            eu_contribution: "€ 1,490,400.00",
+            coordinator: "ETHNIKO KAI KAPODISTRIAKO PANEPISTIMIO ATHINON, Greece",
+            description: "The OPTIMIST programme sets the ambitious aim to develop a modular end-to-end service platform tailored to the optimized delivery of personalised video content in 5G mobile networks..."
+        });
+    }
+
+    // ========== NAVIGATION LOADER FUNCTIONS ==========
+    function showBlazorNavigationLoader(message = "Παρακαλώ Περιμένετε...") {
+        const existingLoader = document.getElementById('blazor-navigation-loader');
+        if (existingLoader) existingLoader.remove();
+
+        const loader = document.createElement('div');
+        loader.id = 'blazor-navigation-loader';
+        loader.innerHTML = `
+<div style="
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 99999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: Arial, sans-serif;
+        ">
+    <div style="
+                text-align: center;
+                padding: 40px;
+                background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+                border-radius: 15px;
+                box-shadow: 0 0 40px rgba(0, 150, 255, 0.3);
+                border: 1px solid #3498db;
+                max-width: 400px;
+                width: 90%;
+            ">
+        <div style="
+                    border: 5px solid rgba(255, 255, 255, 0.1);
+                    border-top: 5px solid #3498db;
+                    border-radius: 50%;
+                    width: 60px;
+                    height: 60px;
+                    animation: spin 1s linear infinite;
+                    margin: 0 auto 25px auto;
+                "></div>
+        <div style="
+                    font-size: 22px;
+                    font-weight: bold;
+                    margin-bottom: 15px;
+                    color: white;
+                    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+                ">
+            ${message}
+        </div>
+        <div style="
+                    font-size: 16px;
+                    opacity: 0.8;
+                    color: #ccc;
+                    margin-bottom: 10px;
+                ">
+            Η σελίδα ανανεώνεται...
+        </div>
+        <div style="
+                    font-size: 14px;
+                    opacity: 0.6;
+                    color: #aaa;
+                ">
+            Παρακαλώ μην κλείσετε το παράθυρο, γίνεται ανακατεύθυνση...
+        </div>
+    </div>
+</div>
+        `;
+
+        document.body.appendChild(loader);
+
+        if (!document.getElementById('blazor-loader-styles')) {
+            const style = document.createElement('style');
+            style.id = 'blazor-loader-styles';
+            style.textContent = `
+@@keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+            #blazor-navigation-loader {
+                animation: fadeIn 0.3s ease-in;
+            }
+@@keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+        `;
+            document.head.appendChild(style);
+        }
+    }
+
+    function hideBlazorNavigationLoader() {
+        const loader = document.getElementById('blazor-navigation-loader');
+        if (loader) {
+            loader.style.animation = 'fadeOut 0.3s ease-out';
+            setTimeout(() => loader.remove(), 300);
+        }
+    }
+
+    // Initialize Bootstrap modals
+    var companyDetailsModal = new bootstrap.Modal(document.getElementById('companyDetailsModal') || document.createElement('div'), {
+        backdrop: 'static',
+        keyboard: false
+    });
+
+    var studentDetailsModal = new bootstrap.Modal(document.getElementById('studentDetailsModal') || document.createElement('div'), {
+        backdrop: 'static',
+        keyboard: false
+    });
+</script>

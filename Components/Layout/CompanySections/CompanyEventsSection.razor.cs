@@ -1,12 +1,11 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Forms;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.JSInterop;
 using QuizManager.Data;
-using QuizManager.ViewModels;
 using QuizManager.Models;
 using QuizManager.Services;
+using QuizManager.Services.CompanyDashboard;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,7 +15,7 @@ namespace QuizManager.Components.Layout.CompanySections
 {
     public partial class CompanyEventsSection : ComponentBase
     {
-        [Inject] private AppDbContext dbContext { get; set; } = default!;
+        [Inject] private ICompanyDashboardService CompanyDashboardService { get; set; } = default!;
         [Inject] private IJSRuntime JS { get; set; } = default!;
         [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
         [Inject] private NavigationManager NavigationManager { get; set; } = default!;
@@ -85,6 +84,7 @@ namespace QuizManager.Components.Layout.CompanySections
 
         // Participants for professor events
         private Dictionary<long, int> numberOfCompanyPeopleInputWhenCompanyShowsInterestInProfessorEvent = new Dictionary<long, int>();
+        private HashSet<long> professorEventsCompanyHasInterestedIn = new HashSet<long>();
 
         // Uploaded Events Management
         private bool isUploadedEventsVisible = false;
@@ -152,12 +152,28 @@ namespace QuizManager.Components.Layout.CompanySections
             if (user.Identity.IsAuthenticated)
             {
                 CurrentUserEmail = user.FindFirst("name")?.Value ?? "";
-                companyData = await dbContext.Companies.FirstOrDefaultAsync(c => c.CompanyEmail == CurrentUserEmail);
+                var dashboard = await CompanyDashboardService.LoadDashboardDataAsync();
+                companyData = dashboard.CompanyProfile;
+                CompanyEventsToShowAtFrontPage = dashboard.CompanyEvents.ToList();
+                ProfessorEventsToShowAtFrontPage = dashboard.ProfessorEvents.ToList();
+                professorEventsCompanyHasInterestedIn = dashboard.InterestInProfessorEvents
+                    .Where(i => i.CompanyEmailShowInterestForProfessorEvent != null &&
+                                i.CompanyEmailShowInterestForProfessorEvent.Equals(CurrentUserEmail, StringComparison.OrdinalIgnoreCase))
+                    .Select(i => i.RNGForProfessorEventInterestAsCompany)
+                    .ToHashSet();
+            }
+            else
+            {
+                var monthCompanyEvents = await CompanyDashboardService.GetCompanyEventsForMonthAsync(currentMonth.Year, currentMonth.Month);
+                var monthProfessorEvents = await CompanyDashboardService.GetProfessorEventsForMonthAsync(currentMonth.Year, currentMonth.Month);
+                CompanyEventsToShowAtFrontPage = monthCompanyEvents.ToList();
+                ProfessorEventsToShowAtFrontPage = monthProfessorEvents.ToList();
             }
 
-            CompanyEventsToShowAtFrontPage = await FetchCompanyEventsAsync();
-            ProfessorEventsToShowAtFrontPage = await FetchProfessorEventsAsync();
-            Areas = await dbContext.Areas.ToListAsync();
+            var lookups = await CompanyDashboardService.GetLookupsAsync();
+            Areas = lookups.Areas.ToList();
+            Regions = lookups.Regions.ToList();
+            RegionToTownsMap = lookups.RegionToTownsMap.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToList());
 
             InitializeStaticData();
             LoadEventsForCalendar();
@@ -165,36 +181,31 @@ namespace QuizManager.Components.Layout.CompanySections
 
         private void InitializeStaticData()
         {
-            Regions = new List<string>
+            if (!Regions.Any())
             {
-                "Ανατολική Μακεδονία και Θράκη", "Κεντρική Μακεδονία", "Δυτική Μακεδονία",
-                "Ήπειρος", "Θεσσαλία", "Ιόνια Νησιά", "Δυτική Ελλάδα", "Κεντρική Ελλάδα",
-                "Αττική", "Πελοπόννησος", "Βόρειο Αιγαίο", "Νότιο Αιγαίο", "Κρήτη"
-            };
+                Regions = new List<string>
+                {
+                    "Ανατολική Μακεδονία και Θράκη", "Κεντρική Μακεδονία", "Δυτική Μακεδονία",
+                    "Ήπειρος", "Θεσσαλία", "Ιόνια Νησιά", "Δυτική Ελλάδα", "Κεντρική Ελλάδα",
+                    "Αττική", "Πελοπόννησος", "Βόρειο Αιγαίο", "Νότιο Αιγαίο", "Κρήτη"
+                };
+            }
 
-            RegionToTownsMap = new Dictionary<string, List<string>>
+            if (!RegionToTownsMap.Any())
             {
-                {"Αττική", new List<string> {"Αθήνα", "Πειραιάς", "Περιστέρι", "Καλλιθέα", "Νίκαια", "Γλυφάδα", "Βούλα", "Μαρούσι", "Χαλάνδρι", "Κηφισιά"}},
-                {"Κεντρική Μακεδονία", new List<string> {"Θεσσαλονίκη", "Κατερίνη", "Σέρρες", "Κιλκίς", "Πολύγυρος", "Ναούσα", "Έδεσσα", "Γιαννιτσά"}},
-                {"Θεσσαλία", new List<string> {"Λάρισα", "Βόλος", "Τρίκαλα", "Καρδίτσα"}},
-                // Add more regions as needed
-            };
+                RegionToTownsMap = new Dictionary<string, List<string>>
+                {
+                    {"Αττική", new List<string> {"Αθήνα", "Πειραιάς", "Περιστέρι", "Καλλιθέα", "Νίκαια", "Γλυφάδα", "Βούλα", "Μαρούσι", "Χαλάνδρι", "Κηφισιά"}},
+                    {"Κεντρική Μακεδονία", new List<string> {"Θεσσαλονίκη", "Κατερίνη", "Σέρρες", "Κιλκίς", "Πολύγυρος", "Ναούσα", "Έδεσσα", "Γιαννιτσά"}},
+                    {"Θεσσαλία", new List<string> {"Λάρισα", "Βόλος", "Τρίκαλα", "Καρδίτσα"}},
+                };
+            }
         }
 
-        private async Task<List<CompanyEvent>> FetchCompanyEventsAsync()
+        private async Task RefreshEventsForCurrentMonth()
         {
-            return await dbContext.CompanyEvents
-                .Include(e => e.Company)
-                .AsNoTracking()
-                .ToListAsync();
-        }
-
-        private async Task<List<ProfessorEvent>> FetchProfessorEventsAsync()
-        {
-            return await dbContext.ProfessorEvents
-                .Include(e => e.Professor)
-                .AsNoTracking()
-                .ToListAsync();
+            CompanyEventsToShowAtFrontPage = (await CompanyDashboardService.GetCompanyEventsForMonthAsync(currentMonth.Year, currentMonth.Month)).ToList();
+            ProfessorEventsToShowAtFrontPage = (await CompanyDashboardService.GetProfessorEventsForMonthAsync(currentMonth.Year, currentMonth.Month)).ToList();
         }
 
         private void LoadEventsForCalendar()
@@ -235,15 +246,17 @@ namespace QuizManager.Components.Layout.CompanySections
             StateHasChanged();
         }
 
-        private void ShowPreviousMonth()
+        private async Task ShowPreviousMonth()
         {
             currentMonth = currentMonth.AddMonths(-1);
+            await RefreshEventsForCurrentMonth();
             LoadEventsForCalendar();
         }
 
-        private void ShowNextMonth()
+        private async Task ShowNextMonth()
         {
             currentMonth = currentMonth.AddMonths(1);
+            await RefreshEventsForCurrentMonth();
             LoadEventsForCalendar();
         }
 
@@ -495,8 +508,11 @@ namespace QuizManager.Components.Layout.CompanySections
                     companyEvent.CompanyEventResponsiblePersonTelephone = companyData.CompanyHRTelephone;
                 }
 
-                dbContext.CompanyEvents.Add(companyEvent);
-                await dbContext.SaveChangesAsync();
+                var result = await CompanyDashboardService.CreateOrUpdateCompanyEventAsync(companyEvent);
+                if (!result.Success)
+                {
+                    throw new InvalidOperationException(result.Error ?? "Failed to save event.");
+                }
 
                 await UpdateProgressWhenSaveEventAsCompany(90);
 
@@ -548,24 +564,6 @@ namespace QuizManager.Components.Layout.CompanySections
                 $"Πρόκεται να δείξετε Ενδιαφέρον για την Εκδήλωση: {professorEvent.ProfessorEventTitle}. Είστε σίγουρος/η;");
             if (!confirmed) return;
 
-            var company = await dbContext.Companies.FirstOrDefaultAsync(c => c.CompanyEmail == CurrentUserEmail);
-            if (company == null)
-            {
-                await JS.InvokeVoidAsync("confirmActionWithHTML2", "Δεν βρέθηκαν στοιχεία εταιρείας.");
-                return;
-            }
-
-            var existingInterest = await dbContext.InterestInProfessorEventsAsCompany
-                .FirstOrDefaultAsync(i =>
-                    i.CompanyEmailShowInterestForProfessorEvent == company.CompanyEmail &&
-                    i.RNGForProfessorEventInterestAsCompany == professorEvent.RNGForEventUploadedAsProfessor);
-
-            if (existingInterest != null)
-            {
-                await JS.InvokeVoidAsync("confirmActionWithHTML2", $"Έχετε ήδη δείξει ενδιαφέρον!");
-                return;
-            }
-
             if (!numberOfCompanyPeopleInputWhenCompanyShowsInterestInProfessorEvent.TryGetValue(professorEvent.RNGForEventUploadedAsProfessor, out var numberOfPeople))
             {
                 await JS.InvokeVoidAsync("confirmActionWithHTML2", "Παρακαλώ επιλέξτε αριθμό ατόμων.");
@@ -574,21 +572,15 @@ namespace QuizManager.Components.Layout.CompanySections
 
             try
             {
-                var interest = new InterestInProfessorEventAsCompany
+                var result = await CompanyDashboardService.ShowInterestInProfessorEventAsCompanyAsync(
+                    professorEvent.RNGForEventUploadedAsProfessor,
+                    numberOfPeople);
+                if (!result.Success)
                 {
-                    RNGForProfessorEventInterestAsCompany = professorEvent.RNGForEventUploadedAsProfessor,
-                    RNGForProfessorEventInterestAsCompany_HashedAsUniqueID = professorEvent.RNGForEventUploadedAsProfessor_HashedAsUniqueID,
-                    DateTimeCompanyShowInterestForProfessorEvent = DateTime.Now,
-                    ProfessorEventStatus_ShowInterestAsCompany_AtCompanySide = "Έχετε Δείξει Ενδιαφέρον",
-                    ProfessorEventStatus_ShowInterestAsCompany_AtProfessorSide = "Προς Επεξεργασία",
-                    ProfessorEmailWhereCompanyShowedInterest = professorEvent.ProfessorEmailUsedToUploadEvent,
-                    CompanyEmailShowInterestForProfessorEvent = company.CompanyEmail,
-                    CompanyNumberOfPeopleToShowUpWhenShowInterestForProfessorEvent = numberOfPeople.ToString()
-                };
-
-                dbContext.InterestInProfessorEventsAsCompany.Add(interest);
-                await dbContext.SaveChangesAsync();
-
+                    await JS.InvokeVoidAsync("confirmActionWithHTML2", result.Error ?? "Αποτυχία καταχώρησης ενδιαφέροντος.");
+                    return;
+                }
+                professorEventsCompanyHasInterestedIn.Add(professorEvent.RNGForEventUploadedAsProfessor);
                 await JS.InvokeVoidAsync("confirmActionWithHTML2", "Επιτυχής ένδειξη ενδιαφέροντος!");
                 StateHasChanged();
             }
@@ -622,10 +614,11 @@ namespace QuizManager.Components.Layout.CompanySections
 
         private async Task LoadUploadedEventsAsync()
         {
-            UploadedCompanyEvents = await dbContext.CompanyEvents
+            var data = await CompanyDashboardService.LoadDashboardDataAsync();
+            UploadedCompanyEvents = data.CompanyEvents
                 .Where(e => e.CompanyEmailUsedToUploadEvent == CurrentUserEmail)
                 .OrderByDescending(e => e.CompanyEventUploadedDate)
-                .ToListAsync();
+                .ToList();
         }
 
         private async Task ApplyFiltersAndUpdateCountsForEvents()
@@ -705,26 +698,16 @@ namespace QuizManager.Components.Layout.CompanySections
         // Event Status and Actions
         private async Task ChangeEventStatus(int eventId, string newStatus)
         {
-            var eventToUpdate = await dbContext.CompanyEvents.FindAsync(eventId);
-            if (eventToUpdate != null)
-            {
-                eventToUpdate.CompanyEventStatus = newStatus;
-                await dbContext.SaveChangesAsync();
-                await LoadUploadedEventsAsync();
-                await ApplyFiltersAndUpdateCountsForEvents();
-            }
+            await CompanyDashboardService.UpdateCompanyEventStatusAsync(eventId, newStatus);
+            await LoadUploadedEventsAsync();
+            await ApplyFiltersAndUpdateCountsForEvents();
         }
 
         private async Task DeleteEvent(int eventId)
         {
-            var eventToDelete = await dbContext.CompanyEvents.FindAsync(eventId);
-            if (eventToDelete != null)
-            {
-                dbContext.CompanyEvents.Remove(eventToDelete);
-                await dbContext.SaveChangesAsync();
-                await LoadUploadedEventsAsync();
-                await ApplyFiltersAndUpdateCountsForEvents();
-            }
+            await CompanyDashboardService.DeleteCompanyEventAsync(eventId);
+            await LoadUploadedEventsAsync();
+            await ApplyFiltersAndUpdateCountsForEvents();
         }
 
         // Bulk Operations
@@ -786,21 +769,15 @@ namespace QuizManager.Components.Layout.CompanySections
             if (string.IsNullOrEmpty(selectedBulkActionForEvents) || !selectedEventIds.Any())
                 return;
 
-            var eventsToUpdate = await dbContext.CompanyEvents
-                .Where(e => selectedEventIds.Contains(e.Id))
-                .ToListAsync();
-
-            foreach (var ev in eventsToUpdate)
+            foreach (var evId in selectedEventIds)
             {
                 if (selectedBulkActionForEvents == "Δημοσίευση")
-                    ev.CompanyEventStatus = "Δημοσιευμένη";
+                    await CompanyDashboardService.UpdateCompanyEventStatusAsync(evId, "Δημοσιευμένη");
                 else if (selectedBulkActionForEvents == "Αποδημοσίευση")
-                    ev.CompanyEventStatus = "Μη Δημοσιευμένη";
+                    await CompanyDashboardService.UpdateCompanyEventStatusAsync(evId, "Μη Δημοσιευμένη");
                 else if (selectedBulkActionForEvents == "Διαγραφή")
-                    dbContext.CompanyEvents.Remove(ev);
+                    await CompanyDashboardService.DeleteCompanyEventAsync(evId);
             }
-
-            await dbContext.SaveChangesAsync();
 
             CloseBulkActionModalForEvents();
             CancelBulkEditForEvents();
@@ -832,13 +809,18 @@ namespace QuizManager.Components.Layout.CompanySections
         {
             if (currentEventForEdit == null) return;
 
-            var ev = await dbContext.CompanyEvents.FindAsync(currentEventForEdit.Id);
+            var ev = UploadedCompanyEvents.FirstOrDefault(e => e.Id == currentEventForEdit.Id);
+            if (ev == null)
+            {
+                var data = await CompanyDashboardService.LoadDashboardDataAsync();
+                ev = data.CompanyEvents.FirstOrDefault(e => e.Id == currentEventForEdit.Id);
+            }
             if (ev != null)
             {
                 ev.CompanyEventTitle = currentEventForEdit.CompanyEventTitle;
                 ev.CompanyEventDescription = currentEventForEdit.CompanyEventDescription;
                 ev.CompanyEventActiveDate = currentEventForEdit.CompanyEventActiveDate;
-                await dbContext.SaveChangesAsync();
+                await CompanyDashboardService.CreateOrUpdateCompanyEventAsync(ev);
             }
 
             CloseEditEventModal();
@@ -926,7 +908,7 @@ namespace QuizManager.Components.Layout.CompanySections
         private async Task ChangeCompanyEventStatus(CompanyEvent ev, string newStatus)
         {
             ev.CompanyEventStatus = newStatus;
-            await dbContext.SaveChangesAsync();
+            await CompanyDashboardService.UpdateCompanyEventStatusAsync(ev.Id, newStatus);
             await LoadUploadedEventsAsync();
             await ApplyFiltersAndUpdateCountsForEvents();
             StateHasChanged();
@@ -967,7 +949,10 @@ namespace QuizManager.Components.Layout.CompanySections
             {
                 ev.CompanyEventStatus = newStatus;
             }
-            await dbContext.SaveChangesAsync();
+            foreach (var ev in eventsToUpdate)
+            {
+                await CompanyDashboardService.UpdateCompanyEventStatusAsync(ev.Id, newStatus);
+            }
             await LoadUploadedEventsAsync();
             await ApplyFiltersAndUpdateCountsForEvents();
             CloseBulkActionModalForEvents();
@@ -981,8 +966,8 @@ namespace QuizManager.Components.Layout.CompanySections
             StateHasChanged();
             try
             {
-                // TODO: Call CompanyDashboardService.GetInterestedStudentsForEventAsync
-                await Task.Delay(100);
+                var interests = await CompanyDashboardService.GetCompanyEventInterestsAsync(eventRNG);
+                InterestedStudents = interests.Select(i => i.Application).ToList();
             }
             finally
             {
@@ -997,8 +982,8 @@ namespace QuizManager.Components.Layout.CompanySections
             StateHasChanged();
             try
             {
-                // TODO: Call CompanyDashboardService.GetInterestedProfessorsForEventAsync
-                await Task.Delay(100);
+                var interests = await CompanyDashboardService.GetProfessorCompanyEventInterestsAsync(eventRNG);
+                filteredProfessorInterestForCompanyEvents = interests.ToList();
             }
             finally
             {
@@ -1022,15 +1007,9 @@ namespace QuizManager.Components.Layout.CompanySections
         {
             if (companyEvent.CompanyEventActiveDate.Date > DateTime.Today.Date)
             {
-                var companyEventsCount = await dbContext.CompanyEvents
-                    .CountAsync(e => e.CompanyEventActiveDate.Date == companyEvent.CompanyEventActiveDate.Date && 
-                                    e.CompanyEventStatus == "Δημοσιευμένη");
-                
-                var professorEventsCount = await dbContext.ProfessorEvents
-                    .CountAsync(e => e.ProfessorEventActiveDate.Date == companyEvent.CompanyEventActiveDate.Date && 
-                                    e.ProfessorEventStatus == "Δημοσιευμένη");
-                
-                existingEventsCount = companyEventsCount + professorEventsCount;
+                var counts = await CompanyDashboardService.CountPublishedEventsOnDateAsync(
+                    companyEvent.CompanyEventActiveDate.Date);
+                existingEventsCount = counts.companyEvents + counts.professorEvents;
                 hasExistingEventsOnSelectedDate = existingEventsCount > 0;
             }
             else
@@ -1056,12 +1035,9 @@ namespace QuizManager.Components.Layout.CompanySections
             
                 try
                 {
-                    var companyevent = await dbContext.CompanyEvents.FindAsync(companyeventId);
-                
-                    if (companyevent != null)
+                    var deleted = await CompanyDashboardService.DeleteCompanyEventAsync(companyeventId);
+                    if (deleted)
                     {
-                        dbContext.CompanyEvents.Remove(companyevent);
-                        await dbContext.SaveChangesAsync();
                         await LoadUploadedEventsAsync();
                         await ApplyFiltersAndUpdateCountsForEvents();
                     }
@@ -1122,8 +1098,15 @@ namespace QuizManager.Components.Layout.CompanySections
                 loadingEventRNG = eventRNG;
                 StateHasChanged();
                 
-                // TODO: Load interested students from service
-                await Task.Delay(500);
+                var interests = await CompanyDashboardService.GetCompanyEventInterestsAsync(eventRNG);
+                InterestedStudents = interests.Select(i => i.Application).ToList();
+                foreach (var detail in interests)
+                {
+                    if (detail.Student != null && !studentDataCache.ContainsKey(detail.Student.Student_UniqueID))
+                    {
+                        studentDataCache[detail.Student.Student_UniqueID] = detail.Student;
+                    }
+                }
                 
                 isLoadingInterestedStudents = false;
                 selectedEventIdForStudents = eventRNG;
@@ -1152,8 +1135,8 @@ namespace QuizManager.Components.Layout.CompanySections
                 loadingEventRNGForProfessors = companyeventRNG;
                 StateHasChanged();
                 
-                // TODO: Load interested professors from service
-                await Task.Delay(500);
+                var interests = await CompanyDashboardService.GetProfessorCompanyEventInterestsAsync(companyeventRNG);
+                filteredProfessorInterestForCompanyEvents = interests.ToList();
                 
                 isLoadingInterestedProfessors = false;
                 selectedEventIdForProfessors = companyeventRNG;
@@ -1168,7 +1151,7 @@ namespace QuizManager.Components.Layout.CompanySections
             
             if (student == null)
             {
-                student = await dbContext.Students.FirstOrDefaultAsync(s => s.Student_UniqueID == studentUniqueId);
+                student = await CompanyDashboardService.GetStudentByUniqueIdAsync(studentUniqueId);
                 if (student != null)
                     studentDataCache[student.Student_UniqueID] = student;
             }
@@ -1186,8 +1169,7 @@ namespace QuizManager.Components.Layout.CompanySections
         {
             if (!professorDataCache.TryGetValue(interest.ProfessorEmailShowInterestForCompanyEvent, out var professor))
             {
-                professor = await dbContext.Professors
-                    .FirstOrDefaultAsync(p => p.ProfEmail == interest.ProfessorEmailShowInterestForCompanyEvent);
+                professor = await CompanyDashboardService.GetProfessorByEmailAsync(interest.ProfessorEmailShowInterestForCompanyEvent);
                 
                 if (professor != null)
                     professorDataCache[interest.ProfessorEmailShowInterestForCompanyEvent] = professor;
@@ -1294,6 +1276,11 @@ namespace QuizManager.Components.Layout.CompanySections
         {
             // TODO: Implement Excel download
             await JS.InvokeVoidAsync("alert", "Excel download functionality to be implemented");
+        }
+
+        private bool HasCompanyShownInterestInProfessorEvent(long professorEventRng)
+        {
+            return professorEventsCompanyHasInterestedIn.Contains(professorEventRng);
         }
 
         private async Task ExecuteBulkCopyForEvents()

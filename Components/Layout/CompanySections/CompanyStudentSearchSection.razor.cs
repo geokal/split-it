@@ -1,8 +1,7 @@
 using Microsoft.AspNetCore.Components;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.JSInterop;
-using QuizManager.Data;
 using QuizManager.Models;
+using QuizManager.Services.CompanyDashboard;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,7 +11,7 @@ namespace QuizManager.Components.Layout.CompanySections
 {
     public partial class CompanyStudentSearchSection : ComponentBase
     {
-        [Inject] private AppDbContext dbContext { get; set; } = default!;
+        [Inject] private ICompanyDashboardService CompanyDashboardService { get; set; } = default!;
         [Inject] private IJSRuntime JS { get; set; } = default!;
 
         // Form Visibility
@@ -158,15 +157,19 @@ namespace QuizManager.Components.Layout.CompanySections
             {
                 try
                 {
-                    nameSurnameSuggestions = await Task.Run(() =>
-                        dbContext.Students
-                            .Where(s =>
-                                s.Name.Contains(searchNameOrSurname) ||
-                                s.Surname.Contains(searchNameOrSurname))
-                            .Select(s => s.Name + " " + s.Surname)
-                            .Distinct()
-                            .Take(10)
-                            .ToList());
+                    var results = await CompanyDashboardService.SearchStudentsAsync(new StudentSearchFilter
+                    {
+                        Name = searchNameOrSurname,
+                        Surname = searchNameOrSurname,
+                        MaxResults = 50
+                    });
+
+                    nameSurnameSuggestions = results
+                        .Select(s => $"{s.Name} {s.Surname}".Trim())
+                        .Where(s => !string.IsNullOrWhiteSpace(s))
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .Take(10)
+                        .ToList();
                 }
                 catch (Exception ex)
                 {
@@ -211,38 +214,8 @@ namespace QuizManager.Components.Layout.CompanySections
             {
                 try
                 {
-                    var allAreas = await dbContext.Areas
-                        .Where(a => a.AreaName.Contains(searchAreasOfExpertise) ||
-                                (a.AreaSubFields != null && a.AreaSubFields.Contains(searchAreasOfExpertise)))
-                        .ToListAsync();
-
-                    var suggestionsSet = new HashSet<string>();
-
-                    foreach (var area in allAreas)
-                    {
-                        if (area.AreaName.Contains(searchAreasOfExpertise, StringComparison.OrdinalIgnoreCase))
-                        {
-                            suggestionsSet.Add(area.AreaName);
-                        }
-
-                        if (!string.IsNullOrEmpty(area.AreaSubFields))
-                        {
-                            var subfields = area.AreaSubFields
-                                .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                                .Select(sub => sub.Trim())
-                                .Where(sub => !string.IsNullOrEmpty(sub) &&
-                                            sub.Contains(searchAreasOfExpertise, StringComparison.OrdinalIgnoreCase))
-                                .ToList();
-
-                            foreach (var subfield in subfields)
-                            {
-                                var combination = $"{area.AreaName} - {subfield}";
-                                suggestionsSet.Add(combination);
-                            }
-                        }
-                    }
-
-                    areasOfExpertiseSuggestions = suggestionsSet.Take(10).ToList();
+                    var suggestions = await CompanyDashboardService.SearchAreasAsync(searchAreasOfExpertise);
+                    areasOfExpertiseSuggestions = suggestions.Take(10).ToList();
                 }
                 catch (Exception ex)
                 {
@@ -285,13 +258,8 @@ namespace QuizManager.Components.Layout.CompanySections
             {
                 try
                 {
-                    keywordsSuggestions = await Task.Run(() =>
-                        dbContext.Skills
-                            .Where(k => k.SkillName.Contains(searchKeywords))
-                            .Select(k => k.SkillName)
-                            .Distinct()
-                            .Take(10)
-                            .ToList());
+                    var suggestions = await CompanyDashboardService.SearchSkillsAsync(searchKeywords);
+                    keywordsSuggestions = suggestions.Take(10).ToList();
                 }
                 catch (Exception ex)
                 {
@@ -326,9 +294,7 @@ namespace QuizManager.Components.Layout.CompanySections
 
         private async Task DownloadStudentAttachmentAsCompanyInSearchForStudents(long studentId)
         {
-            var student = await dbContext.Students
-                .Where(s => s.Id == (int)studentId)
-                .FirstOrDefaultAsync();
+            var student = await CompanyDashboardService.GetStudentByIdAsync((int)studentId);
 
             if (student?.Attachment != null)
             {
@@ -340,7 +306,7 @@ namespace QuizManager.Components.Layout.CompanySections
         }
 
         // Search Method
-        private void SearchStudentsAsCompanyToFindStudent()
+        private async Task SearchStudentsAsCompanyToFindStudent()
         {
             var combinedSearchAreas = new List<string>();
 
@@ -368,20 +334,32 @@ namespace QuizManager.Components.Layout.CompanySections
                 .Distinct()
                 .ToList();
 
-            searchResultsAsCompanyToFindStudent = dbContext.Students
-                .AsEnumerable()
+            var filter = new StudentSearchFilter
+            {
+                Name = string.IsNullOrWhiteSpace(searchNameOrSurname) ? null : searchNameOrSurname,
+                Surname = string.IsNullOrWhiteSpace(searchNameOrSurname) ? null : searchNameOrSurname,
+                RegistrationNumber = string.IsNullOrWhiteSpace(searchRegNumberAsCompanyToFindStudent) ? null : searchRegNumberAsCompanyToFindStudent,
+                School = string.IsNullOrWhiteSpace(searchSchoolAsCompanyToFindStudent) ? null : searchSchoolAsCompanyToFindStudent,
+                Department = string.IsNullOrWhiteSpace(searchDepartmentAsCompanyToFindStudent) ? null : searchDepartmentAsCompanyToFindStudent,
+                AreasOfExpertise = normalizedSearchAreas.Any() ? string.Join(", ", combinedSearchAreas) : null,
+                Keywords = normalizedSearchKeywords.Any() ? string.Join(", ", combinedSearchKeywords) : null,
+                DegreeLevel = string.IsNullOrWhiteSpace(selectedDegreeLevel) ? null : selectedDegreeLevel,
+                MaxResults = 500
+            };
+
+            var results = await CompanyDashboardService.SearchStudentsAsync(filter);
+
+            // Apply local filters that aren't in the service filter (internship/thesis status, normalized area/keyword matching)
+            searchResultsAsCompanyToFindStudent = results
                 .Where(s =>
                 {
+                    bool schoolMatch = string.IsNullOrEmpty(searchSchoolAsCompanyToFindStudent) ||
+                        (universityDepartments.ContainsKey(searchSchoolAsCompanyToFindStudent) &&
+                         universityDepartments[searchSchoolAsCompanyToFindStudent].Contains(s.Department));
+
                     var normalizedStudentAreas = NormalizeAreas(s.AreasOfExpertise).ToList();
                     var expandedStudentAreas = ExpandAreasWithSubfields(normalizedStudentAreas);
                     var normalizedStudentKeywords = NormalizeKeywords(s.Keywords).ToList();
-
-                    bool schoolMatch = true;
-                    if (!string.IsNullOrEmpty(searchSchoolAsCompanyToFindStudent))
-                    {
-                        var schoolDepartments = universityDepartments[searchSchoolAsCompanyToFindStudent];
-                        schoolMatch = schoolDepartments.Contains(s.Department);
-                    }
 
                     var areaMatch = !normalizedSearchAreas.Any() ||
                         normalizedSearchAreas.Any(searchArea =>
@@ -395,21 +373,11 @@ namespace QuizManager.Components.Layout.CompanySections
                                 studentKeyword.Contains(searchKeyword, StringComparison.OrdinalIgnoreCase) ||
                                 searchKeyword.Contains(studentKeyword, StringComparison.OrdinalIgnoreCase)));
 
-                    return (string.IsNullOrEmpty(searchNameOrSurname) ||
-                                (s.Name + " " + s.Surname).Contains(searchNameOrSurname, StringComparison.OrdinalIgnoreCase)) &&
-                        (string.IsNullOrEmpty(searchRegNumberAsCompanyToFindStudent) ||
-                                s.RegNumber.ToString().Contains(searchRegNumberAsCompanyToFindStudent)) &&
-                        (string.IsNullOrEmpty(searchSchoolAsCompanyToFindStudent) || schoolMatch) &&
-                        (string.IsNullOrEmpty(searchDepartmentAsCompanyToFindStudent) ||
-                                s.Department == searchDepartmentAsCompanyToFindStudent) &&
-                        (string.IsNullOrEmpty(InternshipStatus) ||
-                                s.InternshipStatus == InternshipStatus) &&
-                        (string.IsNullOrEmpty(ThesisStatus) ||
-                                s.ThesisStatus == ThesisStatus) &&
+                    return schoolMatch &&
+                        (string.IsNullOrEmpty(InternshipStatus) || s.InternshipStatus == InternshipStatus) &&
+                        (string.IsNullOrEmpty(ThesisStatus) || s.ThesisStatus == ThesisStatus) &&
                         areaMatch &&
-                        keywordMatch &&
-                        (string.IsNullOrEmpty(selectedDegreeLevel) ||
-                                s.LevelOfDegree == selectedDegreeLevel);
+                        keywordMatch;
                 })
                 .ToList();
 

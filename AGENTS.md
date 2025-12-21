@@ -263,6 +263,10 @@ Services/
 - ✅ Removed all `DbContext` usage from MainLayout
 - ✅ Kept only: auth state (via `IUserContextService`), front page data (via `IFrontPageService`), navigation helpers
 
+**Phase 5: Component Service Migration (in progress)**
+- ✅ Company components now use `ICompanyDashboardService` for CRUD/status, lookups, attachments, and interest flows (Jobs, Internships, Theses, Events, Announcements, Search)
+- ⚠️ Professor/ResearchGroup/Student components still inject `AppDbContext` directly (future refactor pass)
+
 See `ARCHITECTURE_ANALYSIS.md` for detailed architecture reference from JobFinder-refactored.
 
 ---

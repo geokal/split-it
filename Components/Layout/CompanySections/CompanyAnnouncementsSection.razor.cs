@@ -1,11 +1,11 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Forms;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.JSInterop;
-using QuizManager.Data;
 using QuizManager.Models;
 using QuizManager.ViewModels;
+using QuizManager.Services.CompanyDashboard;
+using QuizManager.Data;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -17,7 +17,7 @@ namespace QuizManager.Components.Layout.CompanySections
 {
     public partial class CompanyAnnouncementsSection : ComponentBase
     {
-        [Inject] private AppDbContext dbContext { get; set; } = default!;
+        [Inject] private ICompanyDashboardService CompanyDashboardService { get; set; } = default!;
         [Inject] private IJSRuntime JS { get; set; } = default!;
         [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
         [Inject] private NavigationManager NavigationManager { get; set; } = default!;
@@ -107,9 +107,11 @@ namespace QuizManager.Components.Layout.CompanySections
             {
                 if (!string.IsNullOrEmpty(CurrentUserEmail))
                 {
-                    UploadedAnnouncements = await dbContext.AnnouncementsAsCompany
+                    // Service currently returns all announcements; filter by current company email here
+                    var data = await CompanyDashboardService.LoadDashboardDataAsync();
+                    UploadedAnnouncements = data.Announcements
                         .Where(a => a.CompanyAnnouncementCompanyEmail == CurrentUserEmail)
-                        .ToListAsync();
+                        .ToList();
                 }
             }
             catch (Exception ex)
@@ -129,33 +131,28 @@ namespace QuizManager.Components.Layout.CompanySections
                 UploadedAnnouncements = await GetUploadedAnnouncements();
             }
 
-            // Apply status filter
-            if (selectedStatusFilterForAnnouncements == "Όλα")
+            FilteredAnnouncements = selectedStatusFilterForAnnouncements switch
             {
-                FilteredAnnouncements = UploadedAnnouncements.ToList();
-            }
-            else
-            {
-                FilteredAnnouncements = UploadedAnnouncements
-                    .Where(a => a.CompanyAnnouncementStatus == selectedStatusFilterForAnnouncements)
-                    .ToList();
-            }
+                "Όλα" => UploadedAnnouncements.ToList(),
+                _ => UploadedAnnouncements
+                        .Where(a => a.CompanyAnnouncementStatus == selectedStatusFilterForAnnouncements)
+                        .ToList()
+            };
 
-            // Update counts
             totalCountAnnouncements = UploadedAnnouncements.Count;
             publishedCountAnnouncements = UploadedAnnouncements.Count(a => a.CompanyAnnouncementStatus == "Δημοσιευμένη");
             unpublishedCountAnnouncements = UploadedAnnouncements.Count(a => a.CompanyAnnouncementStatus == "Μη Δημοσιευμένη");
 
-            // Reset to first page after filtering
             currentPageForAnnouncements = 1;
             StateHasChanged();
         }
 
         private async Task<List<AnnouncementAsCompany>> GetUploadedAnnouncements()
         {
-            return await dbContext.AnnouncementsAsCompany
+            var data = await CompanyDashboardService.LoadDashboardDataAsync();
+            return data.Announcements
                 .Where(a => a.CompanyAnnouncementCompanyEmail == CurrentUserEmail)
-                .ToListAsync();
+                .ToList();
         }
 
         // Filtering
@@ -307,13 +304,8 @@ namespace QuizManager.Components.Layout.CompanySections
                 {
                     foreach (var id in selectedAnnouncementIds)
                     {
-                        var announcement = await dbContext.AnnouncementsAsCompany.FindAsync(id);
-                        if (announcement != null)
-                        {
-                            announcement.CompanyAnnouncementStatus = newStatus;
-                        }
+                        await CompanyDashboardService.UpdateAnnouncementStatusAsync(id, newStatus);
                     }
-                    await dbContext.SaveChangesAsync();
                     await LoadUploadedAnnouncementsAsync();
                     await ApplyFiltersAndUpdateCounts();
                     CancelBulkEditForAnnouncements();
@@ -340,13 +332,11 @@ namespace QuizManager.Components.Layout.CompanySections
                 {
                     foreach (var id in selectedAnnouncementIds)
                     {
-                        var original = await dbContext.AnnouncementsAsCompany.FindAsync(id);
+                        var original = UploadedAnnouncements.FirstOrDefault(a => a.Id == id);
                         if (original != null)
                         {
                             var copy = new AnnouncementAsCompany
                             {
-                                CompanyAnnouncementRNG = new Random().NextInt64(),
-                                CompanyAnnouncementRNG_HashedAsUniqueID = HashingHelper.HashLong(new Random().NextInt64()),
                                 CompanyAnnouncementTitle = original.CompanyAnnouncementTitle + " (Αντίγραφο)",
                                 CompanyAnnouncementDescription = original.CompanyAnnouncementDescription,
                                 CompanyAnnouncementCompanyEmail = CurrentUserEmail,
@@ -355,10 +345,9 @@ namespace QuizManager.Components.Layout.CompanySections
                                 CompanyAnnouncementTimeToBeActive = original.CompanyAnnouncementTimeToBeActive,
                                 CompanyAnnouncementAttachmentFile = original.CompanyAnnouncementAttachmentFile
                             };
-                            dbContext.AnnouncementsAsCompany.Add(copy);
+                            await CompanyDashboardService.CreateOrUpdateAnnouncementAsync(copy);
                         }
                     }
-                    await dbContext.SaveChangesAsync();
                     await LoadUploadedAnnouncementsAsync();
                     await ApplyFiltersAndUpdateCounts();
                     CancelBulkEditForAnnouncements();
@@ -406,13 +395,11 @@ namespace QuizManager.Components.Layout.CompanySections
                 try
                 {
                     await UpdateProgressWhenDeleteAnnouncementAsCompany(30);
-                    var announcement = await dbContext.AnnouncementsAsCompany.FindAsync(announcementId);
+                    var deleted = await CompanyDashboardService.DeleteAnnouncementAsync(announcementId);
 
-                    if (announcement != null)
+                    if (deleted)
                     {
                         await UpdateProgressWhenDeleteAnnouncementAsCompany(60);
-                        dbContext.AnnouncementsAsCompany.Remove(announcement);
-                        await dbContext.SaveChangesAsync();
                         await UpdateProgressWhenDeleteAnnouncementAsCompany(80);
 
                         await UpdateProgressWhenDeleteAnnouncementAsCompany(90);
@@ -455,23 +442,25 @@ namespace QuizManager.Components.Layout.CompanySections
 
         private async Task ChangeAnnouncementStatus(int announcementId, string newStatus)
         {
-            try
-            {
-                var announcement = await dbContext.AnnouncementsAsCompany.FindAsync(announcementId);
-                if (announcement != null)
+                try
                 {
-                    announcement.CompanyAnnouncementStatus = newStatus;
-                    await dbContext.SaveChangesAsync();
-                    await LoadUploadedAnnouncementsAsync();
-                    await ApplyFiltersAndUpdateCounts();
-                    StateHasChanged();
+                    var result = await CompanyDashboardService.UpdateAnnouncementStatusAsync(announcementId, newStatus);
+                    if (result.Success)
+                    {
+                        await LoadUploadedAnnouncementsAsync();
+                        await ApplyFiltersAndUpdateCounts();
+                        StateHasChanged();
+                    }
+                    else
+                    {
+                        await JS.InvokeVoidAsync("alert", result.Error ?? "Σφάλμα κατά την αλλαγή κατάστασης.");
+                    }
                 }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error changing announcement status: {ex.Message}");
-                await JS.InvokeVoidAsync("alert", $"Σφάλμα κατά την αλλαγή κατάστασης: {ex.Message}");
-            }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error changing announcement status: {ex.Message}");
+                    await JS.InvokeVoidAsync("alert", $"Σφάλμα κατά την αλλαγή κατάστασης: {ex.Message}");
+                }
         }
 
         private void OpenEditModal(AnnouncementAsCompany announcement)
@@ -500,30 +489,26 @@ namespace QuizManager.Components.Layout.CompanySections
 
         private async Task UpdateAnnouncement(AnnouncementAsCompany updatedAnnouncement)
         {
-            try
-            {
-                var announcement = await dbContext.AnnouncementsAsCompany.FindAsync(updatedAnnouncement.Id);
-                if (announcement != null)
+                try
                 {
-                    announcement.CompanyAnnouncementTitle = updatedAnnouncement.CompanyAnnouncementTitle;
-                    announcement.CompanyAnnouncementDescription = updatedAnnouncement.CompanyAnnouncementDescription;
-                    announcement.CompanyAnnouncementTimeToBeActive = updatedAnnouncement.CompanyAnnouncementTimeToBeActive;
-                    if (updatedAnnouncement.CompanyAnnouncementAttachmentFile != null && updatedAnnouncement.CompanyAnnouncementAttachmentFile.Length > 0)
+                    var result = await CompanyDashboardService.CreateOrUpdateAnnouncementAsync(updatedAnnouncement);
+                    if (result.Success)
                     {
-                        announcement.CompanyAnnouncementAttachmentFile = updatedAnnouncement.CompanyAnnouncementAttachmentFile;
+                        CloseEditModal();
+                        await LoadUploadedAnnouncementsAsync();
+                        await ApplyFiltersAndUpdateCounts();
+                        StateHasChanged();
                     }
-                    await dbContext.SaveChangesAsync();
-                    CloseEditModal();
-                    await LoadUploadedAnnouncementsAsync();
-                    await ApplyFiltersAndUpdateCounts();
-                    StateHasChanged();
+                    else
+                    {
+                        await JS.InvokeVoidAsync("alert", result.Error ?? "Σφάλμα κατά την ενημέρωση.");
+                    }
                 }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error updating announcement: {ex.Message}");
-                await JS.InvokeVoidAsync("alert", $"Σφάλμα κατά την ενημέρωση: {ex.Message}");
-            }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error updating announcement: {ex.Message}");
+                    await JS.InvokeVoidAsync("alert", $"Σφάλμα κατά την ενημέρωση: {ex.Message}");
+                }
         }
 
         private async Task HandleFileUploadToEditCompanyAnnouncementAttachment(InputFileChangeEventArgs e)
@@ -673,26 +658,7 @@ namespace QuizManager.Components.Layout.CompanySections
         {
             foreach (var announcementId in selectedAnnouncementIds)
             {
-                await UpdateAnnouncementStatusDirectly(announcementId, newStatusForBulkActionForAnnouncements);
-            }
-        }
-
-        private async Task UpdateAnnouncementStatusDirectly(int announcementId, string newStatus)
-        {
-            try
-            {
-                var announcement = await dbContext.AnnouncementsAsCompany
-                    .FirstOrDefaultAsync(a => a.Id == announcementId);
-
-                if (announcement != null)
-                {
-                    announcement.CompanyAnnouncementStatus = newStatus;
-                    await dbContext.SaveChangesAsync();
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error updating announcement status for announcement {announcementId}: {ex.Message}");
+                await CompanyDashboardService.UpdateAnnouncementStatusAsync(announcementId, newStatusForBulkActionForAnnouncements);
             }
         }
 
@@ -722,16 +688,13 @@ namespace QuizManager.Components.Layout.CompanySections
                         CompanyAnnouncementUploadDate = DateTime.Now
                     };
 
-                    dbContext.AnnouncementsAsCompany.Add(newAnnouncement);
+                    await CompanyDashboardService.CreateOrUpdateAnnouncementAsync(newAnnouncement);
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine($"Error copying announcement {originalAnnouncement.Id}: {ex.Message}");
                 }
             }
-        
-            await dbContext.SaveChangesAsync();
         }
     }
 }
-
