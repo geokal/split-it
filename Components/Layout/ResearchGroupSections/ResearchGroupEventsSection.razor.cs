@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.EntityFrameworkCore;
 using QuizManager.Data;
 using QuizManager.Models;
@@ -13,6 +14,13 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
     public partial class ResearchGroupEventsSection : ComponentBase
     {
         [Inject] private AppDbContext dbContext { get; set; } = default!;
+        [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
+        
+        // User Information
+        private string CurrentUserEmail = "";
+        
+        // Selected Event (can be CompanyEvent or ProfessorEvent)
+        private object? selectedEvent = null;
 
         // Calendar State
         private DateTime currentMonth = DateTime.Today;

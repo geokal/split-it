@@ -56,6 +56,7 @@ namespace QuizManager.Components.Layout.CompanySections
         private string bulkActionForAnnouncements = "";
         private string newStatusForBulkActionForAnnouncements = "Μη Δημοσιευμένη";
         private bool showBulkActionModalForAnnouncements = false;
+        private List<AnnouncementAsCompany> selectedAnnouncementsForAction = new List<AnnouncementAsCompany>();
 
         // Individual Operations
         private int activeAnnouncementMenuId = 0;
@@ -276,11 +277,15 @@ namespace QuizManager.Components.Layout.CompanySections
 
         private void ShowBulkActionOptionsForAnnouncements()
         {
-            if (selectedAnnouncementIds.Count > 0)
-            {
-                showBulkActionModalForAnnouncements = true;
-                StateHasChanged();
-            }
+            if (selectedAnnouncementIds.Count == 0) return;
+        
+            selectedAnnouncementsForAction = FilteredAnnouncements
+                .Where(a => selectedAnnouncementIds.Contains(a.Id))
+                .ToList();
+            bulkActionForAnnouncements = "";
+            newStatusForBulkActionForAnnouncements = "Μη Δημοσιευμένη";
+            showBulkActionModalForAnnouncements = true;
+            StateHasChanged();
         }
 
         private void CloseBulkActionModalForAnnouncements()
@@ -540,6 +545,192 @@ namespace QuizManager.Components.Layout.CompanySections
             {
                 Console.WriteLine($"Error uploading announcement attachment: {ex.Message}");
             }
+        }
+
+        // ExecuteBulkActionForAnnouncements (from backup MainLayout)
+        private async Task ExecuteBulkActionForAnnouncements()
+        {
+            if (string.IsNullOrEmpty(bulkActionForAnnouncements) || selectedAnnouncementIds.Count == 0) return;
+
+            string confirmationMessage = "";
+            string actionDescription = "";
+
+            if (bulkActionForAnnouncements == "status")
+            {
+                // Check if any announcements already have the target status
+                var announcementsWithSameStatus = selectedAnnouncementsForAction
+                    .Where(a => a.CompanyAnnouncementStatus == newStatusForBulkActionForAnnouncements)
+                    .ToList();
+
+                if (announcementsWithSameStatus.Any())
+                {
+                    string alreadySameStatusMessage = 
+                        $"<strong style='color: orange;'>Προσοχή:</strong> {announcementsWithSameStatus.Count} από τις επιλεγμένες ανακοινώσεις είναι ήδη στην κατάσταση <strong>'{newStatusForBulkActionForAnnouncements}'</strong> και δεν θα επηρεαστούν.<br><br>" +
+                        "<strong>Ανακοινώσεις που δεν θα αλλάξουν:</strong><br>";
+
+                    foreach (var announcement in announcementsWithSameStatus.Take(5))
+                    {
+                        alreadySameStatusMessage += $"- {announcement.CompanyAnnouncementTitle} ({announcement.CompanyAnnouncementRNG_HashedAsUniqueID})<br>";
+                    }
+
+                    if (announcementsWithSameStatus.Count > 5)
+                    {
+                        alreadySameStatusMessage += $"- ... και άλλες {announcementsWithSameStatus.Count - 5} ανακοινώσεις<br>";
+                    }
+
+                    alreadySameStatusMessage += "<br>";
+
+                    // Show warning first
+                    bool continueAfterWarning = await JS.InvokeAsync<bool>("confirmActionWithHTML", new object[] { 
+                        alreadySameStatusMessage +
+                        "Θέλετε να συνεχίσετε με τις υπόλοιπες ανακοινώσεις;"
+                    });
+
+                    if (!continueAfterWarning)
+                    {
+                        CloseBulkActionModalForAnnouncements();
+                        return;
+                    }
+
+                    // Remove announcements that already have the target status from the selection
+                    foreach (var announcement in announcementsWithSameStatus)
+                    {
+                        selectedAnnouncementIds.Remove(announcement.Id);
+                    }
+
+                    // Update the selected announcements list
+                    selectedAnnouncementsForAction = selectedAnnouncementsForAction
+                        .Where(a => !announcementsWithSameStatus.Contains(a))
+                        .ToList();
+
+                    // If no announcements left after filtering, show message and return
+                    if (selectedAnnouncementIds.Count == 0)
+                    {
+                        await JS.InvokeVoidAsync("confirmActionWithHTML2", "Δεν υπάρχουν ανακοινώσεις για αλλαγή κατάστασης. Όλες οι επιλεγμένες ανακοινώσεις είναι ήδη στην επιθυμητή κατάσταση.");
+                        CloseBulkActionModalForAnnouncements();
+                        return;
+                    }
+                }
+
+                actionDescription = $"αλλαγή κατάστασης σε '{newStatusForBulkActionForAnnouncements}'";
+                confirmationMessage = $"Είστε σίγουροι πως θέλετε να αλλάξετε την κατάσταση των {selectedAnnouncementIds.Count} επιλεγμένων ανακοινώσεων σε <strong>'{newStatusForBulkActionForAnnouncements}'</strong>?<br><br>";
+            }
+            else if (bulkActionForAnnouncements == "copy")
+            {
+                actionDescription = "αντιγραφή";
+                confirmationMessage = $"Είστε σίγουροι πως θέλετε να αντιγράψετε τις {selectedAnnouncementIds.Count} επιλεγμένες ανακοινώσεις?<br>Οι νέες ανακοινώσεις θα έχουν κατάσταση <strong>'Μη Δημοσιευμένη'</strong>.<br><br>";
+            }
+
+            confirmationMessage += "<strong>Επιλεγμένες Ανακοινώσεις:</strong><br>";
+            foreach (var announcement in selectedAnnouncementsForAction.Take(10))
+            {
+                confirmationMessage += $"- {announcement.CompanyAnnouncementTitle} ({announcement.CompanyAnnouncementRNG_HashedAsUniqueID})<br>";
+            }
+
+            if (selectedAnnouncementsForAction.Count > 10)
+            {
+                confirmationMessage += $"- ... και άλλες {selectedAnnouncementsForAction.Count - 10} ανακοινώσεις<br>";
+            }
+
+            bool isConfirmed = await JS.InvokeAsync<bool>("confirmActionWithHTML", new object[] { confirmationMessage });
+
+            if (!isConfirmed)
+            {
+                CloseBulkActionModalForAnnouncements();
+                return;
+            }
+
+            try
+            {
+                showBulkActionModalForAnnouncements = false;
+        
+                if (bulkActionForAnnouncements == "status")
+                {
+                    await UpdateMultipleAnnouncementStatuses();
+                }
+                else if (bulkActionForAnnouncements == "copy")
+                {
+                    await CopyMultipleAnnouncements();
+                }
+
+                // Refresh data after bulk operation
+                await LoadUploadedAnnouncementsAsync();
+                CancelBulkEditForAnnouncements();
+
+                // Refresh with tab focus if needed
+                var tabUrl = $"{NavigationManager.Uri.Split('?')[0]}#announcements";
+                NavigationManager.NavigateTo(tabUrl, true);
+                await Task.Delay(500);
+        
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error during bulk action for announcements: {ex.Message}");
+            }
+        }
+
+        private async Task UpdateMultipleAnnouncementStatuses()
+        {
+            foreach (var announcementId in selectedAnnouncementIds)
+            {
+                await UpdateAnnouncementStatusDirectly(announcementId, newStatusForBulkActionForAnnouncements);
+            }
+        }
+
+        private async Task UpdateAnnouncementStatusDirectly(int announcementId, string newStatus)
+        {
+            try
+            {
+                var announcement = await dbContext.AnnouncementsAsCompany
+                    .FirstOrDefaultAsync(a => a.Id == announcementId);
+
+                if (announcement != null)
+                {
+                    announcement.CompanyAnnouncementStatus = newStatus;
+                    await dbContext.SaveChangesAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error updating announcement status for announcement {announcementId}: {ex.Message}");
+            }
+        }
+
+        private async Task CopyMultipleAnnouncements()
+        {
+            var announcementsToCopy = FilteredAnnouncements
+                .Where(a => selectedAnnouncementIds.Contains(a.Id))
+                .ToList();
+
+            foreach (var originalAnnouncement in announcementsToCopy)
+            {
+                try
+                {
+                    var newAnnouncement = new AnnouncementAsCompany
+                    {
+                        // Copy all properties from original announcement
+                        CompanyAnnouncementTitle = originalAnnouncement.CompanyAnnouncementTitle,
+                        CompanyAnnouncementDescription = originalAnnouncement.CompanyAnnouncementDescription,
+                        CompanyAnnouncementTimeToBeActive = originalAnnouncement.CompanyAnnouncementTimeToBeActive,
+                        CompanyAnnouncementAttachmentFile = originalAnnouncement.CompanyAnnouncementAttachmentFile,
+                        CompanyAnnouncementCompanyEmail = originalAnnouncement.CompanyAnnouncementCompanyEmail,
+                    
+                        CompanyAnnouncementRNG = new Random().NextInt64(),
+                        CompanyAnnouncementRNG_HashedAsUniqueID = HashingHelper.HashLong(new Random().NextInt64()),
+                    
+                        CompanyAnnouncementStatus = "Μη Δημοσιευμένη",
+                        CompanyAnnouncementUploadDate = DateTime.Now
+                    };
+
+                    dbContext.AnnouncementsAsCompany.Add(newAnnouncement);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error copying announcement {originalAnnouncement.Id}: {ex.Message}");
+                }
+            }
+        
+            await dbContext.SaveChangesAsync();
         }
     }
 }

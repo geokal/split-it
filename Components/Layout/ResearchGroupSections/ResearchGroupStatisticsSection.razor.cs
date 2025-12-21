@@ -23,6 +23,7 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
 
         // Visibility
         private bool isStatisticsVisible = false;
+        private bool isLoadingStatistics = false;
 
         // Statistics Counts
         private int? numberOfFacultyMembers;
@@ -134,6 +135,8 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
 
         private async Task LoadResearchGroupStatistics()
         {
+            isLoadingStatistics = true;
+            StateHasChanged();
             try
             {
                 if (currentResearchGroup == null)
@@ -180,6 +183,11 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
             catch (Exception ex)
             {
                 Console.WriteLine($"Error loading statistics: {ex.Message}");
+            }
+            finally
+            {
+                isLoadingStatistics = false;
+                StateHasChanged();
             }
         }
 

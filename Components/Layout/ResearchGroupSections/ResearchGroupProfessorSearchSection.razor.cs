@@ -31,6 +31,7 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
         // Pagination
         private int ProfessorsPerPage_SearchForProfessorsAsRG = 10;
         private int currentProfessorPage_SearchForProfessorsAsRG = 1;
+        private int[] pageSizeOptions_SearchForProfessorsAsRG = new[] { 10, 50, 100 };
 
         // Professor Details Modal
         private bool showProfessorDetailsModalWhenSearchForProfessorsAsRG = false;
@@ -56,6 +57,12 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
         private List<string> filteredProfessorDepartments => !string.IsNullOrEmpty(searchSchoolAsRGToFindProfessor) && universityDepartments.ContainsKey(searchSchoolAsRGToFindProfessor)
             ? universityDepartments[searchSchoolAsRGToFindProfessor]
             : new List<string>();
+        private List<string> filteredProfessorDepartmentsAsRG => 
+            string.IsNullOrEmpty(searchSchoolAsRGToFindProfessor) 
+                ? GetAllProfessorDepartments() 
+                : universityDepartments.ContainsKey(searchSchoolAsRGToFindProfessor)
+                    ? universityDepartments[searchSchoolAsRGToFindProfessor]
+                    : new List<string>();
 
         private int totalProfessorPages_SearchForProfessorsAsRG => searchResultsAsRGToFindProfessor != null
             ? (int)Math.Ceiling((double)searchResultsAsRGToFindProfessor.Count / ProfessorsPerPage_SearchForProfessorsAsRG)
@@ -312,6 +319,19 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
         }
 
         // Helper Methods
+        private List<string> GetAllProfessorDepartments()
+        {
+            return universityDepartments.Values.SelectMany(depts => depts).Distinct().ToList();
+        }
+
+        private async Task OnProfessorSchoolChangedAsRG(ChangeEventArgs e)
+        {
+            searchSchoolAsRGToFindProfessor = e.Value?.ToString() ?? "";
+            // Clear department selection when school changes
+            searchDepartmentAsRGToFindProfessor = "";
+            await InvokeAsync(StateHasChanged);
+        }
+
         private IEnumerable<string> NormalizeAreas(string areas)
         {
             if (string.IsNullOrWhiteSpace(areas))

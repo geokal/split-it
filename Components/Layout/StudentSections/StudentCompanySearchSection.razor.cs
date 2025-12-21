@@ -15,6 +15,7 @@ namespace QuizManager.Components.Layout.StudentSections
     {
         [Inject] private AppDbContext dbContext { get; set; } = default!;
         [Inject] private IJSRuntime JS { get; set; } = default!;
+        [Inject] private NavigationManager NavigationManager { get; set; } = default!;
 
         // Form Visibility
         private bool isStudentSearchCompanyFormVisible = false;
@@ -487,6 +488,27 @@ namespace QuizManager.Components.Layout.StudentSections
             }
 
             return expandedAreas.Distinct().ToList();
+        }
+
+        // SelectCompanyDesiredSkillSuggestionAsStudent (from backup MainLayout)
+        private void SelectCompanyDesiredSkillSuggestionAsStudent(string suggestion)
+        {
+            if (!string.IsNullOrWhiteSpace(suggestion) && !selectedCompanyDesiredSkillsAsStudent.Contains(suggestion))
+            {
+                selectedCompanyDesiredSkillsAsStudent.Add(suggestion);
+                companyDesiredSkillsSuggestionsAsStudent.Clear();
+                searchCompanyDesiredSkillsInputAsStudentToFindCompany = string.Empty;
+            }
+        }
+
+        // OpenMap (from backup MainLayout)
+        private void OpenMap(string location)
+        {
+            if (!string.IsNullOrWhiteSpace(location))
+            {
+                var mapUrl = $"https://www.google.com/maps/search/{Uri.EscapeDataString(location)}";
+                NavigationManager.NavigateTo(mapUrl, true);
+            }
         }
     }
 }
