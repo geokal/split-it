@@ -54,6 +54,36 @@ namespace QuizManager.Components.Layout.StudentSections
         private QuizManager.Models.Company currentCompanyDetailsToShowOnHyperlinkAsStudentForCompanyEvents;
         private bool showCompanyDetailsModalFromEvents = false;
 
+        // Selected Entities
+        private ProfessorEvent currentProfessorEvent;
+        private CompanyEvent currentCompanyEvent;
+        private QuizManager.Models.Professor currentProfessorDetailsToShowOnHyperlinkAsStudentForProfessorEvents;
+        private ProfessorInternship currentProfessorInternship;
+        private CompanyJob currentJob;
+
+        // Transport Needs
+        private Dictionary<long, bool> needsTransportForProfessorEvent = new Dictionary<long, bool>();
+        private Dictionary<long, bool> needsTransportForCompanyEvent = new Dictionary<long, bool>();
+        private Dictionary<long, string> selectedStartingPoint = new Dictionary<long, string>();
+
+        // Event Lists
+        private List<ProfessorEvent> professorEventsToSeeAsStudent = new List<ProfessorEvent>();
+        private List<CompanyEvent> companyEventsToSeeAsStudent = new List<CompanyEvent>();
+        private bool isProfessorEventsVisibleToSeeAsStudent = false;
+        private bool isCompanyEventsVisibleToSeeAsStudent = false;
+
+        // Interest Tracking
+        private HashSet<long> interestedProfessorEventIds = new HashSet<long>();
+        private HashSet<long> alreadyInterestedCompanyEventIds = new HashSet<long>();
+
+        // Filtering and Pagination
+        private string selectedEventType = "all";
+        private string selectedEventStatus = "all";
+        private int currentPageForEvents = 1;
+        private int itemsPerPageForEvents = 10;
+        private int totalPagesForEvents = 1;
+        private bool isLoadingEvents = false;
+
         // Computed Properties
         private List<CompanyEvent> filteredCompanyEvents =>
             selectedEventFilter == "All" || selectedEventFilter == "Company"
@@ -312,6 +342,407 @@ namespace QuizManager.Components.Layout.StudentSections
                 normalizedFileName += ".pdf";
             }
             await JS.InvokeVoidAsync("BlazorDownloadAttachmentPositionFile", normalizedFileName, "application/pdf", attachmentData);
+        }
+
+        // Helper Methods
+        private bool IsPastEvent(DateTime? eventDate)
+        {
+            if (eventDate == null) return true; 
+            return eventDate.Value.Date < DateTime.Today;
+        }
+
+        private async Task ToggleAndLoadCompanyAndProfessorEventsAsStudent()
+        {
+            if (isLoadingEvents) return;
+
+            isLoadingEvents = true;
+            StateHasChanged();
+
+            try
+            {
+                bool isOpening = !isCompanyEventsVisibleToSeeAsStudent && !isProfessorEventsVisibleToSeeAsStudent;
+
+                if (isOpening)
+                {
+                    // Fetch events
+                    companyEventsToSeeAsStudent = await dbContext.CompanyEvents
+                        .Include(e => e.Company)
+                        .Where(e => e.CompanyEventStatus == "Δημοσιευμένη")
+                        .AsNoTracking()
+                        .ToListAsync();
+
+                    professorEventsToSeeAsStudent = await dbContext.ProfessorEvents
+                        .Include(e => e.Professor)
+                        .Where(e => e.ProfessorEventStatus == "Δημοσιευμένη")
+                        .AsNoTracking()
+                        .ToListAsync();
+
+                    // Load interest IDs
+                    if (!string.IsNullOrEmpty(CurrentUserEmail))
+                    {
+                        var student = await dbContext.Students.FirstOrDefaultAsync(s => s.Email == CurrentUserEmail);
+                        if (student != null)
+                        {
+                            alreadyInterestedCompanyEventIds = await dbContext.InterestInCompanyEventsAsStudent
+                                .Where(i => i.StudentEmailShowInterestForCompanyEvent == CurrentUserEmail)
+                                .Select(i => i.RNGForCompanyEventInterestAsStudent)
+                                .ToHashSetAsync();
+
+                            interestedProfessorEventIds = await dbContext.InterestInProfessorEventsAsStudent
+                                .Where(i => i.StudentEmailShowInterestForProfessorEvent == CurrentUserEmail)
+                                .Select(i => i.RNGForProfessorEventInterestAsStudent)
+                                .ToHashSetAsync();
+                        }
+                    }
+                }
+
+                isCompanyEventsVisibleToSeeAsStudent = !isCompanyEventsVisibleToSeeAsStudent;
+                isProfessorEventsVisibleToSeeAsStudent = !isProfessorEventsVisibleToSeeAsStudent;
+
+                currentPageForEvents = 1;
+                UpdateTotalPages();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error loading events: {ex.Message}");
+            }
+            finally
+            {
+                isLoadingEvents = false;
+                StateHasChanged();
+            }
+        }
+
+        private void UpdateTotalPages()
+        {
+            int totalItems = 0;
+            if (selectedEventType == "all" || selectedEventType == "company")
+                totalItems += companyEventsToSeeAsStudent.Count;
+            if (selectedEventType == "all" || selectedEventType == "professor")
+                totalItems += professorEventsToSeeAsStudent.Count;
+            
+            totalPagesForEvents = (int)Math.Ceiling((double)totalItems / itemsPerPageForEvents);
+            if (totalPagesForEvents < 1) totalPagesForEvents = 1;
+        }
+
+        private IEnumerable<CompanyEvent> GetPaginatedCompanyEvents_StudentSearchEvents()
+        {
+            if (selectedEventType == "professor") return Enumerable.Empty<CompanyEvent>();
+        
+            var filtered = companyEventsToSeeAsStudent;
+            if (selectedEventType == "all" || selectedEventType == "company")
+            {
+                return filtered
+                    .Skip((currentPageForEvents - 1) * itemsPerPageForEvents)
+                    .Take(itemsPerPageForEvents);
+            }
+            return Enumerable.Empty<CompanyEvent>();
+        }
+
+        private IEnumerable<ProfessorEvent> GetPaginatedProfessorEvents_StudentSearchEvents()
+        {
+            if (selectedEventType == "company") return Enumerable.Empty<ProfessorEvent>();
+        
+            var filtered = professorEventsToSeeAsStudent;
+            if (selectedEventType == "all" || selectedEventType == "professor")
+            {
+                return filtered
+                    .Skip((currentPageForEvents - 1) * itemsPerPageForEvents)
+                    .Take(itemsPerPageForEvents);
+            }
+            return Enumerable.Empty<ProfessorEvent>();
+        }
+
+        // Pagination Methods
+        private void GoToFirstPageForEvents()
+        {
+            currentPageForEvents = 1;
+            StateHasChanged();
+        }
+
+        private void PreviousPageForEvents()
+        {
+            if (currentPageForEvents > 1)
+            {
+                currentPageForEvents--;
+                StateHasChanged();
+            }
+        }
+
+        private void NextPageForEvents()
+        {
+            if (currentPageForEvents < totalPagesForEvents)
+            {
+                currentPageForEvents++;
+                StateHasChanged();
+            }
+        }
+
+        private void GoToLastPageForEvents()
+        {
+            currentPageForEvents = totalPagesForEvents;
+            StateHasChanged();
+        }
+
+        private void GoToPageForEvents(int page)
+        {
+            if (page >= 1 && page <= totalPagesForEvents)
+            {
+                currentPageForEvents = page;
+                StateHasChanged();
+            }
+        }
+
+        private List<int> GetVisiblePagesForEvents()
+        {
+            var pages = new List<int>();
+            int current = currentPageForEvents;
+            int total = totalPagesForEvents;
+
+            if (total == 0) return pages;
+
+            pages.Add(1);
+            if (current > 3) pages.Add(-1);
+
+            int start = Math.Max(2, current - 1);
+            int end = Math.Min(total - 1, current + 1);
+
+            for (int i = start; i <= end; i++) pages.Add(i);
+
+            if (current < total - 2) pages.Add(-1);
+            if (total > 1) pages.Add(total);
+
+            return pages;
+        }
+
+        // Transport Toggle
+        private void ToggleTransport(long eventRNG, object value)
+        {
+            bool needsTransport = (bool)(value ?? false);
+            if (selectedEvent is CompanyEvent companyEvent)
+            {
+                needsTransportForCompanyEvent[eventRNG] = needsTransport;
+            }
+            else if (selectedEvent is ProfessorEvent professorEvent)
+            {
+                needsTransportForProfessorEvent[eventRNG] = needsTransport;
+            }
+            StateHasChanged();
+        }
+
+        // Modal Visibility Properties
+        private bool isModalOpenForCompanyEventToSeeAsStudent = false;
+        private bool isModalOpenForProfessorEventToSeeAsStudent = false;
+        private bool isModalOpenForCompanyDetailsToSeeAsStudent = false;
+        private bool isModalOpenForProfessorDetailsToSeeAsStudent = false;
+        private bool isJobDetailsModal2Visible = false;
+        private bool isModalVisibleForProfessorInternshipsAsStudent = false;
+        private bool showLoadingModalWhenShowInterestForCompanyEventAsStudent = false;
+        private bool showLoadingModalWhenShowInterestForProfessorEventAsStudent = false;
+        private int loadingProgressWhenShowInterestForCompanyEventAsStudent = 0;
+        private int loadingProgressWhenShowInterestForProfessorEventAsStudent = 0;
+
+        // Pagination Options
+        private int[] pageSizeOptions_SearchForEventsAsStudent = new[] { 10, 50, 100 };
+
+        // Event Details Methods
+        private void ShowCompanyEventDetails(CompanyEvent eventDetails)
+        {
+            currentCompanyEvent = eventDetails;
+            isModalOpenForCompanyEventToSeeAsStudent = true;
+            StateHasChanged();
+        }
+
+        private void ShowProfessorEventDetails(ProfessorEvent eventDetails)
+        {
+            currentProfessorEvent = eventDetails;
+            isModalOpenForProfessorEventToSeeAsStudent = true;
+            StateHasChanged();
+        }
+
+        // Modal Close Methods
+        private void CloseModalForCompanyEventToSeeAsStudent()
+        {
+            isModalOpenForCompanyEventToSeeAsStudent = false;
+            currentCompanyEvent = null;
+            StateHasChanged();
+        }
+
+        private void CloseModalForProfessorEventToSeeAsStudent()
+        {
+            isModalOpenForProfessorEventToSeeAsStudent = false;
+            currentProfessorEvent = null;
+            StateHasChanged();
+        }
+
+        private void ShowCompanyDetailsModalAtEventsAsStudent(Company company)
+        {
+            currentCompanyDetailsToShowOnHyperlinkAsStudentForCompanyEvents = company;
+            isModalOpenForCompanyDetailsToSeeAsStudent = true;
+            StateHasChanged();
+        }
+
+        private void CloseCompanyDetailsModalAtEventsAsStudent()
+        {
+            isModalOpenForCompanyDetailsToSeeAsStudent = false;
+            currentCompanyDetailsToShowOnHyperlinkAsStudentForCompanyEvents = null;
+            StateHasChanged();
+        }
+
+        private void ShowProfessorDetailsModalAtEventsAsStudent(QuizManager.Models.Professor professor)
+        {
+            currentProfessorDetailsToShowOnHyperlinkAsStudentForProfessorEvents = professor;
+            isModalOpenForProfessorDetailsToSeeAsStudent = true;
+            StateHasChanged();
+        }
+
+        private void CloseProfessorDetailsModalAtEventsAsStudent()
+        {
+            isModalOpenForProfessorDetailsToSeeAsStudent = false;
+            currentProfessorDetailsToShowOnHyperlinkAsStudentForProfessorEvents = null;
+            StateHasChanged();
+        }
+
+        private void CloseJobDetailsModal()
+        {
+            isJobDetailsModal2Visible = false;
+            currentJob = null;
+            StateHasChanged();
+        }
+
+        private void CloseProfessorInternshipDetailsModal()
+        {
+            isModalVisibleForProfessorInternshipsAsStudent = false;
+            currentProfessorInternship = null;
+            StateHasChanged();
+        }
+
+        // Profile Image
+        private string ShowProfileImage(string imageBase64)
+        {
+            if (string.IsNullOrEmpty(imageBase64))
+                return "/images/default-profile.png";
+            return $"data:image/png;base64,{imageBase64}";
+        }
+
+        // Event Status Change
+        private async Task OnEventStatusChanged(ChangeEventArgs e)
+        {
+            selectedEventStatus = e.Value?.ToString() ?? "all";
+            await OnEventStatusChange();
+        }
+
+        private async Task OnEventStatusChange()
+        {
+            if (isCompanyEventsVisibleToSeeAsStudent || isProfessorEventsVisibleToSeeAsStudent)
+            {
+                await ToggleAndLoadCompanyAndProfessorEventsAsStudent();
+            }
+        }
+
+        // Page Size Change
+        private void OnPageSizeChange_SearchForEventsAsStudent(ChangeEventArgs e)
+        {
+            if (int.TryParse(e.Value?.ToString(), out int newSize) && newSize > 0)
+            {
+                itemsPerPageForEvents = newSize;
+                currentPageForEvents = 1;
+                UpdateTotalPages();
+                StateHasChanged();
+            }
+        }
+
+        // Helper: Get Student Details
+        private async Task<Student> GetStudentDetails(string email)
+        {
+            if (string.IsNullOrEmpty(email))
+                return null;
+            
+            return await dbContext.Students
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.Email == email);
+        }
+
+        // Progress Update Methods
+        private async Task UpdateProgressWhenShowInterestForCompanyEventAsStudent(int targetProgress, int delayMs)
+        {
+            int steps = targetProgress - loadingProgressWhenShowInterestForCompanyEventAsStudent;
+            if (steps <= 0) return;
+
+            for (int i = 0; i < steps; i++)
+            {
+                loadingProgressWhenShowInterestForCompanyEventAsStudent++;
+                StateHasChanged();
+                await Task.Delay(delayMs / steps);
+            }
+        }
+
+        private async Task UpdateProgressWhenShowInterestForProfessorEventAsStudent(int targetProgress, int delayMs)
+        {
+            int steps = targetProgress - loadingProgressWhenShowInterestForProfessorEventAsStudent;
+            if (steps <= 0) return;
+
+            for (int i = 0; i < steps; i++)
+            {
+                loadingProgressWhenShowInterestForProfessorEventAsStudent++;
+                StateHasChanged();
+                await Task.Delay(delayMs / steps);
+            }
+        }
+
+        // Show Interest Methods (simplified - full implementation needs StudentDashboardService)
+        private async Task<bool> ShowInterestInCompanyEvent(CompanyEvent companyEvent, bool needsTransport)
+        {
+            // This should delegate to StudentDashboardService
+            // For now, placeholder implementation
+            showLoadingModalWhenShowInterestForCompanyEventAsStudent = true;
+            loadingProgressWhenShowInterestForCompanyEventAsStudent = 0;
+            StateHasChanged();
+
+            try
+            {
+                await UpdateProgressWhenShowInterestForCompanyEventAsStudent(50, 300);
+                // TODO: Call StudentDashboardService.ShowInterestInCompanyEventAsync
+                await UpdateProgressWhenShowInterestForCompanyEventAsStudent(100, 300);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error showing interest: {ex.Message}");
+                return false;
+            }
+            finally
+            {
+                showLoadingModalWhenShowInterestForCompanyEventAsStudent = false;
+                StateHasChanged();
+            }
+        }
+
+        private async Task<bool> ShowInterestInProfessorEvent(ProfessorEvent professorEvent, bool needsTransport)
+        {
+            // This should delegate to StudentDashboardService
+            // For now, placeholder implementation
+            showLoadingModalWhenShowInterestForProfessorEventAsStudent = true;
+            loadingProgressWhenShowInterestForProfessorEventAsStudent = 0;
+            StateHasChanged();
+
+            try
+            {
+                await UpdateProgressWhenShowInterestForProfessorEventAsStudent(50, 300);
+                // TODO: Call StudentDashboardService.ShowInterestInProfessorEventAsync
+                await UpdateProgressWhenShowInterestForProfessorEventAsStudent(100, 300);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error showing interest: {ex.Message}");
+                return false;
+            }
+            finally
+            {
+                showLoadingModalWhenShowInterestForProfessorEventAsStudent = false;
+                StateHasChanged();
+            }
         }
     }
 }
