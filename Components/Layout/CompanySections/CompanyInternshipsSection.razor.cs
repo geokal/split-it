@@ -747,6 +747,48 @@ namespace QuizManager.Components.Layout.CompanySections
                     $"student-cv-{student.RegNumber}.pdf", "application/pdf", student.Attachment);
             }
         }
+
+        // Additional Missing Properties
+        private List<CompanyInternship> internships = new List<CompanyInternship>();
+        private bool sendEmailsForBulkInternshipAction = true;
+        private bool showCheckboxesForEditCompanyInternship = false;
+        private Dictionary<string, Student> studentDataCache = new Dictionary<string, Student>();
+        private Dictionary<string, List<string>> RegionToTownsMap = new Dictionary<string, List<string>>();
+        private string CompanyInternshipAttachmentErrorMessage = "";
+        private bool showSlotWarningModal_ForCompanyInternship = false;
+        private string slotWarningMessage_ForCompanyInternship = "";
+        private bool showEmailConfirmationModalForInternshipApplicants = false;
+        private bool showSuccessMessageWhenSaveInternshipAsCompany = false;
+
+        // Methods
+        private void ShowEmailConfirmationModalForInternshipApplicants()
+        {
+            showEmailConfirmationModalForInternshipApplicants = true;
+            StateHasChanged();
+        }
+
+        private void CloseEmailConfirmationModalForInternshipApplicants()
+        {
+            showEmailConfirmationModalForInternshipApplicants = false;
+            StateHasChanged();
+        }
+
+        private void CloseSlotWarningModal_ForCompanyInternship()
+        {
+            showSlotWarningModal_ForCompanyInternship = false;
+            slotWarningMessage_ForCompanyInternship = "";
+            StateHasChanged();
+        }
+
+        private void CloseModalforHyperLinkTitleStudentName()
+        {
+            StateHasChanged();
+        }
+
+        private void CloseModalForInternships()
+        {
+            StateHasChanged();
+        }
     }
 }
 
