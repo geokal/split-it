@@ -851,6 +851,63 @@ namespace QuizManager.Components.Layout.CompanySections
         {
             currentProfessorDetails = null;
         }
+
+        // Additional Missing Properties
+        private QuizManager.Models.Professor selectedProfessorToShowDetailsForInterestinCompanyEvent;
+        private List<CompanyThesis> companytheses = new List<CompanyThesis>();
+        private bool sendEmailsForBulkThesisAction = true;
+        private int currentPage_ProfessorTheses = 1;
+        private int totalPages_ProfessorTheses = 1;
+        private bool isThesisDetailEyeIconModalVisibleToSeeAsCompany = false;
+        private Dictionary<string, Student> studentDataCache = new Dictionary<string, Student>();
+        private List<string> skillSuggestionsToFindThesesAsCompany = new List<string>();
+        private bool showErrorMessage = false;
+        private List<string> professorSurnameSuggestions = new List<string>();
+        private List<string> professorNameSuggestions = new List<string>();
+        private bool isUploadedProfessorThesesVisibleAsCompany = false;
+        private List<string> areaSuggestionsToFindThesesAsCompany = new List<string>();
+        private string CompanyThesisAttachmentErrorMessage = "";
+        private bool showSlotWarningModal_ForCompanyThesis = false;
+        private string slotWarningMessage_ForCompanyThesis = "";
+        private bool showEmailConfirmationModalForThesisApplicants = false;
+
+        // Methods
+        private void ToggleToSearchForUploadedProfessorThesesAsCompany()
+        {
+            isUploadedProfessorThesesVisibleAsCompany = !isUploadedProfessorThesesVisibleAsCompany;
+            StateHasChanged();
+        }
+
+        private void ShowEmailConfirmationModalForThesisApplicants()
+        {
+            showEmailConfirmationModalForThesisApplicants = true;
+            StateHasChanged();
+        }
+
+        private void CloseEmailConfirmationModalForThesisApplicants()
+        {
+            showEmailConfirmationModalForThesisApplicants = false;
+            StateHasChanged();
+        }
+
+        private void CloseSlotWarningModal_ForCompanyThesis()
+        {
+            showSlotWarningModal_ForCompanyThesis = false;
+            StateHasChanged();
+        }
+
+        private void CloseProfessorDetailsModal()
+        {
+            selectedProfessorToShowDetailsForInterestinCompanyEvent = null;
+            StateHasChanged();
+        }
+
+        private void CloseCompanyThesisEditModal()
+        {
+            isModalVisibleToEditCompanyThesisDetails = false;
+            currentThesis = null;
+            StateHasChanged();
+        }
     }
 }
 
