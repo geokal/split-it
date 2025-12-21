@@ -800,6 +800,74 @@ namespace QuizManager.Components.Layout.CompanySections
         {
             showSlotWarningModal_ForCompanyJob = false;
             slotWarningMessage_ForCompanyJob = "";
+            StateHasChanged();
+        }
+
+        // Additional Missing Properties
+        private CompanyJob selectedJob;
+        private CompanyJobApplied selectedJobApplication;
+        private List<CompanyJob> jobs = new List<CompanyJob>();
+        private bool showErrorMessage = false;
+        private bool showCheckboxesForEditCompanyJob = false;
+        private Dictionary<string, Student> studentDataCache = new Dictionary<string, Student>();
+        private bool showErrorMessageforPostalCode = false;
+        private bool showEmailConfirmationModalForApplicants = false;
+        private Dictionary<string, List<string>> RegionToTownsMap = new Dictionary<string, List<string>>();
+        private string PositionAttachmentErrorMessage = "";
+        private bool isModalVisibleForJobs = false;
+        private bool isEditPopupVisibleForJobs = false;
+        private bool showCheckboxesForCompanyJob = false;
+        private bool showLoadingModalForDeleteJob = false;
+
+        // Methods
+        private void ShowEmailConfirmationModalForApplicants()
+        {
+            showEmailConfirmationModalForApplicants = true;
+            StateHasChanged();
+        }
+
+        private void CloseEmailConfirmationModalForApplicants()
+        {
+            showEmailConfirmationModalForApplicants = false;
+            StateHasChanged();
+        }
+
+        private void CloseModalForJobs()
+        {
+            isModalVisibleForJobs = false;
+            selectedJob = null;
+            StateHasChanged();
+        }
+
+        private void ToggleCheckboxesForEditCompanyJob()
+        {
+            showCheckboxesForEditCompanyJob = !showCheckboxesForEditCompanyJob;
+            StateHasChanged();
+        }
+
+        private void ToggleSubFieldsForEditCompanyJob(int areaId)
+        {
+            if (ExpandedAreasForEditCompanyJob.Contains(areaId))
+                ExpandedAreasForEditCompanyJob.Remove(areaId);
+            else
+                ExpandedAreasForEditCompanyJob.Add(areaId);
+            StateHasChanged();
+        }
+
+        private void ToggleApplicantSelection(int applicantId, object checkedValue)
+        {
+            bool isChecked = (bool)(checkedValue ?? false);
+            if (isChecked)
+                selectedApplicantIds.Add(applicantId);
+            else
+                selectedApplicantIds.Remove(applicantId);
+            StateHasChanged();
+        }
+
+        private void ShowStudentDetailsInNameAsHyperlink(string studentEmail)
+        {
+            // TODO: Load and show student details
+            StateHasChanged();
         }
     }
 }
