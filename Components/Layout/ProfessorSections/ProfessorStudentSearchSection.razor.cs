@@ -31,6 +31,10 @@ namespace QuizManager.Components.Layout.ProfessorSections
         // Selected values
         private List<string> selectedAreasOfExpertise = new List<string>();
         private List<string> selectedKeywords = new List<string>();
+        
+        // Suggestions
+        private List<string> areasOfExpertiseSuggestions = new List<string>();
+        private List<string> keywordsSuggestions = new List<string>();
 
         // University Departments
         private Dictionary<string, List<string>> universityDepartments = new()
@@ -107,6 +111,13 @@ namespace QuizManager.Components.Layout.ProfessorSections
 
         // Computed Properties
         private List<string> researchGroupSchools => universityDepartments.Keys.ToList();
+        private List<string> filteredStudentDepartmentsAsProfessor => 
+            string.IsNullOrEmpty(searchSchoolAsProfessorToFindStudent) 
+                ? GetAllStudentDepartments() 
+                : universityDepartments.ContainsKey(searchSchoolAsProfessorToFindStudent)
+                    ? universityDepartments[searchSchoolAsProfessorToFindStudent]
+                    : new List<string>();
+        
         private List<string> filteredStudentDepartments =>
             string.IsNullOrEmpty(searchSchoolAsProfessorToFindStudent)
                 ? new List<string>()
@@ -410,6 +421,262 @@ namespace QuizManager.Components.Layout.ProfessorSections
                 .Select(keyword => keyword.Trim().ToLower())
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .Where(keyword => !string.IsNullOrEmpty(keyword));
+        }
+
+        // HandleAreasOfExpertiseInput (from backup MainLayout)
+        private async Task HandleAreasOfExpertiseInput(ChangeEventArgs e)
+        {
+            searchAreasOfExpertiseAsProfessorToFindStudent = e.Value?.ToString().Trim() ?? string.Empty;
+            areasOfExpertiseSuggestions = new List<string>();
+
+            if (searchAreasOfExpertiseAsProfessorToFindStudent.Length >= 1)
+            {
+                try
+                {
+                    var allAreas = await dbContext.Areas
+                        .Where(a => a.AreaName.Contains(searchAreasOfExpertiseAsProfessorToFindStudent) || 
+                                (a.AreaSubFields != null && a.AreaSubFields.Contains(searchAreasOfExpertiseAsProfessorToFindStudent)))
+                        .ToListAsync();
+
+                    var suggestionsSet = new HashSet<string>();
+
+                    foreach (var area in allAreas)
+                    {
+                        if (area.AreaName.Contains(searchAreasOfExpertiseAsProfessorToFindStudent, StringComparison.OrdinalIgnoreCase))
+                        {
+                            suggestionsSet.Add(area.AreaName);
+                        }
+
+                        if (!string.IsNullOrEmpty(area.AreaSubFields))
+                        {
+                            var subfields = area.AreaSubFields
+                                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                                .Select(sub => sub.Trim())
+                                .Where(sub => !string.IsNullOrEmpty(sub) &&
+                                            sub.Contains(searchAreasOfExpertiseAsProfessorToFindStudent, StringComparison.OrdinalIgnoreCase));
+
+                            foreach (var subfield in subfields)
+                            {
+                                var combination = $"{area.AreaName} - {subfield}";
+                                suggestionsSet.Add(combination);
+                            }
+                        }
+                    }
+
+                    areasOfExpertiseSuggestions = suggestionsSet.Take(10).ToList();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error retrieving Areas of Expertise: {ex.Message}");
+                    areasOfExpertiseSuggestions = new List<string>();
+                }
+            }
+            else
+            {
+                areasOfExpertiseSuggestions.Clear();
+            }
+
+            StateHasChanged();
+        }
+
+        // SelectAreasOfExpertiseSuggestion (from backup MainLayout)
+        private void SelectAreasOfExpertiseSuggestion(string suggestion)
+        {
+            if (!string.IsNullOrWhiteSpace(suggestion) && !selectedAreasOfExpertise.Contains(suggestion))
+            {
+                selectedAreasOfExpertise.Add(suggestion);
+                areasOfExpertiseSuggestions.Clear();
+                searchAreasOfExpertiseAsProfessorToFindStudent = string.Empty;
+            }
+        }
+
+        // RemoveSelectedAreaOfExpertise (from backup MainLayout)
+        private void RemoveSelectedAreaOfExpertise(string area)
+        {
+            selectedAreasOfExpertise.Remove(area);
+            StateHasChanged();
+        }
+
+        // HandleKeywordsInput (from backup MainLayout)
+        private async Task HandleKeywordsInput(ChangeEventArgs e)
+        {
+            searchKeywordsAsProfessorToFindStudent = e.Value?.ToString().Trim() ?? string.Empty;
+            keywordsSuggestions = new List<string>();
+
+            if (searchKeywordsAsProfessorToFindStudent.Length >= 1)
+            {
+                try
+                {
+                    keywordsSuggestions = await Task.Run(() =>
+                        dbContext.Students
+                            .Where(s => s.Keywords != null && s.Keywords.Contains(searchKeywordsAsProfessorToFindStudent))
+                            .SelectMany(s => s.Keywords.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                            .Select(k => k.Trim())
+                            .Where(k => !string.IsNullOrEmpty(k) && k.Contains(searchKeywordsAsProfessorToFindStudent, StringComparison.OrdinalIgnoreCase))
+                            .Distinct(StringComparer.OrdinalIgnoreCase)
+                            .Take(10)
+                            .ToList());
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error retrieving keywords: {ex.Message}");
+                    keywordsSuggestions = new List<string>();
+                }
+            }
+            else
+            {
+                keywordsSuggestions.Clear();
+            }
+
+            StateHasChanged();
+        }
+
+        // SelectKeywordsSuggestion (from backup MainLayout)
+        private void SelectKeywordsSuggestion(string suggestion)
+        {
+            if (!string.IsNullOrWhiteSpace(suggestion) && !selectedKeywords.Contains(suggestion))
+            {
+                selectedKeywords.Add(suggestion);
+                keywordsSuggestions.Clear();
+                searchKeywordsAsProfessorToFindStudent = string.Empty;
+            }
+        }
+
+        // RemoveKeyword (from backup MainLayout)
+        private void RemoveKeyword(string keyword)
+        {
+            selectedKeywords.Remove(keyword);
+            StateHasChanged();
+        }
+
+        // ClearSearchFieldsAsProfessorToFindStudent (from backup MainLayout)
+        private void ClearSearchFieldsAsProfessorToFindStudent()
+        {
+            searchEmailAsProfessorToFindStudent = string.Empty;
+            searchNameAsProfessorToFindStudent = string.Empty;
+            searchSurnameAsProfessorToFindStudent = string.Empty;
+            searchRegNumberAsProfessorToFindStudent = string.Empty;
+            searchSchoolAsProfessorToFindStudent = string.Empty;
+            searchDepartmentAsProfessorToFindStudent = string.Empty;
+            searchAreasOfExpertiseAsProfessorToFindStudent = string.Empty;
+            searchKeywordsAsProfessorToFindStudent = string.Empty;
+
+            searchResultsAsProfessorToFindStudent = null;
+
+            studentNameSuggestions.Clear();
+            studentSurnameSuggestions.Clear();
+            areasOfExpertiseSuggestions.Clear();
+            keywordsSuggestions.Clear();
+
+            selectedAreasOfExpertise.Clear();
+            selectedKeywords.Clear();
+
+            StateHasChanged();
+        }
+
+        // Additional Missing Properties
+        private QuizManager.Models.Student selectedStudent;
+        private bool showStudentDetailsModal = false;
+        private int[] studentSearchPageSizeOptions = new[] { 10, 50, 100 };
+        private int StudentSearchPerPage = 10;
+        private int currentPage_StudentSearch = 1;
+        private int totalPages_StudentSearch = 1;
+
+        // Methods
+        private void ShowStudentDetailsWhenSearchAsProfessor(QuizManager.Models.Student student)
+        {
+            selectedStudent = student;
+            showStudentDetailsModal = true;
+            StateHasChanged();
+        }
+
+        private void CloseStudentDetailsModalWhenSearchAsProfessor()
+        {
+            showStudentDetailsModal = false;
+            selectedStudent = null;
+            StateHasChanged();
+        }
+
+        // Pagination Methods
+        private void GoToFirstPage_StudentSearch()
+        {
+            currentPage_StudentSearch = 1;
+            StateHasChanged();
+        }
+
+        private void PreviousPage_StudentSearch()
+        {
+            if (currentPage_StudentSearch > 1)
+            {
+                currentPage_StudentSearch--;
+                StateHasChanged();
+            }
+        }
+
+        private void NextPage_StudentSearch()
+        {
+            if (currentPage_StudentSearch < totalPages_StudentSearch)
+            {
+                currentPage_StudentSearch++;
+                StateHasChanged();
+            }
+        }
+
+        private void GoToLastPage_StudentSearch()
+        {
+            currentPage_StudentSearch = totalPages_StudentSearch;
+            StateHasChanged();
+        }
+
+        private void GoToPage_StudentSearch(int page)
+        {
+            if (page >= 1 && page <= totalPages_StudentSearch)
+            {
+                currentPage_StudentSearch = page;
+                StateHasChanged();
+            }
+        }
+
+        private List<int> GetVisiblePages_StudentSearch()
+        {
+            var pages = new List<int>();
+            int current = currentPage_StudentSearch;
+            int total = totalPages_StudentSearch;
+
+            if (total == 0) return pages;
+
+            if (total <= 7)
+            {
+                for (int i = 1; i <= total; i++)
+                    pages.Add(i);
+            }
+            else
+            {
+                pages.Add(1);
+                if (current > 4) pages.Add(-1);
+
+                int start = Math.Max(2, current - 1);
+                int end = Math.Min(total - 1, current + 1);
+
+                for (int i = start; i <= end; i++)
+                    pages.Add(i);
+
+                if (current < total - 2) pages.Add(-1);
+                if (total > 1) pages.Add(total);
+            }
+
+            return pages;
+        }
+
+        private void OnPageSizeChangeForStudentSearch(ChangeEventArgs e)
+        {
+            if (int.TryParse(e.Value?.ToString(), out int newSize) && newSize > 0)
+            {
+                StudentSearchPerPage = newSize;
+                currentPage_StudentSearch = 1;
+                totalPages_StudentSearch = (int)Math.Ceiling((double)searchResultsAsProfessorToFindStudent.Count / StudentSearchPerPage);
+                StateHasChanged();
+            }
         }
     }
 }
