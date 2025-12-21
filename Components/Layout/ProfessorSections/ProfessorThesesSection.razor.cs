@@ -1380,6 +1380,237 @@ namespace QuizManager.Components.Layout.ProfessorSections
         {
             return SelectedSkillsToEditForProfessorThesis.Contains(skill);
         }
+
+        // Additional Missing Properties
+        private bool showErrorMessage = false;
+        private ProfessorInternship professorInternship = new ProfessorInternship();
+        private bool showErrorMessageforUploadinginternshipsAsProfessor = false;
+        private bool isProfessorInternshipFormVisible = false;
+        
+        // Company Theses Search
+        private List<CompanyThesis> companyThesesResultsToFindThesesAsProfessor = new List<CompanyThesis>();
+        private bool isUploadedCompanyThesesVisibleAsProfessor = false;
+        private int currentPage_CompanyTheses = 1;
+        private int itemsPerPage_CompanyTheses = 10;
+        private int totalPages_CompanyTheses =>
+            (int)Math.Ceiling((double)(companyThesesResultsToFindThesesAsProfessor?.Count ?? 0) / itemsPerPage_CompanyTheses);
+        private HashSet<int> expandedTheses = new HashSet<int>();
+        private HashSet<int> expandedProfessorThesesForCompanyInterest = new HashSet<int>();
+        private List<string> companyNameSuggestions = new List<string>();
+        
+        // Thesis Applicants Management
+        private bool isBulkEditModeForProfessorThesisApplicants = false;
+        private bool isLoadingProfessorThesisApplicants = false;
+        private bool isLoadingProfessorThesisCompanies = false;
+        private long? loadingProfessorThesisId = null;
+        private long? loadingProfessorThesisCompanyId = null;
+        private Dictionary<string, Student> studentDataCache = new Dictionary<string, Student>();
+        private Dictionary<(long RNG, string StudentId), ProfessorThesisApplied> professorThesisApplicantsMap = new Dictionary<(long, string), ProfessorThesisApplied>();
+        private HashSet<(long RNG, string StudentId)> selectedProfessorThesisApplicantIds = new HashSet<(long, string)>();
+        private string pendingBulkActionForProfessorThesisApplicants = "";
+        private bool sendEmailsForBulkProfessorThesisAction = true;
+        private bool showEmailConfirmationModalForProfessorThesisApplicants = false;
+        
+        // Skills Search
+        private List<string> skillSuggestionsToFindThesesAsProfessor = new List<string>();
+        private HashSet<string> selectedSkillsToFindThesesAsProfessor = new HashSet<string>();
+        
+        // Attachment Error
+        private string ProfessorThesisAttachmentErrorMessage = string.Empty;
+
+        // Menu Toggle
+        private Dictionary<long, bool> activeProfessorThesisMenuId = new Dictionary<long, bool>();
+        
+        private void ToggleProfessorThesisMenu(long thesisId)
+        {
+            if (activeProfessorThesisMenuId.ContainsKey(thesisId))
+                activeProfessorThesisMenuId[thesisId] = !activeProfessorThesisMenuId[thesisId];
+            else
+                activeProfessorThesisMenuId[thesisId] = true;
+            StateHasChanged();
+        }
+
+        // Toggle Company Theses Search
+        private void ToggleToSearchForUploadedCompanyThesesAsProfessor()
+        {
+            isUploadedCompanyThesesVisibleAsProfessor = !isUploadedCompanyThesesVisibleAsProfessor;
+            if (!isUploadedCompanyThesesVisibleAsProfessor)
+            {
+                companyThesesResultsToFindThesesAsProfessor.Clear();
+            }
+            StateHasChanged();
+        }
+
+        // Toggle Professor Internship Form
+        private void ToggleFormVisibilityForUploadProfessorInternship()
+        {
+            isProfessorInternshipFormVisible = !isProfessorInternshipFormVisible;
+            StateHasChanged();
+        }
+
+        // Update Transport Offer
+        private void UpdateTransportOfferForProfessorInternship(ChangeEventArgs e)
+        {
+            if (professorInternship != null)
+            {
+                // Handle transport offer update
+                StateHasChanged();
+            }
+        }
+
+        // Has Any Selection For Professor Internship
+        private bool HasAnySelectionForProfessorInternship()
+        {
+            // Placeholder - implement based on actual selection logic
+            return false;
+        }
+
+        // Show Email Confirmation Modal
+        private void ShowEmailConfirmationModalForProfessorThesisApplicants()
+        {
+            showEmailConfirmationModalForProfessorThesisApplicants = true;
+            StateHasChanged();
+        }
+
+        // Pagination for Company Theses
+        private IEnumerable<CompanyThesis> GetPaginatedCompanyTheses_AsProfessor()
+        {
+            if (companyThesesResultsToFindThesesAsProfessor == null) return Enumerable.Empty<CompanyThesis>();
+            var skip = (currentPage_CompanyTheses - 1) * itemsPerPage_CompanyTheses;
+            return companyThesesResultsToFindThesesAsProfessor.Skip(skip).Take(itemsPerPage_CompanyTheses);
+        }
+
+        private void GoToFirstPage_CompanyTheses()
+        {
+            currentPage_CompanyTheses = 1;
+            StateHasChanged();
+        }
+
+        private void GoToLastPage_CompanyTheses()
+        {
+            currentPage_CompanyTheses = totalPages_CompanyTheses;
+            StateHasChanged();
+        }
+
+        private void PreviousPage_CompanyTheses()
+        {
+            if (currentPage_CompanyTheses > 1)
+            {
+                currentPage_CompanyTheses--;
+                StateHasChanged();
+            }
+        }
+
+        private void NextPage_CompanyTheses()
+        {
+            if (currentPage_CompanyTheses < totalPages_CompanyTheses)
+            {
+                currentPage_CompanyTheses++;
+                StateHasChanged();
+            }
+        }
+
+        private void GoToPage_CompanyTheses(int page)
+        {
+            if (page >= 1 && page <= totalPages_CompanyTheses)
+            {
+                currentPage_CompanyTheses = page;
+                StateHasChanged();
+            }
+        }
+
+        private List<int> GetVisiblePages_CompanyTheses()
+        {
+            var pages = new List<int>();
+            int current = currentPage_CompanyTheses;
+            int total = totalPages_CompanyTheses;
+
+            if (total == 0) return pages;
+
+            if (total <= 7)
+            {
+                for (int i = 1; i <= total; i++)
+                    pages.Add(i);
+            }
+            else
+            {
+                pages.Add(1);
+                if (current > 4) pages.Add(-1);
+
+                int start = Math.Max(2, current - 1);
+                int end = Math.Min(total - 1, current + 1);
+
+                for (int i = start; i <= end; i++)
+                    pages.Add(i);
+
+                if (current < total - 2) pages.Add(-1);
+                if (total > 1) pages.Add(total);
+            }
+
+            return pages;
+        }
+
+        // Additional Missing Methods
+        private void EnableBulkEditModeForProfessorThesisApplicants(string thesisId)
+        {
+            isBulkEditModeForProfessorThesisApplicants = true;
+            currentProfessorThesisIdForBulkApplicants = thesisId;
+            selectedProfessorThesisApplicantIds.Clear();
+            StateHasChanged();
+        }
+
+        private void CancelBulkEditForProfessorThesisApplicants()
+        {
+            isBulkEditModeForProfessorThesisApplicants = false;
+            selectedProfessorThesisApplicantIds.Clear();
+            currentProfessorThesisIdForBulkApplicants = "";
+            StateHasChanged();
+        }
+
+        private async Task ExecuteBulkActionForProfessorThesisApplicants()
+        {
+            if (string.IsNullOrEmpty(pendingBulkActionForProfessorThesisApplicants) || selectedProfessorThesisApplicantIds.Count == 0)
+                return;
+
+            // TODO: Implement bulk action logic - should delegate to ProfessorDashboardService
+            await Task.CompletedTask;
+            StateHasChanged();
+        }
+
+        private void CloseEmailConfirmationModalForProfessorThesisApplicants()
+        {
+            showEmailConfirmationModalForProfessorThesisApplicants = false;
+            StateHasChanged();
+        }
+
+        private void CloseSlotWarningModalForProfessorThesis()
+        {
+            showSlotWarningModalForProfessorThesis = false;
+            StateHasChanged();
+        }
+
+        // Additional Properties
+        private bool showSlotWarningModalForProfessorThesis = false;
+        private string slotWarningMessageForProfessorThesis = "";
+        private string currentProfessorThesisIdForBulkApplicants = "";
+        private bool showLoadingModalWhenMarkInterestInCompanyThesisAsProfessor = false;
+        private bool showLoadingModalForProfessorInternship = false;
+        private bool showCheckboxesForProfessorInternship = false;
+        private HashSet<int> ExpandedAreasForProfessorInternship = new HashSet<int>();
+        private string ProfessorInternshipAttachmentErrorMessage = "";
+        private bool IsValidEmailForProfessorInternships(string email) => !string.IsNullOrEmpty(email) && email.Contains("@");
+        
+        // Search Properties for Theses
+        private string searchThesisTitleToFindThesesAsProfessor = "";
+        private string searchSupervisorToFindThesesAsProfessor = "";
+        private DateTime? searchStartingDateToFindThesesAsProfessor = null;
+        private string searchSkillsInputToFindThesesAsProfessor = "";
+        private string searchDepartmentToFindThesesAsProfessor = "";
+        private string searchCompanyNameToFindThesesAsProfessor = "";
+        private bool searchPerformedToFindThesesAsProfessor = false;
+        private string selectedCompanyId = "";
+        private int remainingCharactersInInternshipFieldUploadAsProfessor = 120;
+        private int remainingCharactersInInternshipDescriptionUploadAsProfessor = 1000;
     }
 }
 
