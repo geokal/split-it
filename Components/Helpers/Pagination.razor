@@ -18,7 +18,7 @@
         else
         {
             <span class="pagination-item @(pageNum == CurrentPage ? "active" : "")"
-                  @onclick="@(() => GoToPage(pageNum))">
+                  @onclick="@(() => GoToPage.InvokeAsync(pageNum))">
                 @pageNum
             </span>
         }

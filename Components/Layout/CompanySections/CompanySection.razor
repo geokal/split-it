@@ -1,5 +1,18 @@
 <div id="companies-start"></div>
 
+@using Microsoft.AspNetCore.Components
+
+@code {
+    [CascadingParameter(Name = "UserRole")]
+    public string UserRole { get; set; } = "";
+    
+    [CascadingParameter(Name = "isCompanyRegistered")]
+    public bool isCompanyRegistered { get; set; }
+    
+    [CascadingParameter(Name = "isInitializedAsCompanyUser")]
+    public bool isInitializedAsCompanyUser { get; set; }
+}
+
 @if (UserRole == "Company")
 {
     @if (!isInitializedAsCompanyUser)

@@ -1,3 +1,16 @@
+@using Microsoft.AspNetCore.Components
+
+@code {
+    [CascadingParameter(Name = "UserRole")]
+    public string UserRole { get; set; } = "";
+    
+    [CascadingParameter(Name = "isProfessorRegistered")]
+    public bool isProfessorRegistered { get; set; }
+    
+    [CascadingParameter(Name = "isInitializedAsProfessorUser")]
+    public bool isInitializedAsProfessorUser { get; set; }
+}
+
                                                     <div id="professors-tab-table-start"></div>
                             else if (UserRole == "Professor")
                             {
