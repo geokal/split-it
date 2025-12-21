@@ -879,7 +879,7 @@ namespace QuizManager.Components.Layout.ProfessorSections
             {
                 // Update properties
                 existing.ProfessorEventTitle = updatedProfessorEvent.ProfessorEventTitle;
-                existing.ProfessorEventDescriptionsUploaded = updatedProfessorEvent.ProfessorEventDescriptionsUploaded;
+                existing.ProfessorEventDescription = updatedProfessorEvent.ProfessorEventDescription;
                 // Add more property updates as needed
                 await dbContext.SaveChangesAsync();
                 isEditModalVisibleForEventsAsProfessor = false;
@@ -949,4 +949,3 @@ namespace QuizManager.Components.Layout.ProfessorSections
         }
     }
 }
-

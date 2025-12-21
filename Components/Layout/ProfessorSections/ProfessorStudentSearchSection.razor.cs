@@ -282,6 +282,11 @@ namespace QuizManager.Components.Layout.ProfessorSections
                 .Take(StudentsPerPage_SearchForStudentsAsProfessor);
         }
 
+        private IEnumerable<QuizManager.Models.Student> GetPaginatedStudentSearchResults()
+        {
+            return GetPaginatedStudentResults();
+        }
+
         private void OnPageSizeChange_SearchForStudentsAsProfessor(ChangeEventArgs e)
         {
             if (int.TryParse(e.Value?.ToString(), out int newSize) && newSize > 0)
@@ -680,4 +685,3 @@ namespace QuizManager.Components.Layout.ProfessorSections
         }
     }
 }
-

@@ -121,6 +121,7 @@ namespace QuizManager.Components.Layout.ProfessorSections
         // Details Modal
         private bool showProfessorAnnouncementDetailsModal = false;
         private AnnouncementAsProfessor selectedProfessorAnnouncementToSeeDetailsAsProfessor = null;
+        private AnnouncementAsProfessor selectedProfessorAnnouncementToSeeDetails => selectedProfessorAnnouncementToSeeDetailsAsProfessor;
 
         // Menu Toggle
         private int activeProfessorAnnouncementMenuId = 0;

@@ -1097,7 +1097,7 @@
                                                                             </label>
                                                                             <input type="time" 
                                                                                    id="ProfessorEventTime" 
-                                                                                   class="form-control @(showErrorMessageForUploadingProfessorEvent && (professorEvent.ProfessorEventTimeOnly == TimeOnly.MinValue || IsTimeInRestrictedRangeWhenUploadEventAsProfessor(professorEvent.ProfessorEventTimeOnly)) ? "shake error" : "")" 
+                                                                                   class="form-control @(showErrorMessageForUploadingProfessorEvent && (professorEvent.ProfessorEventTimeOnly == TimeOnly.MinValue || IsTimeInRestrictedRangeWhenUploadEventAsProfessor(professorEvent.ProfessorEventTimeOnly.ToTimeSpan())) ? "shake error" : "")" 
                                                                                    @bind="professorEvent.ProfessorEventTimeOnly" 
                                                                                    min="06:00" 
                                                                                    max="22:00" />
@@ -1106,7 +1106,7 @@
                                                                         {
                                                                             <div class="text-danger mt-1">Η ώρα εκδήλωσης είναι υποχρεωτική.</div>
                                                                         }
-                                                                        @if (showErrorMessageForUploadingProfessorEvent && IsTimeInRestrictedRangeWhenUploadEventAsProfessor(professorEvent.ProfessorEventTimeOnly))
+                                                                        @if (showErrorMessageForUploadingProfessorEvent && IsTimeInRestrictedRangeWhenUploadEventAsProfessor(professorEvent.ProfessorEventTimeOnly.ToTimeSpan()))
                                                                         {
                                                                             <div class="text-danger mt-1">Η ώρα πρέπει να είναι μεταξύ 06:00 και 22:00.</div>
                                                                         }
@@ -1596,7 +1596,7 @@
                                                                                                         {
                                                                                                             <div class="table-responsive">
                                                                                                                 <!-- Modern Download Button -->
-                                                                                                                <button class="modern-button" @onclick="DownloadStudentListForInterestInProfessorEventAsProfessor" style="margin-bottom: 15px;">
+                                                                                                                <button class="modern-button" @onclick="@(() => DownloadStudentListForInterestInProfessorEventAsProfessor(professorevent.RNGForEventUploadedAsProfessor))" style="margin-bottom: 15px;">
                                                                                                                     <i class="fas fa-download"></i> Λήψη Λίστας Ενδιαφερόμενων Φοιτητών
                                                                                                                 </button>
 
@@ -1645,7 +1645,7 @@
 
                                                                                                                                 <tr>
                                                                                                                                     <td style="border: 1px solid #0d6efd;">
-                                                                                                                                        <a href="#" @onclick="() => ShowStudentDetailsAtProfessorEventInterest(application)" style="color: #0d6efd; text-decoration: none;">
+                                                                                                                                        <a href="#" @onclick="() => { if (student != null) { ShowStudentDetailsAtProfessorEventInterest(student); } }" style="color: #0d6efd; text-decoration: none;">
                                                                                                                                             @(student != null ? $"{student.Name} {student.Surname}" : "Δε βρέθηκε")
                                                                                                                                         </a>
                                                                                                                                     </td>
@@ -1714,7 +1714,7 @@
                                                                                                         {
                                                                                                             <div class="table-responsive">
                                                                                                                 <!-- Modern Download Button -->
-                                                                                                                <button class="modern-button" @onclick="DownloadCompanyListForInterestInProfessorEventAsProfessor" style="margin-bottom: 15px;">
+                                                                                                                <button class="modern-button" @onclick="@(() => DownloadCompanyListForInterestInProfessorEventAsProfessor(professorevent.RNGForEventUploadedAsProfessor))" style="margin-bottom: 15px;">
                                                                                                                     <i class="fas fa-download"></i> Λήψη Λίστας Ενδιαφερόμενων Εταιρειών
                                                                                                                 </button>
 
@@ -1749,7 +1749,7 @@
                                                                                                                             var company = companyDataCache.TryGetValue(interest.CompanyEmailShowInterestForProfessorEvent, out var c) ? c : null;
                                                                                                                             <tr>
                                                                                                                                 <td style="border: 1px solid #4682b4;">
-                                                                                                                                    <a href="#" @onclick="() => ShowCompanyDetailsAtProfessorEventInterest(interest)" style="color: #4682b4; text-decoration: none;">
+                                                                                                                                    <a href="#" @onclick="() => { if (company != null) { ShowCompanyDetailsAtProfessorEventInterest(company); } }" style="color: #4682b4; text-decoration: none;">
                                                                                                                                         @(company?.CompanyName ?? "N/A")
                                                                                                                                     </a>
                                                                                                                                 </td>
@@ -2859,4 +2859,3 @@
                                                                         </div>
                                                                     </div>
                                                                 }
-

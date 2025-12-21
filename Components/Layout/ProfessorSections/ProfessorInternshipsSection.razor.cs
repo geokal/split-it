@@ -45,6 +45,10 @@ namespace QuizManager.Components.Layout.ProfessorSections
         private int publishedCountInternshipsAsProfessor = 0;
         private int unpublishedCountInternshipsAsProfessor = 0;
         private int withdrawnCountInternshipsAsProfessor = 0;
+        
+        // Additional properties for compatibility with Razor markup
+        private int unpublishedProfessorInternshipsCount => unpublishedCountInternshipsAsProfessor;
+        private int withdrawnProfessorInternshipsCount => withdrawnCountInternshipsAsProfessor;
 
         // Bulk Operations
         private bool isBulkEditModeForProfessorInternships = false;
@@ -196,6 +200,63 @@ namespace QuizManager.Components.Layout.ProfessorSections
             withdrawnCountInternshipsAsProfessor = professorInternships.Count(i => i.ProfessorUploadedInternshipStatus == "Αποσυρμένη");
             StateHasChanged();
         }
+        
+        // Modal properties and methods
+        private bool isModalVisibleForProfessorInternships = false;
+        private ProfessorInternship currentProfessorInternship = null;
+        
+        private void ShowProfessorInternshipDetails(ProfessorInternship internship)
+        {
+            currentProfessorInternship = internship;
+            isModalVisibleForProfessorInternships = true;
+            StateHasChanged();
+        }
+        
+        private void CloseModalForProfessorInternships()
+        {
+            isModalVisibleForProfessorInternships = false;
+            currentProfessorInternship = null;
+            StateHasChanged();
+        }
+        
+        private void CloseModalforHyperLinkTitleStudentName_StudentAppliedinternshipsAtProfessor()
+        {
+            isModalVisibleToShowStudentDetailsAsProfessorFromTheirHyperlinkNameInProfessorInternships = false;
+            selectedStudent = null;
+            StateHasChanged();
+        }
+        
+        private async Task DownloadStudentCVForProfessorInternships(string studentEmail)
+        {
+            try
+            {
+                var student = studentDataCache.Values.FirstOrDefault(s => s.Email == studentEmail);
+                
+                if (student == null)
+                {
+                    student = await dbContext.Students
+                        .FirstOrDefaultAsync(s => s.Email == studentEmail);
+                    
+                    if (student != null)
+                        studentDataCache[studentEmail] = student;
+                }
+                
+                if (student?.Attachment == null)
+                {
+                    await JS.InvokeVoidAsync("alert", "Δεν βρέθηκε βιογραφικό για αυτόν τον φοιτητή");
+                    return;
+                }
+                
+                var fileName = $"CV_{student.Name}_{student.Surname}.pdf";
+                string base64String = Convert.ToBase64String(student.Attachment);
+                await JS.InvokeVoidAsync("downloadInternshipAttachmentAsStudent", fileName, base64String);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error downloading CV: {ex.Message}");
+                await JS.InvokeVoidAsync("alert", "Σφάλμα κατά τη λήψη του βιογραφικού");
+            }
+        }
 
         // Pagination Methods
         private IEnumerable<ProfessorInternship> GetPaginatedProfessorInternships()
@@ -267,11 +328,6 @@ namespace QuizManager.Components.Layout.ProfessorSections
             StateHasChanged();
         }
 
-        private void ShowProfessorInternshipDetails(ProfessorInternship professorinternship)
-        {
-            // This can be expanded to show details in a modal
-            StateHasChanged();
-        }
 
         private async Task DownloadAttachmentForProfessorInternships(int internshipId)
         {

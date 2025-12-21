@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.EntityFrameworkCore;
 using QuizManager.Data;
 using QuizManager.Models;
@@ -12,6 +13,7 @@ namespace QuizManager.Components.Layout.ProfessorSections
     public partial class ProfessorResearchGroupSearchSection : ComponentBase
     {
         [Inject] private AppDbContext dbContext { get; set; } = default!;
+        [Inject] private Microsoft.AspNetCore.Components.NavigationManager NavigationManager { get; set; } = default!;
 
         // Form Visibility
         private bool isProfessorSearchResearchGroupVisible = false;
@@ -26,7 +28,7 @@ namespace QuizManager.Components.Layout.ProfessorSections
         private CompanyThesis selectedCompanyThesisToSeeDetailsOnEyeIconAsProfessor;
         private ProfessorThesis currentThesisAsProfessor;
         private InterestInProfessorEventAsCompany selectedCompanyToShowDetailsForInterestinProfessorEvent;
-        private Student selectedStudentToShowDetailsForInterestinProfessorEvent;
+        private InterestInProfessorEvent selectedStudentToShowDetailsForInterestinProfessorEvent;
 
         // Modal Visibility
         private bool showErrorMessage = false;
@@ -175,12 +177,16 @@ namespace QuizManager.Components.Layout.ProfessorSections
         };
 
         // Computed Properties
+        private List<string> researchGroupSchools => universityDepartments.Keys.ToList();
+        
         private List<string> professorFilteredDepartmentsForSearchForResearchGroup =>
             string.IsNullOrEmpty(searchResearchGroupSchoolAsProfessorToFindResearchGroup)
                 ? new List<string>()
                 : universityDepartments.ContainsKey(searchResearchGroupSchoolAsProfessorToFindResearchGroup)
                     ? universityDepartments[searchResearchGroupSchoolAsProfessorToFindResearchGroup]
                     : new List<string>();
+                    
+        private bool isCompanyDetailModalVisibleForHyperlinkNameToShowCompanyDetailsToTheProfessor = false;
 
         // Search Results and Pagination
         private List<QuizManager.Models.ResearchGroup> professorSearchResultsToFindResearchGroup = new List<QuizManager.Models.ResearchGroup>();
@@ -322,6 +328,90 @@ namespace QuizManager.Components.Layout.ProfessorSections
             StateHasChanged();
         }
 
+        private void RemoveProfessorSelectedResearchGroupArea(string area)
+        {
+            RemoveSelectedResearchGroupArea(area);
+        }
+
+        private void HandleProfessorResearchGroupAreasKeyDown(Microsoft.AspNetCore.Components.Web.KeyboardEventArgs e)
+        {
+            if (e.Key == "Enter" || e.Key == "Tab")
+            {
+                if (!string.IsNullOrWhiteSpace(searchResearchGroupAreasAsProfessorToFindResearchGroup) &&
+                    !professorSelectedResearchGroupAreas.Contains(searchResearchGroupAreasAsProfessorToFindResearchGroup))
+                {
+                    professorSelectedResearchGroupAreas.Add(searchResearchGroupAreasAsProfessorToFindResearchGroup);
+                    searchResearchGroupAreasAsProfessorToFindResearchGroup = string.Empty;
+                    professorResearchGroupAreasSuggestions.Clear();
+                }
+            }
+        }
+
+        private async Task HandleProfessorResearchGroupSkillsInput(ChangeEventArgs e)
+        {
+            searchResearchGroupSkillsAsProfessorToFindResearchGroup = e.Value?.ToString().Trim() ?? string.Empty;
+            professorResearchGroupSkillsSuggestions = new List<string>();
+
+            if (searchResearchGroupSkillsAsProfessorToFindResearchGroup.Length >= 1)
+            {
+                try
+                {
+                    professorResearchGroupSkillsSuggestions = await dbContext.Skills
+                        .Where(s => s.SkillName.Contains(searchResearchGroupSkillsAsProfessorToFindResearchGroup))
+                        .Select(s => s.SkillName)
+                        .Distinct()
+                        .Take(10)
+                        .ToListAsync();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Πρόβλημα στην Ανάκτηση Τεχνολογιών: {ex.Message}");
+                    professorResearchGroupSkillsSuggestions = new List<string>();
+                }
+            }
+            else
+            {
+                professorResearchGroupSkillsSuggestions.Clear();
+            }
+
+            StateHasChanged();
+        }
+
+        private void HandleProfessorResearchGroupSkillsKeyDown(Microsoft.AspNetCore.Components.Web.KeyboardEventArgs e)
+        {
+            if (e.Key == "Enter" || e.Key == "Tab")
+            {
+                if (!string.IsNullOrWhiteSpace(searchResearchGroupSkillsAsProfessorToFindResearchGroup) &&
+                    !professorSelectedResearchGroupSkills.Contains(searchResearchGroupSkillsAsProfessorToFindResearchGroup))
+                {
+                    professorSelectedResearchGroupSkills.Add(searchResearchGroupSkillsAsProfessorToFindResearchGroup);
+                    searchResearchGroupSkillsAsProfessorToFindResearchGroup = string.Empty;
+                    professorResearchGroupSkillsSuggestions.Clear();
+                }
+            }
+        }
+
+        private void SelectProfessorResearchGroupSkillsSuggestion(string suggestion)
+        {
+            if (!string.IsNullOrWhiteSpace(suggestion) && !professorSelectedResearchGroupSkills.Contains(suggestion))
+            {
+                professorSelectedResearchGroupSkills.Add(suggestion);
+                professorResearchGroupSkillsSuggestions.Clear();
+                searchResearchGroupSkillsAsProfessorToFindResearchGroup = string.Empty;
+            }
+        }
+
+        private void RemoveProfessorSelectedResearchGroupSkill(string skill)
+        {
+            professorSelectedResearchGroupSkills.Remove(skill);
+            StateHasChanged();
+        }
+
+        private async Task SearchResearchGroupsAsProfessor()
+        {
+            await SearchResearchGroupsAsProfessorToFindResearchGroup();
+        }
+
         private async Task SearchResearchGroupsAsProfessorToFindResearchGroup()
         {
             try
@@ -396,6 +486,26 @@ namespace QuizManager.Components.Layout.ProfessorSections
             StateHasChanged();
         }
 
+        private void ClearProfessorSearchFieldsToFindResearchGroup()
+        {
+            searchResearchGroupNameAsProfessorToFindResearchGroup = "";
+            searchResearchGroupSchoolAsProfessorToFindResearchGroup = "";
+            searchResearchGroupUniversityDepartmentAsProfessorToFindResearchGroup = "";
+            searchResearchGroupAreasAsProfessorToFindResearchGroup = "";
+            searchResearchGroupSkillsAsProfessorToFindResearchGroup = "";
+            searchResearchGroupKeywordsAsProfessorToFindResearchGroup = "";
+        
+            professorSelectedResearchGroupAreas.Clear();
+            professorSelectedResearchGroupSkills.Clear();
+            professorResearchGroupNameSuggestions.Clear();
+            professorResearchGroupAreasSuggestions.Clear();
+            professorResearchGroupSkillsSuggestions.Clear();
+            professorSearchResultsToFindResearchGroup.Clear();
+            professorHasSearchedForResearchGroups = false;
+            professorCurrentResearchGroupPage_SearchForResearchGroups = 1;
+            StateHasChanged();
+        }
+
         private IEnumerable<QuizManager.Models.ResearchGroup> GetProfessorPaginatedResearchGroupResults()
         {
             var skip = (professorCurrentResearchGroupPage_SearchForResearchGroups - 1) * professorResearchGroupsPerPage_SearchForResearchGroups;
@@ -418,6 +528,11 @@ namespace QuizManager.Components.Layout.ProfessorSections
             StateHasChanged();
         }
 
+        private void GoToProfessorFirstResearchGroupPage()
+        {
+            GoToFirstResearchGroupPage();
+        }
+
         private void PreviousResearchGroupPage()
         {
             if (professorCurrentResearchGroupPage_SearchForResearchGroups > 1)
@@ -425,6 +540,11 @@ namespace QuizManager.Components.Layout.ProfessorSections
                 professorCurrentResearchGroupPage_SearchForResearchGroups--;
                 StateHasChanged();
             }
+        }
+
+        private void PreviousProfessorResearchGroupPage()
+        {
+            PreviousResearchGroupPage();
         }
 
         private void GoToResearchGroupPage(int pageNumber)
@@ -436,6 +556,11 @@ namespace QuizManager.Components.Layout.ProfessorSections
             }
         }
 
+        private void GoToProfessorResearchGroupPage(int pageNumber)
+        {
+            GoToResearchGroupPage(pageNumber);
+        }
+
         private void NextResearchGroupPage()
         {
             if (professorCurrentResearchGroupPage_SearchForResearchGroups < professorTotalResearchGroupPages_SearchForResearchGroups)
@@ -445,10 +570,20 @@ namespace QuizManager.Components.Layout.ProfessorSections
             }
         }
 
+        private void NextProfessorResearchGroupPage()
+        {
+            NextResearchGroupPage();
+        }
+
         private void GoToLastResearchGroupPage()
         {
             professorCurrentResearchGroupPage_SearchForResearchGroups = professorTotalResearchGroupPages_SearchForResearchGroups;
             StateHasChanged();
+        }
+
+        private void GoToProfessorLastResearchGroupPage()
+        {
+            GoToLastResearchGroupPage();
         }
 
         private IEnumerable<int> GetProfessorVisibleResearchGroupPages()
@@ -538,8 +673,458 @@ namespace QuizManager.Components.Layout.ProfessorSections
             "Κρήτη"
         };
 
-        // Additional Methods (already defined above, but ensuring they're accessible)
-        // These methods are already in the file, so no need to duplicate
+        private async Task LoadResearchGroupDetailsData(string researchGroupEmail)
+        {
+            try
+            {
+                // Load Faculty Members
+                var facultyMembersData = await dbContext.ResearchGroup_Professors
+                    .Where(rp => rp.PK_ResearchGroupEmail == researchGroupEmail)
+                    .Join(dbContext.Professors,
+                        rp => rp.PK_ProfessorEmail,
+                        p => p.ProfEmail,
+                        (rp, p) => p)
+                    .ToListAsync();
+
+                professorFacultyMembers = facultyMembersData;
+
+                // Load Non-Faculty Members
+                var nonFacultyMembersData = await dbContext.ResearchGroup_NonFacultyMembers
+                    .Where(rn => rn.PK_ResearchGroupEmail == researchGroupEmail)
+                    .Join(dbContext.Students,
+                        rn => rn.PK_NonFacultyMemberEmail,
+                        s => s.Email,
+                        (rn, s) => s)
+                    .ToListAsync();
+
+                professorNonFacultyMembers = nonFacultyMembersData;
+
+                // Load Spin-off Companies
+                // Note: ResearchGroup_SpinOffCompany table may not join directly with Companies table
+                // Loading just the company information from ResearchGroup_SpinOffCompany for now
+                var spinOffCompanyData = await dbContext.ResearchGroup_SpinOffCompany
+                    .Where(s => s.ResearchGroupEmail == researchGroupEmail)
+                    .ToListAsync();
+                
+                // Try to find companies by AFM if possible
+                // If CompanyAFM doesn't exist, we'll need to adjust this logic
+                professorSpinOffCompanies = new List<Company>();
+                foreach (var spinOff in spinOffCompanyData)
+                {
+                    var company = await dbContext.Companies
+                        .FirstOrDefaultAsync(c => c.CompanyName == spinOff.ResearchGroup_SpinOff_CompanyTitle);
+                    if (company != null)
+                    {
+                        professorSpinOffCompanies.Add(company);
+                    }
+                }
+
+                // Count Active Research Actions
+                professorActiveResearchActionsCount = await dbContext.ResearchGroup_ResearchActions
+                    .Where(r => r.ResearchGroupEmail == researchGroupEmail && 
+                            r.ResearchGroup_ProjectStatus == "OnGoing")
+                    .CountAsync();
+
+                // Count Patents (assuming there's a patents table or count field)
+                professorPatentsCount = 0; // Placeholder - adjust based on actual data model
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error loading research group details: {ex.Message}");
+            }
+        }
+
+        private async Task ShowProfessorResearchGroupDetailsModal(ResearchGroup researchGroup)
+        {
+            selectedResearchGroupWhenSearchForResearchGroupsAsProfessor = researchGroup;
+            showResearchGroupDetailsModalWhenSearchForResearchGroupsAsProfessor = true;
+        
+            // Load additional data
+            if (!string.IsNullOrEmpty(researchGroup.ResearchGroupEmail))
+            {
+                await LoadResearchGroupDetailsData(researchGroup.ResearchGroupEmail);
+            }
+        
+            StateHasChanged();
+        }
+
+        private void CloseModalResearchGroupDetailsOnEyeIconWhenSearchForResearchGroupsAsProfessor()
+        {
+            showResearchGroupDetailsModalWhenSearchForResearchGroupsAsProfessor = false;
+            selectedResearchGroupWhenSearchForResearchGroupsAsProfessor = null;
+            professorFacultyMembers.Clear();
+            professorNonFacultyMembers.Clear();
+            professorSpinOffCompanies.Clear();
+            professorPatentsCount = 0;
+            professorActiveResearchActionsCount = 0;
+            StateHasChanged();
+        }
+
+        private void CloseCompanyDetailsModalWhenSearchAsProfessor()
+        {
+            showCompanyDetailsModal = false;
+            selectedCompanyNameAsHyperlinkToShowDetailsToTheProfessor = null;
+            isCompanyDetailModalVisibleForHyperlinkNameToShowCompanyDetailsToTheProfessor = false;
+            StateHasChanged();
+        }
+
+        private bool isExpandedModalVisibleToSeeCompanyDetailsAsProfessor = false;
+
+        private void CloseCompanyModalToShowCompanyDetailsFromHyperlinkNameToTheProfessor()
+        {
+            isExpandedModalVisibleToSeeCompanyDetailsAsProfessor = false;
+            selectedCompanyNameAsHyperlinkToShowDetailsToTheProfessor = null;
+            StateHasChanged();
+        }
+
+        private void OpenUrl(string url)
+        {
+            if (!string.IsNullOrEmpty(url))
+            {
+                NavigationManager.NavigateTo(url, true);
+            }
+        }
+
+        private void OpenMap(string location)
+        {
+            if (!string.IsNullOrEmpty(location))
+            {
+                var encodedLocation = Uri.EscapeDataString(location);
+                var googleMapsUrl = $"https://www.google.com/maps/search/?api=1&query={encodedLocation}";
+                NavigationManager.NavigateTo(googleMapsUrl, true);
+            }
+        }
+
+        // Placeholder methods for edit modals (these may belong to other sections but are referenced in Razor)
+        private void CloseEditModalForThesesAsProfessor()
+        {
+            isEditModalVisibleForThesesAsProfessor = false;
+            currentThesisAsProfessor = null;
+            StateHasChanged();
+        }
+
+        private void CloseEditPopupForProfessorInternships()
+        {
+            isEditPopupVisibleForProfessorInternships = false;
+            selectedProfessorInternship = null;
+            StateHasChanged();
+        }
+
+        // Skills property for edit modal
+        private List<Skill> Skills = new();
+
+        // Selected skills/areas for edit
+        private HashSet<Skill> SelectedSkillsToEditForProfessorThesis = new HashSet<Skill>();
+        private List<Area> SelectedAreasToEditForProfessorThesis = new List<Area>();
+        private Dictionary<string, List<string>> SelectedSubFieldsForEditProfessorThesis = new Dictionary<string, List<string>>();
+
+        private void ToggleCheckboxesForEditProfessorThesis()
+        {
+            showCheckboxesForEditProfessorThesis = !showCheckboxesForEditProfessorThesis;
+            StateHasChanged();
+        }
+
+        private void ToggleSkillsInEditProfessorThesisModal()
+        {
+            showExpandedSkillsInProfessorThesisEditModal = !showExpandedSkillsInProfessorThesisEditModal;
+            StateHasChanged();
+        }
+
+        private void OnAreaCheckedChangedForEditProfessorThesis(ChangeEventArgs e, Area area)
+        {
+            if ((bool)e.Value!)
+            {
+                if (!SelectedAreasToEditForProfessorThesis.Contains(area))
+                {
+                    SelectedAreasToEditForProfessorThesis.Add(area);
+                }
+            }
+            else
+            {
+                SelectedAreasToEditForProfessorThesis.Remove(area);
+                if (SelectedSubFieldsForEditProfessorThesis.ContainsKey(area.AreaName))
+                {
+                    SelectedSubFieldsForEditProfessorThesis.Remove(area.AreaName);
+                }
+            }
+            StateHasChanged();
+        }
+
+        private bool IsAreaSelectedForEditProfessorThesis(Area area)
+        {
+            return SelectedAreasToEditForProfessorThesis.Contains(area);
+        }
+
+        private void ToggleSubFieldsForEditProfessorThesis(Area area)
+        {
+            if (ExpandedAreasForEditProfessorThesis.Contains(area.Id))
+            {
+                ExpandedAreasForEditProfessorThesis.Remove(area.Id);
+            }
+            else
+            {
+                ExpandedAreasForEditProfessorThesis.Add(area.Id);
+            }
+            StateHasChanged();
+        }
+
+        private void OnSubFieldCheckedChangedForEditProfessorThesis(ChangeEventArgs e, Area area, string subField)
+        {
+            var isChecked = (bool)e.Value!;
+
+            if (!SelectedSubFieldsForEditProfessorThesis.ContainsKey(area.AreaName))
+            {
+                SelectedSubFieldsForEditProfessorThesis[area.AreaName] = new List<string>();
+            }
+
+            if (isChecked)
+            {
+                if (!SelectedSubFieldsForEditProfessorThesis[area.AreaName].Contains(subField))
+                {
+                    SelectedSubFieldsForEditProfessorThesis[area.AreaName].Add(subField);
+                }
+            }
+            else
+            {
+                SelectedSubFieldsForEditProfessorThesis[area.AreaName].Remove(subField);
+                if (!SelectedSubFieldsForEditProfessorThesis[area.AreaName].Any())
+                {
+                    SelectedSubFieldsForEditProfessorThesis.Remove(area.AreaName);
+                }
+            }
+            StateHasChanged();
+        }
+
+        private bool IsSubFieldSelectedForEditProfessorThesis(Area area, string subField)
+        {
+            return SelectedSubFieldsForEditProfessorThesis.ContainsKey(area.AreaName) &&
+                SelectedSubFieldsForEditProfessorThesis[area.AreaName].Contains(subField);
+        }
+
+        private void OnCheckedChangedForEditProfessorThesisSkills(ChangeEventArgs e, Skill skill)
+        {
+            if ((bool)e.Value!)
+            {
+                SelectedSkillsToEditForProfessorThesis.Add(skill);
+            }
+            else
+            {
+                SelectedSkillsToEditForProfessorThesis.Remove(skill);
+            }
+            StateHasChanged();
+        }
+
+        private async Task HandleProfessorThesisFileUpload(Microsoft.AspNetCore.Components.Forms.InputFileChangeEventArgs e)
+        {
+            // Placeholder implementation
+            await Task.CompletedTask;
+        }
+
+        private async Task UpdateThesisAsProfessor()
+        {
+            // Placeholder implementation
+            await Task.CompletedTask;
+        }
+
+        private async Task UpdateThesisAsProfessor(ProfessorThesis thesis)
+        {
+            currentThesisAsProfessor = thesis;
+            await UpdateThesisAsProfessor();
+        }
+
+        // Missing Methods for Professor Internship Edit Modal
+        private void ToggleCheckboxesForEditProfessorInternship()
+        {
+            showCheckboxesForProfessorInternship = !showCheckboxesForProfessorInternship;
+            StateHasChanged();
+        }
+
+        private void OnAreaCheckedChangedForEditProfessorInternship(ChangeEventArgs e, Area area)
+        {
+            var isChecked = (bool)e.Value!;
+            if (isChecked)
+            {
+                if (!SelectedAreasToEditForProfessorInternship.Contains(area))
+                {
+                    SelectedAreasToEditForProfessorInternship.Add(area);
+                }
+            }
+            else
+            {
+                SelectedAreasToEditForProfessorInternship.Remove(area);
+                if (SelectedSubFieldsForEditProfessorInternship.ContainsKey(area.AreaName))
+                {
+                    SelectedSubFieldsForEditProfessorInternship.Remove(area.AreaName);
+                }
+            }
+            StateHasChanged();
+        }
+
+        private bool IsAreaSelectedForEditProfessorInternship(Area area)
+        {
+            return SelectedAreasToEditForProfessorInternship.Contains(area);
+        }
+
+        private void ToggleSubFieldsForEditProfessorInternship(Area area)
+        {
+            if (ExpandedAreasForProfessorInternship.Contains(area.Id))
+                ExpandedAreasForProfessorInternship.Remove(area.Id);
+            else
+                ExpandedAreasForProfessorInternship.Add(area.Id);
+            StateHasChanged();
+        }
+
+        private void OnSubFieldCheckedChangedForEditProfessorInternship(ChangeEventArgs e, Area area, string subField)
+        {
+            var isChecked = (bool)e.Value!;
+            if (!SelectedSubFieldsForEditProfessorInternship.ContainsKey(area.AreaName))
+            {
+                SelectedSubFieldsForEditProfessorInternship[area.AreaName] = new List<string>();
+            }
+
+            if (isChecked)
+            {
+                if (!SelectedSubFieldsForEditProfessorInternship[area.AreaName].Contains(subField))
+                {
+                    SelectedSubFieldsForEditProfessorInternship[area.AreaName].Add(subField);
+                }
+            }
+            else
+            {
+                SelectedSubFieldsForEditProfessorInternship[area.AreaName].Remove(subField);
+            }
+            StateHasChanged();
+        }
+
+        private bool IsSubFieldSelectedForEditProfessorInternship(Area area, string subField)
+        {
+            return SelectedSubFieldsForEditProfessorInternship.ContainsKey(area.AreaName) && 
+                SelectedSubFieldsForEditProfessorInternship[area.AreaName].Contains(subField);
+        }
+
+        private async Task HandleFileUploadToEditProfessorInternshipAttachment(InputFileChangeEventArgs e)
+        {
+            // TODO: Implement file upload
+            await Task.CompletedTask;
+        }
+
+        private async Task SaveEditedProfessorInternship()
+        {
+            // TODO: Implement save logic
+            await Task.CompletedTask;
+        }
+
+        // Missing Methods for Professor Event Edit Modal
+        private void ToggleCheckboxesForEditProfessorEvent()
+        {
+            showCheckboxesForProfessorEvent = !showCheckboxesForProfessorEvent;
+            StateHasChanged();
+        }
+
+        private void OnAreaCheckedChangedForEditProfessorEvent(ChangeEventArgs e, Area area)
+        {
+            var isChecked = (bool)e.Value!;
+            if (isChecked)
+            {
+                if (!SelectedAreasToEditForProfessorEvent.Contains(area))
+                {
+                    SelectedAreasToEditForProfessorEvent.Add(area);
+                }
+            }
+            else
+            {
+                SelectedAreasToEditForProfessorEvent.Remove(area);
+                if (SelectedSubFieldsForProfessorEvent.ContainsKey(area.AreaName))
+                {
+                    SelectedSubFieldsForProfessorEvent.Remove(area.AreaName);
+                }
+            }
+            StateHasChanged();
+        }
+
+        private bool IsAreaSelectedForEditProfessorEvent(Area area)
+        {
+            return SelectedAreasToEditForProfessorEvent.Contains(area);
+        }
+
+        private void ToggleSubFieldsForEditProfessorEvent(Area area)
+        {
+            if (ExpandedAreasForProfessorEvent.Contains(area.Id))
+                ExpandedAreasForProfessorEvent.Remove(area.Id);
+            else
+                ExpandedAreasForProfessorEvent.Add(area.Id);
+            StateHasChanged();
+        }
+
+        private void OnSubFieldCheckedChangedForEditProfessorEvent(ChangeEventArgs e, Area area, string subField)
+        {
+            var isChecked = (bool)e.Value!;
+            if (!SelectedSubFieldsForProfessorEvent.ContainsKey(area.AreaName))
+            {
+                SelectedSubFieldsForProfessorEvent[area.AreaName] = new List<string>();
+            }
+
+            if (isChecked)
+            {
+                if (!SelectedSubFieldsForProfessorEvent[area.AreaName].Contains(subField))
+                {
+                    SelectedSubFieldsForProfessorEvent[area.AreaName].Add(subField);
+                }
+            }
+            else
+            {
+                SelectedSubFieldsForProfessorEvent[area.AreaName].Remove(subField);
+            }
+            StateHasChanged();
+        }
+
+        private bool IsSubFieldSelectedForEditProfessorEvent(Area area, string subField)
+        {
+            return SelectedSubFieldsForProfessorEvent.ContainsKey(area.AreaName) && 
+                SelectedSubFieldsForProfessorEvent[area.AreaName].Contains(subField);
+        }
+
+        private async Task HandleFileUploadToEditProfessorEventAttachment(InputFileChangeEventArgs e)
+        {
+            // TODO: Implement file upload
+            await Task.CompletedTask;
+        }
+
+        private void CloseEditModalForProfessorEvent()
+        {
+            isEditModalVisibleForEventsAsProfessor = false;
+            StateHasChanged();
+        }
+
+        private async Task UpdateProfessorEvent()
+        {
+            // TODO: Implement update logic
+            await Task.CompletedTask;
+        }
+
+        private async Task UpdateProfessorEvent(ProfessorEvent professorEvent)
+        {
+            currentProfessorEvent = professorEvent;
+            await UpdateProfessorEvent();
+        }
+
+        private void CloseStudentDetailsModalAtProfessorEventInterest()
+        {
+            showModalForStudentsAtProfessorEventInterest = false;
+            StateHasChanged();
+        }
+
+        // Additional missing properties (checking for duplicates)
+        private Dictionary<string, Company> companyDataCache = new Dictionary<string, Company>();
+        private bool showCheckboxesForProfessorInternship = false;
+        private List<Area> SelectedAreasToEditForProfessorInternship = new List<Area>();
+        private Dictionary<string, List<string>> SelectedSubFieldsForEditProfessorInternship = new Dictionary<string, List<string>>();
+        private HashSet<int> ExpandedAreasForProfessorInternship = new HashSet<int>();
+        private bool showCheckboxesForProfessorEvent = false;
+        private List<Area> SelectedAreasToEditForProfessorEvent = new List<Area>();
+        private Dictionary<string, List<string>> SelectedSubFieldsForProfessorEvent = new Dictionary<string, List<string>>();
+        private HashSet<int> ExpandedAreasForProfessorEvent = new HashSet<int>();
+        private bool uploadSuccess = false;
+        private string uploadErrorMessage = string.Empty;
     }
 }
-

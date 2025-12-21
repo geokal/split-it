@@ -540,7 +540,7 @@
                                                                                                     </button>
 
                                                                                                     <!-- Dropdown menu -->
-                                                                                                    @if (activeProfessorThesisMenuId == thesis.Id)
+                                                                                                    @if (activeProfessorThesisMenuId.ContainsKey(thesis.Id) && activeProfessorThesisMenuId[thesis.Id])
                                                                                                     {
                                                                                                         <!-- Invisible backdrop that covers entire screen -->
                                                                                                         <div class="dropdown-backdrop" @onclick="() => ToggleProfessorThesisMenu(0)"></div>
@@ -693,7 +693,7 @@
                                                                                                                         {
                                                                                                                             <div class="mb-2" style="text-align: left; margin-left: -15px;">
                                                                                                                                 <button class="modern-button" style="background-color: #2d3748; color: white; display: inline-flex; align-items: center;" 
-                                                                                                                                        @onclick="() => EnableBulkEditModeForProfessorThesisApplicants(thesis.RNGForThesisUploaded.ToString())"
+                                                                                                                                        @onclick="() => EnableBulkEditModeForProfessorThesisApplicants(thesis.RNGForThesisUploaded)"
                                                                                                                                         onmouseover="this.style.backgroundColor='#4a5568'" 
                                                                                                                                         onmouseout="this.style.backgroundColor='#2d3748'">
                                                                                                                                     <i class="fas fa-edit" style="margin-right: 8px;"></i>Μαζική Επεξεργασία Αιτούντων Διπλωματικής
@@ -842,7 +842,7 @@
                                                                                                                                                 <div class="disabled-checkbox-container">
                                                                                                                                                     <input type="checkbox" 
                                                                                                                                                            @onchange="@((e) => ToggleProfessorThesisApplicantSelection(applicant.Id, applicant.StudentUniqueIDAppliedForProfessorThesis, e))" 
-                                                                                                                                                           checked="@selectedProfessorThesisApplicantIds.Contains((applicant.Id, applicant.StudentUniqueIDAppliedForProfessorThesis))"
+                                                                                                                                                           checked="@selectedProfessorThesisApplicantIds.Contains((applicant.RNGForProfessorThesisApplied, applicant.StudentUniqueIDAppliedForProfessorThesis))"
                                                                                                                                                            disabled="@(professorStatus != "Σε Επεξεργασία")"
                                                                                                                                                            class="@(professorStatus != "Σε Επεξεργασία" ? "disabled-checkbox" : "")" />
                                                                                                                                                 </div>
@@ -1420,7 +1420,7 @@
                                                                                             aria-label="Items per page">
                                                                                         @foreach (var option in companyThesesPageSize_SearchForCompanyThesesAsProfessor)
                                                                                         {
-                                                                                            <option value="@option" selected="@(CompanyThesesPerPage == option)">@option</option>
+                                                                                            <option value="@option" selected="@(itemsPerPage_CompanyTheses == option)">@option</option>
                                                                                         }
                                                                                     </select>
                                                                                     <div class="input-group-append">
@@ -1481,7 +1481,7 @@
 
                                                                                         <tr style="background-color: @rowColor;">
                                                                                             <td>
-                                                                                                <a href="#" @onclick="() => ShowCompanyDetailsFromHyperlinkNameToTheProfessor(thesis.CompanyEmailUsedToUploadThesis)">
+                                                                                                <a href="#" @onclick="() => ShowCompanyDetailsFromHyperlinkNameToTheProfessor(thesis)">
                                                                                                     @(thesis.Company?.CompanyName ?? "Άγνωστη Εταιρεία")
                                                                                                 </a>
                                                                                             </td>
@@ -2029,4 +2029,5 @@
                                                                         }
 
                                                                     }
-
+                                                                </div>
+                                                                <!-- End of professorinternships tab-pane -->
