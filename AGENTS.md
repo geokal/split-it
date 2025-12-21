@@ -267,6 +267,31 @@ See `ARCHITECTURE_ANALYSIS.md` for detailed architecture reference from JobFinde
 
 ---
 
+## Lessons Learned: Component Refactoring Approach
+
+### ⚠️ What We Did Wrong
+We minimized `MainLayout.razor.cs` **before** extracting component dependencies, which broke all component references at once and created thousands of errors.
+
+### ✅ Correct Approach (For Future Refactoring)
+
+**For each component:**
+1. Identify dependencies on MainLayout
+2. Extract to component's `.cs` file
+3. Test component compiles
+4. Move to next component
+
+**After ALL components are fixed:**
+5. Minimize MainLayout
+6. Verify everything still works
+
+### Why This Matters
+- Components were written to reference MainLayout's properties/methods
+- Removing MainLayout properties before extraction breaks all references
+- Large component files (2000+ lines) with many property references = hundreds of errors per file
+- Fixing incrementally (one component at a time) is safer and more manageable
+
+---
+
 ## Next Steps
 
 1. ✅ Update `_Imports.razor` with new namespaces
