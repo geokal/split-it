@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.JSInterop;
 using QuizManager.Data;
 using QuizManager.Models;
 using System;
@@ -12,6 +13,7 @@ namespace QuizManager.Components.Layout.CompanySections
     public partial class CompanyStudentSearchSection : ComponentBase
     {
         [Inject] private AppDbContext dbContext { get; set; } = default!;
+        [Inject] private IJSRuntime JS { get; set; } = default!;
 
         // Form Visibility
         private bool isCompanySearchStudentVisible = false;
@@ -322,6 +324,21 @@ namespace QuizManager.Components.Layout.CompanySections
             StateHasChanged();
         }
 
+        private async Task DownloadStudentAttachmentAsCompanyInSearchForStudents(long studentId)
+        {
+            var student = await dbContext.Students
+                .Where(s => s.Id == (int)studentId)
+                .FirstOrDefaultAsync();
+
+            if (student?.Attachment != null)
+            {
+                string fileName = $"{student.Name}_{student.Surname}_CV.pdf";
+                string mimeType = "application/pdf";
+                string base64Data = Convert.ToBase64String(student.Attachment);
+                await JS.InvokeVoidAsync("downloadFile", fileName, mimeType, base64Data);
+            }
+        }
+
         // Search Method
         private void SearchStudentsAsCompanyToFindStudent()
         {
@@ -576,4 +593,3 @@ namespace QuizManager.Components.Layout.CompanySections
         }
     }
 }
-

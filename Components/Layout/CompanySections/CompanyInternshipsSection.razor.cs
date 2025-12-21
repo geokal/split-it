@@ -4,8 +4,8 @@ using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.JSInterop;
 using QuizManager.Data;
-using QuizManager.ViewModels;
 using QuizManager.Models;
+using QuizManager.ViewModels;
 using QuizManager.Services;
 using System;
 using System.Collections.Generic;
@@ -77,19 +77,19 @@ namespace QuizManager.Components.Layout.CompanySections
 
         // Internship Menu
         private int activeInternshipMenuId = 0;
-        private string currentlyExpandedInternshipId = "";
+        private long? currentlyExpandedInternshipId = null;
         private bool showLoadingModalForDeleteInternship = false;
 
         // Internship Applicants
         private bool isLoadingInternshipApplicants = false;
-        private string loadingInternshipId = "";
-        private Dictionary<string, List<InternshipApplicant>> internshipApplicantsMap = new Dictionary<string, List<InternshipApplicant>>();
-        private Dictionary<string, int> acceptedApplicantsCountPerInternship_ForCompanyInternship = new Dictionary<string, int>();
-        private Dictionary<string, int> availableSlotsPerInternship_ForCompanyInternship = new Dictionary<string, int>();
+        private long? loadingInternshipId = null;
+        private Dictionary<long, List<InternshipApplied>> internshipApplicantsMap = new Dictionary<long, List<InternshipApplied>>();
+        private Dictionary<long, int> acceptedApplicantsCountPerInternship_ForCompanyInternship = new Dictionary<long, int>();
+        private Dictionary<long, int> availableSlotsPerInternship_ForCompanyInternship = new Dictionary<long, int>();
 
         // Bulk Operations for Applicants
         private bool isBulkEditModeForInternshipApplicants = false;
-        private HashSet<(string, string)> selectedInternshipApplicantIds = new HashSet<(string, string)>();
+        private HashSet<(long, string)> selectedInternshipApplicantIds = new HashSet<(long, string)>();
         private string pendingBulkActionForInternshipApplicants = "";
         private bool sendEmailsForBulkAction = false;
 
@@ -101,6 +101,14 @@ namespace QuizManager.Components.Layout.CompanySections
 
         // Student Details Modal
         private QuizManager.Models.Student selectedStudentFromCache;
+        
+        // Additional missing properties
+        private bool showCheckboxesForCompanyInternship = false;
+        private bool isEditPopupVisibleForInternships = false;
+        private bool isModalVisibleForInternships = false;
+        private bool isModalVisibleToShowStudentDetailsAsCompanyFromTheirHyperlinkNameInCompanyInternships = false;
+        private List<Area> SelectedAreasToEditForCompanyInternship = new List<Area>();
+        private Dictionary<string, HashSet<string>> SelectedSubFieldsForEditCompanyInternship = new Dictionary<string, HashSet<string>>();
 
         // Computed Properties
         private int totalPagesForCompanyInternships => (int)Math.Ceiling((double)(FilteredInternships?.Count ?? 0) / companyInternshipsPerPage);
@@ -215,23 +223,23 @@ namespace QuizManager.Components.Layout.CompanySections
             StateHasChanged();
         }
 
-        private void OnSubFieldCheckedChangedForCompanyInternship(ChangeEventArgs e, Area area, SubField subField)
+        private void OnSubFieldCheckedChangedForCompanyInternship(ChangeEventArgs e, Area area, string subField)
         {
             bool isChecked = (bool)e.Value;
             if (!SelectedSubFieldsForCompanyInternship.ContainsKey(area.Id))
                 SelectedSubFieldsForCompanyInternship[area.Id] = new HashSet<string>();
 
             if (isChecked)
-                SelectedSubFieldsForCompanyInternship[area.Id].Add(subField.SubFieldName);
+                SelectedSubFieldsForCompanyInternship[area.Id].Add(subField);
             else
-                SelectedSubFieldsForCompanyInternship[area.Id].Remove(subField.SubFieldName);
+                SelectedSubFieldsForCompanyInternship[area.Id].Remove(subField);
             StateHasChanged();
         }
 
-        private bool IsSubFieldSelectedForCompanyInternship(Area area, SubField subField)
+        private bool IsSubFieldSelectedForCompanyInternship(Area area, string subField)
         {
             return SelectedSubFieldsForCompanyInternship.ContainsKey(area.Id) &&
-                   SelectedSubFieldsForCompanyInternship[area.Id].Contains(subField.SubFieldName);
+                   SelectedSubFieldsForCompanyInternship[area.Id].Contains(subField);
         }
 
         // File Handling
@@ -579,9 +587,9 @@ namespace QuizManager.Components.Layout.CompanySections
             }
         }
 
-        private void ToggleInternshipExpanded(string internshipHashedId)
+        private void ToggleInternshipExpanded(long internshipRng)
         {
-            currentlyExpandedInternshipId = currentlyExpandedInternshipId == internshipHashedId ? "" : internshipHashedId;
+            currentlyExpandedInternshipId = currentlyExpandedInternshipId == internshipRng ? null : internshipRng;
             StateHasChanged();
         }
 
@@ -616,44 +624,29 @@ namespace QuizManager.Components.Layout.CompanySections
         }
 
         // Internship Applicants
-        private async Task LoadInternshipApplicants(string internshipHashedId)
+        private async Task LoadInternshipApplicants(long internshipRng)
         {
-            loadingInternshipId = internshipHashedId;
+            loadingInternshipId = internshipRng;
             isLoadingInternshipApplicants = true;
             StateHasChanged();
 
             try
             {
-                // Note: InternshipsApplied doesn't have a direct link to internship RNG
-                // This needs to be refactored to use CompanyDashboardService or query differently
                 var applicants = await dbContext.InternshipsApplied
-                    .Where(a => a.CompanyEmailWhereStudentAppliedForInternship != null &&
+                    .Where(a => a.RNGForInternshipApplied == internshipRng &&
+                               a.CompanyEmailWhereStudentAppliedForInternship != null &&
                                a.CompanyEmailWhereStudentAppliedForInternship.ToLower() == CurrentUserEmail.ToLower())
                     .OrderByDescending(a => a.DateTimeStudentAppliedForInternship)
                     .ToListAsync();
 
-                // Convert InternshipsApplied to InternshipApplicant ViewModel
-                // TODO: This logic needs to be properly implemented based on the data model
-                var internshipApplicants = applicants.Select(a => new InternshipApplicant
-                {
-                    Id = a.Id,
-                    StudentEmail = a.StudentEmailAppliedForInternship ?? "",
-                    StudentName = "", // TODO: Load from StudentDetails if available
-                    Status = a.InternshipStatusAppliedAtTheCompanySide ?? "",
-                    StudentCv = "", // TODO: Load CV if available
-                    StudentMotivationLetter = "",
-                    CompanyInternshipId = internshipHashedId,
-                    ApplicationDate = a.DateTimeStudentAppliedForInternship
-                }).ToList();
+                internshipApplicantsMap[internshipRng] = applicants;
 
-                internshipApplicantsMap[internshipHashedId] = internshipApplicants;
+                var acceptedCount = applicants.Count(a => a.InternshipStatusAppliedAtTheCompanySide == "Επιτυχής");
+                acceptedApplicantsCountPerInternship_ForCompanyInternship[internshipRng] = acceptedCount;
 
-                var acceptedCount = applicants.Count(a => a.InternshipStatusAppliedAtTheCompanySide == "Αποδεκτή");
-                acceptedApplicantsCountPerInternship_ForCompanyInternship[internshipHashedId] = acceptedCount;
-
-                var internship = UploadedInternships.FirstOrDefault(i => i.RNGForInternshipUploadedAsCompany_HashedAsUniqueID == internshipHashedId);
+                var internship = UploadedInternships.FirstOrDefault(i => i.RNGForInternshipUploadedAsCompany == internshipRng);
                 if (internship != null)
-                    availableSlotsPerInternship_ForCompanyInternship[internshipHashedId] = internship.OpenSlots_CompanyInternships - acceptedCount;
+                    availableSlotsPerInternship_ForCompanyInternship[internshipRng] = internship.OpenSlots_CompanyInternships - acceptedCount;
             }
             catch (Exception ex)
             {
@@ -662,12 +655,12 @@ namespace QuizManager.Components.Layout.CompanySections
             finally
             {
                 isLoadingInternshipApplicants = false;
-                loadingInternshipId = "";
+                loadingInternshipId = null;
                 StateHasChanged();
             }
         }
 
-        private void EnableBulkEditModeForInternshipApplicants(string internshipHashedId)
+        private void EnableBulkEditModeForInternshipApplicants(long internshipRng)
         {
             isBulkEditModeForInternshipApplicants = true;
             selectedInternshipApplicantIds.Clear();
@@ -761,8 +754,9 @@ namespace QuizManager.Components.Layout.CompanySections
         private bool showSuccessMessageWhenSaveInternshipAsCompany = false;
 
         // Methods
-        private void ShowEmailConfirmationModalForInternshipApplicants()
+        private void ShowEmailConfirmationModalForInternshipApplicants(string action)
         {
+            pendingBulkActionForInternshipApplicants = action;
             showEmailConfirmationModalForInternshipApplicants = true;
             StateHasChanged();
         }
@@ -787,8 +781,132 @@ namespace QuizManager.Components.Layout.CompanySections
 
         private void CloseModalForInternships()
         {
+            isModalVisibleForInternships = false;
             StateHasChanged();
+        }
+
+        // Missing Methods - extracted from MainLayout.razor.cs.backup
+        private async Task ConfirmAndAcceptInternship(long internshipRNG, string studentUniqueID)
+        {
+            var internshipObj = UploadedInternships.FirstOrDefault(i => i.RNGForInternshipUploadedAsCompany == internshipRNG);
+            if (internshipObj == null) return;
+
+            int acceptedCount = acceptedApplicantsCountPerInternship_ForCompanyInternship.GetValueOrDefault(internshipRNG, 0);
+            int availableSlots = availableSlotsPerInternship_ForCompanyInternship.GetValueOrDefault(internshipRNG, internshipObj.OpenSlots_CompanyInternships);
+
+            if (acceptedCount >= availableSlots)
+            {
+                await JS.InvokeVoidAsync("alert", $"Έχετε Αποδεχτεί {acceptedCount}/{availableSlots} Αιτούντες");
+                return;
+            }
+
+            bool isConfirmed = await JS.InvokeAsync<bool>("confirmActionWithHTML", "- ΑΠΟΔΟΧΗ ΑΙΤΗΣΗΣ - \n Η ενέργεια αυτή δεν θα μπορεί να αναιρεθεί. Είστε σίγουρος/η;");
+            if (isConfirmed)
+            {
+                acceptedApplicantsCountPerInternship_ForCompanyInternship[internshipRNG] = acceptedCount + 1;
+                StateHasChanged();
+            }
+        }
+
+        private async Task ConfirmAndRejectInternship(long internshipRNG, string studentUniqueID)
+        {
+            bool isConfirmed = await JS.InvokeAsync<bool>("confirmActionWithHTML", "- ΑΠΟΡΡΙΨΗ ΑΙΤΗΣΗΣ - \n Η ενέργεια αυτή δεν θα μπορεί να αναιρεθεί. Είστε σίγουρος/η;");
+            if (isConfirmed)
+            {
+                StateHasChanged();
+            }
+        }
+
+        private async Task ShowStudentDetailsInNameAsHyperlink(string studentUniqueId, int applicationId, string source)
+        {
+            var student = await dbContext.Students.FirstOrDefaultAsync(s => s.Student_UniqueID == studentUniqueId);
+            if (student != null)
+            {
+                selectedStudentFromCache = student;
+                isModalVisibleToShowStudentDetailsAsCompanyFromTheirHyperlinkNameInCompanyInternships = true;
+                StateHasChanged();
+            }
+        }
+
+        private void ToggleInternshipApplicantSelection(long internshipRng, string studentId, ChangeEventArgs e)
+        {
+            var key = (internshipRng, studentId);
+            if ((bool)e.Value!)
+            {
+                selectedInternshipApplicantIds.Add(key);
+            }
+            else
+            {
+                selectedInternshipApplicantIds.Remove(key);
+            }
+            StateHasChanged();
+        }
+
+        // Edit Modal Methods
+        private void ToggleCheckboxesForEditCompanyInternship()
+        {
+            showCheckboxesForCompanyInternship = !showCheckboxesForCompanyInternship;
+            StateHasChanged();
+        }
+
+        private void OnAreaCheckedChangedForEditCompanyInternship(ChangeEventArgs e, Area area)
+        {
+            var isChecked = (bool)e.Value!;
+            if (isChecked)
+            {
+                if (!SelectedAreasToEditForCompanyInternship.Contains(area))
+                {
+                    SelectedAreasToEditForCompanyInternship.Add(area);
+                }
+            }
+            else
+            {
+                SelectedAreasToEditForCompanyInternship.Remove(area);
+                if (SelectedSubFieldsForEditCompanyInternship.ContainsKey(area.AreaName))
+                {
+                    SelectedSubFieldsForEditCompanyInternship.Remove(area.AreaName);
+                }
+            }
+            StateHasChanged();
+        }
+
+        private bool IsAreaSelectedForEditCompanyInternship(Area area)
+        {
+            return SelectedAreasToEditForCompanyInternship.Contains(area);
+        }
+
+        private void ToggleSubFieldsForEditCompanyInternship(Area area)
+        {
+            if (ExpandedAreasForEditCompanyInternship.Contains(area.Id))
+                ExpandedAreasForEditCompanyInternship.Remove(area.Id);
+            else
+                ExpandedAreasForEditCompanyInternship.Add(area.Id);
+            StateHasChanged();
+        }
+
+        private void OnSubFieldCheckedChangedForEditCompanyInternship(ChangeEventArgs e, Area area, string subField)
+        {
+            var isChecked = (bool)e.Value!;
+            if (!SelectedSubFieldsForEditCompanyInternship.ContainsKey(area.AreaName))
+            {
+                SelectedSubFieldsForEditCompanyInternship[area.AreaName] = new HashSet<string>();
+            }
+
+            if (isChecked)
+            {
+                SelectedSubFieldsForEditCompanyInternship[area.AreaName].Add(subField);
+            }
+            else
+            {
+                SelectedSubFieldsForEditCompanyInternship[area.AreaName].Remove(subField);
+            }
+            StateHasChanged();
+        }
+
+        private bool IsSubFieldSelectedForEditCompanyInternship(Area area, string subField)
+        {
+            return SelectedSubFieldsForEditCompanyInternship.ContainsKey(area.AreaName) && 
+                SelectedSubFieldsForEditCompanyInternship[area.AreaName].Contains(subField);
         }
     }
 }
-

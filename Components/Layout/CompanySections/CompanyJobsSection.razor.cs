@@ -72,25 +72,34 @@ namespace QuizManager.Components.Layout.CompanySections
 
         // Job Menu
         private int activeJobMenuId = 0;
-        private string currentlyExpandedJobId = "";
+        private long? currentlyExpandedJobId = null;
 
         // Job Applicants
         private bool isLoadingJobApplicants = false;
-        private string loadingJobPositionId = "";
-        private Dictionary<string, List<JobApplicant>> jobApplicantsMap = new Dictionary<string, List<JobApplicant>>();
-        private Dictionary<string, int> acceptedApplicantsCountPerJob_ForCompanyJob = new Dictionary<string, int>();
-        private Dictionary<string, int> availableSlotsPerJob_ForCompanyJob = new Dictionary<string, int>();
+        private long? loadingJobPositionId = null;
+        private Dictionary<long, List<CompanyJobApplied>> jobApplicantsMap = new Dictionary<long, List<CompanyJobApplied>>();
+        private Dictionary<long, int> acceptedApplicantsCountPerJob_ForCompanyJob = new Dictionary<long, int>();
+        private Dictionary<long, int> availableSlotsPerJob_ForCompanyJob = new Dictionary<long, int>();
 
         // Bulk Operations for Applicants
         private bool isBulkEditModeForApplicants = false;
         private string pendingBulkActionForApplicants = "";
         private bool sendEmailsForBulkAction = false;
-        private HashSet<int> selectedApplicantIds = new HashSet<int>();
+        private HashSet<(long, string)> selectedApplicantIds = new HashSet<(long, string)>();
 
         // Edit Job
         private CompanyJob currentJob;
         private bool isEditJobModalVisible = false;
         private HashSet<int> ExpandedAreasForEditCompanyJob = new HashSet<int>();
+        private List<Area> SelectedAreasToEditForCompanyJob = new List<Area>();
+        private Dictionary<string, List<string>> SelectedSubFieldsForEditCompanyJob = new Dictionary<string, List<string>>();
+        private List<string> ForeasType = new List<string>
+        {
+            "Ιδιωτικός Φορέας",
+            "Δημόσιος Φορέας",
+            "Μ.Κ.Ο.",
+            "Άλλο"
+        };
 
         // Modals
         private bool showSlotWarningModal_ForCompanyJob = false;
@@ -212,23 +221,23 @@ namespace QuizManager.Components.Layout.CompanySections
             StateHasChanged();
         }
 
-        private void OnSubFieldCheckedChangedForCompanyJob(ChangeEventArgs e, Area area, SubField subField)
+        private void OnSubFieldCheckedChangedForCompanyJob(ChangeEventArgs e, Area area, string subField)
         {
             bool isChecked = (bool)e.Value;
             if (!SelectedSubFieldsForCompanyJob.ContainsKey(area.Id))
                 SelectedSubFieldsForCompanyJob[area.Id] = new HashSet<string>();
 
             if (isChecked)
-                SelectedSubFieldsForCompanyJob[area.Id].Add(subField.SubFieldName);
+                SelectedSubFieldsForCompanyJob[area.Id].Add(subField);
             else
-                SelectedSubFieldsForCompanyJob[area.Id].Remove(subField.SubFieldName);
+                SelectedSubFieldsForCompanyJob[area.Id].Remove(subField);
             StateHasChanged();
         }
 
-        private bool IsSubFieldSelectedForCompanyJob(Area area, SubField subField)
+        private bool IsSubFieldSelectedForCompanyJob(Area area, string subField)
         {
             return SelectedSubFieldsForCompanyJob.ContainsKey(area.Id) &&
-                   SelectedSubFieldsForCompanyJob[area.Id].Contains(subField.SubFieldName);
+                   SelectedSubFieldsForCompanyJob[area.Id].Contains(subField);
         }
 
         // File Handling
@@ -630,10 +639,170 @@ namespace QuizManager.Components.Layout.CompanySections
             }
         }
 
-        private void ToggleJobsExpanded(string jobPositionId)
+        private void ToggleJobsExpanded(long jobPositionId)
         {
-            currentlyExpandedJobId = currentlyExpandedJobId == jobPositionId ? "" : jobPositionId;
+            currentlyExpandedJobId = currentlyExpandedJobId == jobPositionId ? null : jobPositionId;
             StateHasChanged();
+        }
+
+        private async Task ShowJobDetails(CompanyJob job)
+        {
+            if (job.Company == null)
+            {
+                await dbContext.Entry(job)
+                    .Reference(j => j.Company)
+                    .LoadAsync();
+            }
+
+            currentJob = job;
+            isModalVisibleForJobs = true;
+            StateHasChanged();
+        }
+
+        private void EditJobDetails(CompanyJob job)
+        {
+            selectedJob = new CompanyJob
+            {
+                Id = job.Id,
+                PositionTitle = job.PositionTitle,
+                PositionDescription = job.PositionDescription,
+                PositionStatus = job.PositionStatus,
+                PositionType = job.PositionType,
+                PositionForeas = job.PositionForeas,
+                PositionContactPerson = job.PositionContactPerson,
+                PositionPerifereiaLocation = job.PositionPerifereiaLocation,
+                PositionDimosLocation = job.PositionDimosLocation,
+                PositionPostalCodeLocation = job.PositionPostalCodeLocation,
+                PositionTransportOffer = job.PositionTransportOffer,
+                PositionAreas = job.PositionAreas,
+                PositionActivePeriod = job.PositionActivePeriod,
+                PositionAttachment = job.PositionAttachment,
+                RNGForPositionUploaded_HashedAsUniqueID = job.RNGForPositionUploaded_HashedAsUniqueID,
+                RNGForPositionUploaded = job.RNGForPositionUploaded,
+                UploadDateTime = job.UploadDateTime,
+                TimesUpdated = job.TimesUpdated,
+                UpdateDateTime = DateTime.Today,
+                OpenSlots = job.OpenSlots
+            };
+
+            SelectedAreasToEditForCompanyJob.Clear();
+            SelectedSubFieldsForEditCompanyJob.Clear();
+            ExpandedAreasForEditCompanyJob.Clear();
+
+            InitializeAreaSelectionsForEdit(job);
+
+            isEditPopupVisibleForJobs = true;
+            StateHasChanged();
+        }
+
+        private void InitializeAreaSelectionsForEdit(CompanyJob job)
+        {
+            if (!string.IsNullOrEmpty(job.PositionAreas))
+            {
+                var selectedItems = job.PositionAreas.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(item => item.Trim())
+                    .ToHashSet();
+
+                foreach (var area in Areas)
+                {
+                    if (selectedItems.Contains(area.AreaName))
+                    {
+                        SelectedAreasToEditForCompanyJob.Add(area);
+                    }
+
+                    if (!string.IsNullOrEmpty(area.AreaSubFields))
+                    {
+                        var subFields = area.AreaSubFields.Split(',')
+                            .Select(s => s.Trim())
+                            .ToList();
+
+                        bool hasSelectedSubfields = false;
+
+                        foreach (var subField in subFields)
+                        {
+                            if (selectedItems.Contains(subField))
+                            {
+                                if (!SelectedSubFieldsForEditCompanyJob.ContainsKey(area.AreaName))
+                                {
+                                    SelectedSubFieldsForEditCompanyJob[area.AreaName] = new List<string>();
+                                }
+                                if (!SelectedSubFieldsForEditCompanyJob[area.AreaName].Contains(subField))
+                                {
+                                    SelectedSubFieldsForEditCompanyJob[area.AreaName].Add(subField);
+                                    hasSelectedSubfields = true;
+                                }
+                            }
+                        }
+
+                        if (hasSelectedSubfields)
+                        {
+                            ExpandedAreasForEditCompanyJob.Add(area.Id);
+                        }
+                    }
+                }
+            }
+        }
+
+        private void OnAreaCheckedChangedForEditCompanyJob(ChangeEventArgs e, Area area)
+        {
+            var isChecked = (bool)e.Value!;
+
+            if (isChecked)
+            {
+                if (!SelectedAreasToEditForCompanyJob.Contains(area))
+                {
+                    SelectedAreasToEditForCompanyJob.Add(area);
+                }
+            }
+            else
+            {
+                SelectedAreasToEditForCompanyJob.Remove(area);
+
+                if (SelectedSubFieldsForEditCompanyJob.ContainsKey(area.AreaName))
+                {
+                    SelectedSubFieldsForEditCompanyJob.Remove(area.AreaName);
+                }
+            }
+            StateHasChanged();
+        }
+
+        private bool IsAreaSelectedForEditCompanyJob(Area area)
+        {
+            return SelectedAreasToEditForCompanyJob.Contains(area);
+        }
+
+        private void OnSubFieldCheckedChangedForEditCompanyJob(ChangeEventArgs e, Area area, string subField)
+        {
+            var isChecked = (bool)e.Value!;
+
+            if (!SelectedSubFieldsForEditCompanyJob.ContainsKey(area.AreaName))
+            {
+                SelectedSubFieldsForEditCompanyJob[area.AreaName] = new List<string>();
+            }
+
+            if (isChecked)
+            {
+                if (!SelectedSubFieldsForEditCompanyJob[area.AreaName].Contains(subField))
+                {
+                    SelectedSubFieldsForEditCompanyJob[area.AreaName].Add(subField);
+                }
+            }
+            else
+            {
+                SelectedSubFieldsForEditCompanyJob[area.AreaName].Remove(subField);
+
+                if (!SelectedSubFieldsForEditCompanyJob[area.AreaName].Any())
+                {
+                    SelectedSubFieldsForEditCompanyJob.Remove(area.AreaName);
+                }
+            }
+            StateHasChanged();
+        }
+
+        private bool IsSubFieldSelectedForEditCompanyJob(Area area, string subField)
+        {
+            return SelectedSubFieldsForEditCompanyJob.ContainsKey(area.AreaName) &&
+                SelectedSubFieldsForEditCompanyJob[area.AreaName].Contains(subField);
         }
 
         private async Task UpdateJobStatusAsCompany(int jobId, string newStatus)
@@ -653,44 +822,94 @@ namespace QuizManager.Components.Layout.CompanySections
             await UpdateJobStatusAsCompany(jobId, "Μη Δημοσιευμένη");
         }
 
-        // Job Applicants
-        private async Task LoadJobApplicants(string positionHashedId)
+        private async Task ConfirmAndAcceptJob(long jobRNG, string studentUniqueID)
         {
-            loadingJobPositionId = positionHashedId;
+            var job = UploadedJobs.FirstOrDefault(j => j.RNGForPositionUploaded == jobRNG);
+            if (job == null) return;
+
+            int acceptedCount = acceptedApplicantsCountPerJob_ForCompanyJob.GetValueOrDefault(jobRNG, 0);
+            int availableSlots = availableSlotsPerJob_ForCompanyJob.GetValueOrDefault(jobRNG, job.OpenSlots);
+
+            if (acceptedCount >= availableSlots)
+            {
+                slotWarningMessage_ForCompanyJob = $"Έχετε Αποδεχτεί {acceptedCount}/{availableSlots} Αιτούντες, πρέπει να αλλάξετε τον Αριθμό των διαθέσιμων Slots της Θέσης Εργασίας για να προχωρήσετε";
+                showSlotWarningModal_ForCompanyJob = true;
+                return;
+            }
+
+            bool isConfirmed = await JS.InvokeAsync<bool>("confirmActionWithHTML",
+                "- ΑΠΟΔΟΧΗ ΑΙΤΗΣΗΣ - \n Η ενέργεια αυτή δεν θα μπορεί να αναιρεθεί. Είστε σίγουρος/η;");
+
+            if (!isConfirmed) return;
+
+            var application = await dbContext.CompanyJobsApplied
+                .FirstOrDefaultAsync(a => a.RNGForCompanyJobApplied == jobRNG &&
+                                          a.StudentUniqueIDAppliedForCompanyJob == studentUniqueID);
+
+            if (application == null)
+            {
+                await JS.InvokeVoidAsync("confirmActionWithHTML2", "Δεν βρέθηκε η Αίτηση ή ο Φοιτητής.");
+                return;
+            }
+
+            application.CompanyPositionStatusAppliedAtTheCompanySide = "Επιτυχής";
+            application.CompanyPositionStatusAppliedAtTheStudentSide = "Επιτυχής";
+            await dbContext.SaveChangesAsync();
+
+            acceptedApplicantsCountPerJob_ForCompanyJob[jobRNG] = acceptedCount + 1;
+            await LoadUploadedJobsAsync();
+            await ApplyFiltersAndUpdateCountsForJobs();
+        }
+
+        private async Task ConfirmAndRejectJob(long jobRNG, string studentUniqueID)
+        {
+            bool isConfirmed = await JS.InvokeAsync<bool>("confirmActionWithHTML",
+                "- ΑΠΟΡΡΙΨΗ ΑΙΤΗΣΗΣ - \n Η ενέργεια αυτή δεν θα μπορεί να αναιρεθεί. Είστε σίγουρος/η;");
+
+            if (!isConfirmed) return;
+
+            var application = await dbContext.CompanyJobsApplied
+                .FirstOrDefaultAsync(a => a.RNGForCompanyJobApplied == jobRNG &&
+                                          a.StudentUniqueIDAppliedForCompanyJob == studentUniqueID);
+
+            if (application == null)
+            {
+                await JS.InvokeVoidAsync("confirmActionWithHTML2", "Δεν βρέθηκε η Αίτηση ή ο Φοιτητής.");
+                return;
+            }
+
+            application.CompanyPositionStatusAppliedAtTheCompanySide = "Απορρίφθηκε";
+            application.CompanyPositionStatusAppliedAtTheStudentSide = "Απορρίφθηκε";
+            await dbContext.SaveChangesAsync();
+
+            await LoadUploadedJobsAsync();
+            await ApplyFiltersAndUpdateCountsForJobs();
+        }
+
+        // Job Applicants
+        private async Task LoadJobApplicants(long positionRng)
+        {
+            loadingJobPositionId = positionRng;
             isLoadingJobApplicants = true;
             StateHasChanged();
 
             try
             {
-                // Note: CompanyJobsApplied doesn't have a direct link to job RNG
-                // This needs to be refactored to use CompanyDashboardService or query differently
                 var applicants = await dbContext.CompanyJobsApplied
-                    .Where(a => a.CompanysEmailWhereStudentAppliedForCompanyJob != null &&
+                    .Where(a => a.RNGForCompanyJobApplied == positionRng &&
+                               a.CompanysEmailWhereStudentAppliedForCompanyJob != null &&
                                a.CompanysEmailWhereStudentAppliedForCompanyJob.ToLower() == CurrentUserEmail.ToLower())
                     .OrderByDescending(a => a.DateTimeStudentAppliedForCompanyJob)
                     .ToListAsync();
 
-                // Convert CompanyJobApplied to JobApplicant ViewModel
-                var jobApplicants = applicants.Select(a => new JobApplicant
-                {
-                    Id = a.Id,
-                    StudentEmail = a.StudentEmailAppliedForCompanyJob ?? "",
-                    StudentName = "", // TODO: Load from StudentDetails if available
-                    Status = a.CompanyPositionStatusAppliedAtTheCompanySide ?? "",
-                    StudentCv = "", // TODO: Load CV if available
-                    StudentMotivationLetter = "",
-                    CompanyJobId = positionHashedId,
-                    ApplicationDate = a.DateTimeStudentAppliedForCompanyJob
-                }).ToList();
+                jobApplicantsMap[positionRng] = applicants;
 
-                jobApplicantsMap[positionHashedId] = jobApplicants;
+                var acceptedCount = applicants.Count(a => a.CompanyPositionStatusAppliedAtTheCompanySide == "Επιτυχής");
+                acceptedApplicantsCountPerJob_ForCompanyJob[positionRng] = acceptedCount;
 
-                var acceptedCount = applicants.Count(a => a.CompanyPositionStatusAppliedAtTheCompanySide == "Αποδεκτή");
-                acceptedApplicantsCountPerJob_ForCompanyJob[positionHashedId] = acceptedCount;
-
-                var job = UploadedJobs.FirstOrDefault(j => j.RNGForPositionUploaded_HashedAsUniqueID == positionHashedId);
+                var job = UploadedJobs.FirstOrDefault(j => j.RNGForPositionUploaded == positionRng);
                 if (job != null)
-                    availableSlotsPerJob_ForCompanyJob[positionHashedId] = job.OpenSlots - acceptedCount;
+                    availableSlotsPerJob_ForCompanyJob[positionRng] = job.OpenSlots - acceptedCount;
             }
             catch (Exception ex)
             {
@@ -699,12 +918,12 @@ namespace QuizManager.Components.Layout.CompanySections
             finally
             {
                 isLoadingJobApplicants = false;
-                loadingJobPositionId = "";
+                loadingJobPositionId = null;
                 StateHasChanged();
             }
         }
 
-        private void EnableBulkEditModeForApplicants(string positionHashedId)
+        private void EnableBulkEditModeForApplicants(long positionRng)
         {
             isBulkEditModeForApplicants = true;
             selectedApplicantIds.Clear();
@@ -724,13 +943,23 @@ namespace QuizManager.Components.Layout.CompanySections
             if (string.IsNullOrEmpty(pendingBulkActionForApplicants) || !selectedApplicantIds.Any())
                 return;
 
+            var selectedRngs = selectedApplicantIds.Select(a => a.Item1).ToList();
+            var selectedStudentIds = selectedApplicantIds.Select(a => a.Item2).ToList();
+            var selectedLookup = new HashSet<(long, string)>(selectedApplicantIds);
+
             var applicantsToUpdate = await dbContext.CompanyJobsApplied
-                .Where(a => selectedApplicantIds.Contains(a.Id))
+                .Where(a => selectedRngs.Contains(a.RNGForCompanyJobApplied) &&
+                            selectedStudentIds.Contains(a.StudentUniqueIDAppliedForCompanyJob))
                 .ToListAsync();
 
             foreach (var applicant in applicantsToUpdate)
             {
-                applicant.CompanyPositionStatusAppliedAtTheCompanySide = pendingBulkActionForApplicants;
+                if (!selectedLookup.Contains((applicant.RNGForCompanyJobApplied, applicant.StudentUniqueIDAppliedForCompanyJob)))
+                    continue;
+
+                var status = pendingBulkActionForApplicants == "accept" ? "Επιτυχής" : "Απορρίφθηκε";
+                applicant.CompanyPositionStatusAppliedAtTheCompanySide = status;
+                applicant.CompanyPositionStatusAppliedAtTheStudentSide = status;
             }
 
             await dbContext.SaveChangesAsync();
@@ -820,8 +1049,9 @@ namespace QuizManager.Components.Layout.CompanySections
         private bool showLoadingModalForDeleteJob = false;
 
         // Methods
-        private void ShowEmailConfirmationModalForApplicants()
+        private void ShowEmailConfirmationModalForApplicants(string action)
         {
+            pendingBulkActionForApplicants = action;
             showEmailConfirmationModalForApplicants = true;
             StateHasChanged();
         }
@@ -854,21 +1084,24 @@ namespace QuizManager.Components.Layout.CompanySections
             StateHasChanged();
         }
 
-        private void ToggleApplicantSelection(int applicantId, object checkedValue)
+        private void ToggleApplicantSelection(long jobRng, string studentId, ChangeEventArgs e)
         {
-            bool isChecked = (bool)(checkedValue ?? false);
-            if (isChecked)
-                selectedApplicantIds.Add(applicantId);
+            var key = (jobRng, studentId);
+            if ((bool)e.Value!)
+                selectedApplicantIds.Add(key);
             else
-                selectedApplicantIds.Remove(applicantId);
+                selectedApplicantIds.Remove(key);
             StateHasChanged();
         }
 
-        private void ShowStudentDetailsInNameAsHyperlink(string studentEmail)
+        private async Task ShowStudentDetailsInNameAsHyperlink(string studentUniqueId, int applicationId, string source)
         {
-            // TODO: Load and show student details
+            var student = await dbContext.Students.FirstOrDefaultAsync(s => s.Student_UniqueID == studentUniqueId);
+            if (student != null)
+            {
+                studentDataCache[student.Email] = student;
+            }
             StateHasChanged();
         }
     }
 }
-

@@ -708,7 +708,7 @@
                                                                                                             {
                                                                                                                 <div class="mb-2" style="text-align: left; margin-left: -15px;">
                                                                                                                     <button class="modern-button" style="background-color: #2d3748; color: white; display: inline-flex; align-items: center;" 
-                                                                                                                            @onclick="() => EnableBulkEditModeForThesisApplicants(companythesis.RNGForThesisUploadedAsCompany.ToString())"
+                                                                                                                            @onclick="() => EnableBulkEditModeForThesisApplicants(companythesis.RNGForThesisUploadedAsCompany)"
                                                                                                                             onmouseover="this.style.backgroundColor='#4a5568'" 
                                                                                                                             onmouseout="this.style.backgroundColor='#2d3748'">
                                                                                                                         <i class="fas fa-edit" style="margin-right: 8px;"></i>Μαζική Επεξεργασία Αιτούντων Διπλωματικής
@@ -1645,7 +1645,7 @@
 
                                                                                     <tr style="background-color: @rowColor;">
                                                                                         <td>
-                                                                                            <a href="#" @onclick="() => ShowProfessorDetailsFromHyperlinkName(thesis.ProfessorEmailUsedToUploadThesis)" style="text-decoration: none;">
+                                                                                            <a href="#" @onclick="() => ShowProfessorDetailsFromHyperlinkName(thesis)" style="text-decoration: none;">
                                                                                                 @(thesis.Professor != null ? $"{thesis.Professor.ProfName} {thesis.Professor.ProfSurname}" : "Άγνωστος Καθηγητής")
                                                                                             </a>
                                                                                         </td>
@@ -2913,4 +2913,3 @@
 
 
 <div id="company-thesis-end"></div>
-

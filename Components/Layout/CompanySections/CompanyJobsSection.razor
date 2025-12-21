@@ -1534,7 +1534,7 @@
                                                                                                checked="@IsAreaSelectedForEditCompanyJob(area)" />
                                                                                         <label class="form-check-label area-label" 
                                                                                                for="edit_area_@area.Id"
-                                                                                               @onclick="@(() => ToggleSubFieldsForEditCompanyJob(area))"
+                                                                                               @onclick="@(() => ToggleSubFieldsForEditCompanyJob(area.Id))"
                                                                                                @onclick:stopPropagation="true"
                                                                                                style="cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: space-between; width: 100%; color: #1565c0;">
                                                                                             @area.AreaName
@@ -1634,4 +1634,3 @@
 
 
                                                     <div id="jobs-tab-companies-end"></div>
-

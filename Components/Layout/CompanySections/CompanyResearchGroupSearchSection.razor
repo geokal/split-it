@@ -500,7 +500,7 @@
                                                                 {
                                                                     @foreach (var member in facultyMembers)
                                                                     {
-                                                                        <span class="badge bg-info me-1 mb-1">@member.FullName</span>
+                                                                        <span class="badge bg-info me-1 mb-1">@member.Name @member.Surname</span>
                                                                     }
                                                                 }
                                                                 else
@@ -518,7 +518,7 @@
                                                                 {
                                                                     @foreach (var member in nonFacultyMembers)
                                                                     {
-                                                                        <span class="badge bg-warning text-dark me-1 mb-1">@member.FullName</span>
+                                                                        <span class="badge bg-warning text-dark me-1 mb-1">@member.Name @member.Surname</span>
                                                                     }
                                                                 }
                                                                 else
@@ -555,7 +555,7 @@
                                                                     @foreach (var company in spinOffCompanies)
                                                                     {
                                                                         <div class="w-100 mb-2">
-                                                                            <span class="fw-bold">@company.CompanyTitle</span>
+                                                                            <span class="fw-bold">@company.CompanyName</span>
                                                                             <span style="color: #6c757d;">(ΑΦΜ: @company.CompanyAFM)</span>
                                                                         </div>
                                                                     }
@@ -579,7 +579,7 @@
                                                                                 <i class="fas fa-server mt-1 mr-2" style="color: #6f42c1;"></i>
                         
                                                                                 <div>
-                                                                                    <span class="fw-bold" style="color: #2d3748;">@item.Title</span>
+                                                                                    <span class="fw-bold" style="color: #2d3748;">@item.Name</span>
                                                                                     @if (!string.IsNullOrEmpty(item.Description))
                                                                                     {
                                                                                         <div class="text-muted small mt-1">@item.Description</div>
@@ -683,4 +683,3 @@
                                             </div>
                                         </div>
                                     }
-

@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.JSInterop;
 using QuizManager.Data;
-using QuizManager.ViewModels;
 using QuizManager.Models;
 using QuizManager.Services;
 using System;
@@ -75,36 +74,47 @@ namespace QuizManager.Components.Layout.CompanySections
 
         // Thesis Menu
         private int activeThesisMenuId = 0;
-        private Dictionary<string, bool> expandedCompanyTheses = new Dictionary<string, bool>();
+        private Dictionary<long, bool> expandedCompanyTheses = new Dictionary<long, bool>();
         private bool showLoadingModalForDeleteCompanyThesis = false;
 
         // Thesis Applicants
         private bool isLoadingCompanyThesisApplicants = false;
-        private string loadingCompanyThesisId = "";
-        private Dictionary<string, List<ThesisApplicant>> companyThesisApplicantsMap = new Dictionary<string, List<ThesisApplicant>>();
-        private Dictionary<string, int> acceptedApplicantsCountPerThesis_ForCompanyThesis = new Dictionary<string, int>();
-        private Dictionary<string, int> availableSlotsPerThesis_ForCompanyThesis = new Dictionary<string, int>();
+        private long? loadingCompanyThesisId = null;
+        private Dictionary<long, List<CompanyThesisApplied>> companyThesisApplicantsMap = new Dictionary<long, List<CompanyThesisApplied>>();
+        private Dictionary<long, int> acceptedApplicantsCountPerThesis_ForCompanyThesis = new Dictionary<long, int>();
+        private Dictionary<long, int> availableSlotsPerThesis_ForCompanyThesis = new Dictionary<long, int>();
 
         // Bulk Operations for Applicants
         private bool isBulkEditModeForThesisApplicants = false;
-        private HashSet<(string, string)> selectedThesisApplicantIds = new HashSet<(string, string)>();
+        private HashSet<(long, string)> selectedThesisApplicantIds = new HashSet<(long, string)>();
         private string pendingBulkActionForThesisApplicants = "";
         private bool sendEmailsForBulkAction = true;
 
         // Professor Interest in Theses
-        private Dictionary<string, bool> expandedCompanyThesesForProfessorInterest = new Dictionary<string, bool>();
+        private Dictionary<long, bool> expandedCompanyThesesForProfessorInterest = new Dictionary<long, bool>();
         private bool isLoadingCompanyThesisProfessors = false;
-        private string loadingCompanyThesisProfessorId = "";
+        private long? loadingCompanyThesisProfessorId = null;
         private Dictionary<string, QuizManager.Models.Professor> professorDataCache = new Dictionary<string, QuizManager.Models.Professor>();
 
         // Search Professor Theses
         private List<ProfessorThesis> professorThesesSearchResults = new List<ProfessorThesis>();
+        private List<ProfessorThesis> professorThesesResultsToFindThesesAsCompany = new List<ProfessorThesis>();
+        private bool searchPerformedToFindThesesAsCompany = false;
         private int currentPageForProfessorTheses = 1;
         private int professorThesesPerPage = 10;
+        private string searchProfessorNameToFindThesesAsCompany = "";
+        private string searchProfessorSurnameToFindThesesAsCompany = "";
+        private string searchProfessorThesisTitleToFindThesesAsCompany = "";
+        private DateTime? searchStartingDateToFindThesesAsCompany = null;
         private string searchAreasInputToFindThesesAsCompany = "";
-        private List<Area> selectedAreasToFindThesesAsCompany = new List<Area>();
+        private List<string> selectedAreasToFindThesesAsCompany = new List<string>();
+        private List<string> areaSuggestionsToFindThesesAsCompany = new List<string>();
         private string searchSkillsInputToFindThesesAsCompany = "";
-        private List<Skill> selectedSkillsToFindThesesAsCompany = new List<Skill>();
+        private List<string> selectedSkillsToFindThesesAsCompany = new List<string>();
+        private List<string> skillSuggestionsToFindThesesAsCompany = new List<string>();
+        private List<string> professorNameSuggestions = new List<string>();
+        private List<string> professorSurnameSuggestions = new List<string>();
+        private bool showCheckboxesForCompanyThesis = false;
 
         // Professor Details Modal
         private QuizManager.Models.Professor selectedProfessorDetails;
@@ -220,23 +230,23 @@ namespace QuizManager.Components.Layout.CompanySections
             StateHasChanged();
         }
 
-        private void OnSubFieldCheckedChangedForCompanyThesis(ChangeEventArgs e, Area area, SubField subField)
+        private void OnSubFieldCheckedChangedForCompanyThesis(ChangeEventArgs e, Area area, string subField)
         {
             bool isChecked = (bool)e.Value;
             if (!SelectedSubFieldsForCompanyThesis.ContainsKey(area.Id))
                 SelectedSubFieldsForCompanyThesis[area.Id] = new HashSet<string>();
 
             if (isChecked)
-                SelectedSubFieldsForCompanyThesis[area.Id].Add(subField.SubFieldName);
+                SelectedSubFieldsForCompanyThesis[area.Id].Add(subField);
             else
-                SelectedSubFieldsForCompanyThesis[area.Id].Remove(subField.SubFieldName);
+                SelectedSubFieldsForCompanyThesis[area.Id].Remove(subField);
             StateHasChanged();
         }
 
-        private bool IsSubFieldSelectedForCompanyThesis(Area area, SubField subField)
+        private bool IsSubFieldSelectedForCompanyThesis(Area area, string subField)
         {
             return SelectedSubFieldsForCompanyThesis.ContainsKey(area.Id) &&
-                   SelectedSubFieldsForCompanyThesis[area.Id].Contains(subField.SubFieldName);
+                   SelectedSubFieldsForCompanyThesis[area.Id].Contains(subField);
         }
 
         // Skills
@@ -617,12 +627,12 @@ namespace QuizManager.Components.Layout.CompanySections
             }
         }
 
-        private void ToggleCompanyThesesExpanded(string thesisHashedId)
+        private void ToggleCompanyThesesExpanded(long thesisRng)
         {
-            if (expandedCompanyTheses.ContainsKey(thesisHashedId))
-                expandedCompanyTheses[thesisHashedId] = !expandedCompanyTheses[thesisHashedId];
+            if (expandedCompanyTheses.ContainsKey(thesisRng))
+                expandedCompanyTheses[thesisRng] = !expandedCompanyTheses[thesisRng];
             else
-                expandedCompanyTheses[thesisHashedId] = true;
+                expandedCompanyTheses[thesisRng] = true;
             StateHasChanged();
         }
 
@@ -656,45 +666,29 @@ namespace QuizManager.Components.Layout.CompanySections
         }
 
         // Thesis Applicants
-        private async Task LoadThesisApplicants(string thesisHashedId)
+        private async Task LoadThesisApplicants(long thesisRng)
         {
-            loadingCompanyThesisId = thesisHashedId;
+            loadingCompanyThesisId = thesisRng;
             isLoadingCompanyThesisApplicants = true;
             StateHasChanged();
 
             try
             {
-                // Note: CompanyThesesApplied doesn't have a direct link to thesis RNG
-                // This needs to be refactored to use CompanyDashboardService or query differently
                 var applicants = await dbContext.CompanyThesesApplied
-                    .Where(a => a.CompanyEmailWhereStudentAppliedForThesis != null &&
+                    .Where(a => a.RNGForCompanyThesisApplied == thesisRng &&
+                               a.CompanyEmailWhereStudentAppliedForThesis != null &&
                                a.CompanyEmailWhereStudentAppliedForThesis.ToLower() == CurrentUserEmail.ToLower())
                     .OrderByDescending(a => a.DateTimeStudentAppliedForThesis)
                     .ToListAsync();
 
-                // Filter by thesis hashed ID if we can match it via application RNG
-                // TODO: This logic needs to be properly implemented based on the data model
-                // Convert CompanyThesisApplied to ThesisApplicant ViewModel
-                var thesisApplicants = applicants.Select(a => new ThesisApplicant
-                {
-                    Id = a.Id,
-                    StudentEmail = a.StudentEmailAppliedForThesis ?? "",
-                    StudentName = "", // TODO: Load from StudentDetails if available
-                    Status = a.CompanyThesisStatusAppliedAtCompanySide ?? "",
-                    StudentCv = "", // TODO: Load CV if available
-                    StudentMotivationLetter = "",
-                    CompanyThesisId = thesisHashedId,
-                    ApplicationDate = a.DateTimeStudentAppliedForThesis
-                }).ToList();
-                
-                companyThesisApplicantsMap[thesisHashedId] = thesisApplicants;
+                companyThesisApplicantsMap[thesisRng] = applicants;
 
-                var acceptedCount = applicants.Count(a => a.CompanyThesisStatusAppliedAtCompanySide == "Αποδεκτή");
-                acceptedApplicantsCountPerThesis_ForCompanyThesis[thesisHashedId] = acceptedCount;
+                var acceptedCount = applicants.Count(a => a.CompanyThesisStatusAppliedAtCompanySide == "Έχει γίνει Αποδοχή");
+                acceptedApplicantsCountPerThesis_ForCompanyThesis[thesisRng] = acceptedCount;
 
-                var thesis = UploadedTheses.FirstOrDefault(t => t.RNGForThesisUploadedAsCompany_HashedAsUniqueID == thesisHashedId);
+                var thesis = UploadedTheses.FirstOrDefault(t => t.RNGForThesisUploadedAsCompany == thesisRng);
                 if (thesis != null)
-                    availableSlotsPerThesis_ForCompanyThesis[thesisHashedId] = thesis.OpenSlots_CompanyThesis - acceptedCount;
+                    availableSlotsPerThesis_ForCompanyThesis[thesisRng] = thesis.OpenSlots_CompanyThesis - acceptedCount;
             }
             catch (Exception ex)
             {
@@ -703,12 +697,12 @@ namespace QuizManager.Components.Layout.CompanySections
             finally
             {
                 isLoadingCompanyThesisApplicants = false;
-                loadingCompanyThesisId = "";
+                loadingCompanyThesisId = null;
                 StateHasChanged();
             }
         }
 
-        private void EnableBulkEditModeForThesisApplicants(string thesisHashedId)
+        private void EnableBulkEditModeForThesisApplicants(long thesisRng)
         {
             isBulkEditModeForThesisApplicants = true;
             selectedThesisApplicantIds.Clear();
@@ -732,12 +726,12 @@ namespace QuizManager.Components.Layout.CompanySections
         }
 
         // Professor Interest in Theses
-        private void ToggleCompanyThesesExpandedForProfessorInterest(string thesisHashedId)
+        private void ToggleCompanyThesesExpandedForProfessorInterest(long thesisRng)
         {
-            if (expandedCompanyThesesForProfessorInterest.ContainsKey(thesisHashedId))
-                expandedCompanyThesesForProfessorInterest[thesisHashedId] = !expandedCompanyThesesForProfessorInterest[thesisHashedId];
+            if (expandedCompanyThesesForProfessorInterest.ContainsKey(thesisRng))
+                expandedCompanyThesesForProfessorInterest[thesisRng] = !expandedCompanyThesesForProfessorInterest[thesisRng];
             else
-                expandedCompanyThesesForProfessorInterest[thesisHashedId] = true;
+                expandedCompanyThesesForProfessorInterest[thesisRng] = true;
             StateHasChanged();
         }
 
@@ -748,12 +742,101 @@ namespace QuizManager.Components.Layout.CompanySections
         }
 
         // Search Professor Theses
+        private async Task SearchProfessorThesesAsCompany()
+        {
+            var query = dbContext.ProfessorTheses
+                .Include(t => t.Professor)
+                .Where(t =>
+                    t.ThesisStatus == "Δημοσιευμένη" &&
+                    (t.IsCompanyInterestedInProfessorThesisStatus == "Δεν έχει γίνει Αποδοχή" ||
+                    t.IsCompanyInterestedInProfessorThesisStatus == "Έχετε Αποδεχτεί"));
+
+            // Apply search filters
+            if (!string.IsNullOrEmpty(searchProfessorNameToFindThesesAsCompany))
+            {
+                query = query.Where(t => t.Professor != null && 
+                                    t.Professor.ProfName.Contains(searchProfessorNameToFindThesesAsCompany));
+            }
+
+            if (!string.IsNullOrEmpty(searchProfessorThesisTitleToFindThesesAsCompany))
+            {
+                query = query.Where(t => t.ThesisTitle.Contains(searchProfessorThesisTitleToFindThesesAsCompany));
+            }
+
+            if (!string.IsNullOrEmpty(searchProfessorSurnameToFindThesesAsCompany))
+            {
+                query = query.Where(t => t.Professor != null && 
+                                    t.Professor.ProfSurname.Contains(searchProfessorSurnameToFindThesesAsCompany));
+            }
+
+            if (searchStartingDateToFindThesesAsCompany.HasValue)
+            {
+                query = query.Where(t => t.ThesisActivePeriod.Date >= searchStartingDateToFindThesesAsCompany.Value.Date);
+            }
+
+            // Areas filter
+            if (selectedAreasToFindThesesAsCompany.Any())
+            {
+                query = query.Where(t => selectedAreasToFindThesesAsCompany.Any(area =>
+                    (t.ThesisAreas != null && t.ThesisAreas.Contains(area))));
+            }
+
+            // Skills filter
+            if (selectedSkillsToFindThesesAsCompany.Any())
+            {
+                query = query.Where(t => selectedSkillsToFindThesesAsCompany.Any(skill =>
+                    (t.ThesisSkills != null && t.ThesisSkills.Contains(skill))));
+            }
+
+            var initialQuery = await query.ToListAsync();
+            professorThesesResultsToFindThesesAsCompany = initialQuery;
+            professorThesesSearchResults = initialQuery;
+            searchPerformedToFindThesesAsCompany = true;
+            currentPageForProfessorTheses = 1;
+            StateHasChanged();
+        }
+
+        private void ClearSearchFieldsForSearchProfessorThesesAsCompany()
+        {
+            searchProfessorNameToFindThesesAsCompany = string.Empty;
+            searchProfessorThesisTitleToFindThesesAsCompany = string.Empty;
+            searchProfessorSurnameToFindThesesAsCompany = string.Empty;
+            searchSkillsInputToFindThesesAsCompany = string.Empty;
+            searchStartingDateToFindThesesAsCompany = null;
+            searchAreasInputToFindThesesAsCompany = string.Empty;
+
+            selectedAreasToFindThesesAsCompany.Clear(); 
+            selectedSkillsToFindThesesAsCompany.Clear();
+
+            professorThesesResultsToFindThesesAsCompany = new List<ProfessorThesis>();
+            professorThesesSearchResults = new List<ProfessorThesis>();
+            searchPerformedToFindThesesAsCompany = false;
+
+            // Clear suggestions
+            professorNameSuggestions.Clear();
+            professorSurnameSuggestions.Clear();
+            skillSuggestionsToFindThesesAsCompany.Clear();
+            areaSuggestionsToFindThesesAsCompany.Clear();
+            StateHasChanged();
+        }
+
         private IEnumerable<ProfessorThesis> GetPaginatedProfessorTheses_AsCompany()
         {
-            return professorThesesSearchResults?
+            var results = professorThesesResultsToFindThesesAsCompany ?? professorThesesSearchResults;
+            return results?
                 .Skip((currentPageForProfessorTheses - 1) * professorThesesPerPage)
                 .Take(professorThesesPerPage)
                 ?? Enumerable.Empty<ProfessorThesis>();
+        }
+
+        private void OnPageSizeChange_SearchForProfessorThesesAsCompany(ChangeEventArgs e)
+        {
+            if (int.TryParse(e.Value?.ToString(), out int newSize) && newSize > 0)
+            {
+                professorThesesPerPage = newSize;
+                currentPageForProfessorTheses = 1;
+                StateHasChanged();
+            }
         }
 
         private void ShowThesisDetailsAsCompany(ProfessorThesis thesis)
@@ -765,6 +848,166 @@ namespace QuizManager.Components.Layout.CompanySections
         private async Task MarkInterestInProfessorThesis(ProfessorThesis thesis)
         {
             // Implementation for marking interest
+            StateHasChanged();
+        }
+
+        private async Task HandleProfessorNameInput(ChangeEventArgs e)
+        {
+            searchProfessorNameToFindThesesAsCompany = e.Value?.ToString() ?? string.Empty;
+        
+            if (string.IsNullOrWhiteSpace(searchProfessorNameToFindThesesAsCompany))
+            {
+                professorNameSuggestions.Clear();
+                return;
+            }
+
+            // Get unique professor names from the database that match the input
+            professorNameSuggestions = await dbContext.ProfessorTheses
+                .Include(t => t.Professor)
+                .Where(t => t.Professor != null && 
+                        t.Professor.ProfName.Contains(searchProfessorNameToFindThesesAsCompany))
+                .Select(t => t.Professor.ProfName)
+                .Distinct()
+                .ToListAsync();
+        }
+
+        private async Task HandleProfessorSurnameInput(ChangeEventArgs e)
+        {
+            searchProfessorSurnameToFindThesesAsCompany = e.Value?.ToString() ?? string.Empty;
+        
+            if (string.IsNullOrWhiteSpace(searchProfessorSurnameToFindThesesAsCompany))
+            {
+                professorSurnameSuggestions.Clear();
+                return;
+            }
+
+            // Get unique professor surnames from the database that match the input
+            professorSurnameSuggestions = await dbContext.ProfessorTheses
+                .Include(t => t.Professor)
+                .Where(t => t.Professor != null && 
+                        t.Professor.ProfSurname.Contains(searchProfessorSurnameToFindThesesAsCompany))
+                .Select(t => t.Professor.ProfSurname)
+                .Distinct()
+                .ToListAsync();
+        }
+
+        private void SelectProfessorNameSuggestion(string name)
+        {
+            searchProfessorNameToFindThesesAsCompany = name;
+            professorNameSuggestions.Clear();
+            StateHasChanged();
+        }
+
+        private void SelectProfessorSurnameSuggestion(string surname)
+        {
+            searchProfessorSurnameToFindThesesAsCompany = surname;
+            professorSurnameSuggestions.Clear();
+            StateHasChanged();
+        }
+
+        private async Task HandleAreaInputWhenSearchForProfessorThesesAsCompany(ChangeEventArgs e)
+        {
+            searchAreasInputToFindThesesAsCompany = e.Value?.ToString().Trim() ?? string.Empty;
+            areaSuggestionsToFindThesesAsCompany = new List<string>();
+
+            if (searchAreasInputToFindThesesAsCompany.Length >= 1)
+            {
+                try
+                {
+                    var allAreas = await dbContext.Areas
+                        .Where(a => a.AreaName.Contains(searchAreasInputToFindThesesAsCompany) ||
+                                (a.AreaSubFields != null && a.AreaSubFields.Contains(searchAreasInputToFindThesesAsCompany)))
+                        .ToListAsync();
+
+                    var suggestionsSet = new HashSet<string>();
+                    foreach (var area in allAreas)
+                    {
+                        if (area.AreaName.Contains(searchAreasInputToFindThesesAsCompany, StringComparison.OrdinalIgnoreCase))
+                        {
+                            suggestionsSet.Add(area.AreaName);
+                        }
+
+                        if (!string.IsNullOrEmpty(area.AreaSubFields))
+                        {
+                            var subfields = area.AreaSubFields
+                                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                                .Select(sub => sub.Trim())
+                                .Where(sub => !string.IsNullOrEmpty(sub) &&
+                                            sub.Contains(searchAreasInputToFindThesesAsCompany, StringComparison.OrdinalIgnoreCase));
+
+                            foreach (var subfield in subfields)
+                            {
+                                var combination = $"{area.AreaName} - {subfield}";
+                                suggestionsSet.Add(combination);
+                            }
+                        }
+                    }
+
+                    areaSuggestionsToFindThesesAsCompany = suggestionsSet.Take(10).ToList();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error loading area suggestions: {ex.Message}");
+                }
+            }
+            StateHasChanged();
+        }
+
+        private void SelectAreaSuggestionToFindThesesAsCompany(string suggestion)
+        {
+            if (!string.IsNullOrWhiteSpace(suggestion) && !selectedAreasToFindThesesAsCompany.Contains(suggestion))
+            {
+                selectedAreasToFindThesesAsCompany.Add(suggestion);
+                areaSuggestionsToFindThesesAsCompany.Clear();
+                searchAreasInputToFindThesesAsCompany = string.Empty;
+                StateHasChanged();
+            }
+        }
+
+        private void RemoveSelectedAreaToFindThesesAsCompany(string area)
+        {
+            selectedAreasToFindThesesAsCompany.Remove(area);
+            StateHasChanged();
+        }
+
+        private async Task HandleSkillInputWhenSearchForProfessorThesesAsCompany(ChangeEventArgs e)
+        {
+            searchSkillsInputToFindThesesAsCompany = e.Value?.ToString().Trim() ?? string.Empty;
+            skillSuggestionsToFindThesesAsCompany = new List<string>();
+
+            if (searchSkillsInputToFindThesesAsCompany.Length >= 1)
+            {
+                try
+                {
+                    skillSuggestionsToFindThesesAsCompany = await dbContext.Skills
+                        .Where(s => s.SkillName.Contains(searchSkillsInputToFindThesesAsCompany))
+                        .Select(s => s.SkillName)
+                        .Distinct()
+                        .Take(10)
+                        .ToListAsync();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error loading skill suggestions: {ex.Message}");
+                }
+            }
+            StateHasChanged();
+        }
+
+        private void SelectSkillSuggestionToFindThesesAsCompany(string suggestion)
+        {
+            if (!string.IsNullOrWhiteSpace(suggestion) && !selectedSkillsToFindThesesAsCompany.Contains(suggestion))
+            {
+                selectedSkillsToFindThesesAsCompany.Add(suggestion);
+                skillSuggestionsToFindThesesAsCompany.Clear();
+                searchSkillsInputToFindThesesAsCompany = string.Empty;
+                StateHasChanged();
+            }
+        }
+
+        private void RemoveSelectedSkillToFindThesesAsCompany(string skill)
+        {
+            selectedSkillsToFindThesesAsCompany.Remove(skill);
             StateHasChanged();
         }
 
@@ -860,12 +1103,8 @@ namespace QuizManager.Components.Layout.CompanySections
         private int totalPages_ProfessorTheses = 1;
         private bool isThesisDetailEyeIconModalVisibleToSeeAsCompany = false;
         private Dictionary<string, Student> studentDataCache = new Dictionary<string, Student>();
-        private List<string> skillSuggestionsToFindThesesAsCompany = new List<string>();
         private bool showErrorMessage = false;
-        private List<string> professorSurnameSuggestions = new List<string>();
-        private List<string> professorNameSuggestions = new List<string>();
         private bool isUploadedProfessorThesesVisibleAsCompany = false;
-        private List<string> areaSuggestionsToFindThesesAsCompany = new List<string>();
         private string CompanyThesisAttachmentErrorMessage = "";
         private bool showSlotWarningModal_ForCompanyThesis = false;
         private string slotWarningMessage_ForCompanyThesis = "";
@@ -878,8 +1117,9 @@ namespace QuizManager.Components.Layout.CompanySections
             StateHasChanged();
         }
 
-        private void ShowEmailConfirmationModalForThesisApplicants()
+        private void ShowEmailConfirmationModalForThesisApplicants(string action)
         {
+            pendingBulkActionForThesisApplicants = action;
             showEmailConfirmationModalForThesisApplicants = true;
             StateHasChanged();
         }
@@ -908,6 +1148,209 @@ namespace QuizManager.Components.Layout.CompanySections
             currentThesis = null;
             StateHasChanged();
         }
+
+        // Missing Methods - extracted from MainLayout.razor.cs.backup
+        
+        private async Task ConfirmAndAcceptStudentThesisApplicationAsCompany(long companythesisId, string studentUniqueID)
+        {
+            var thesisObj = UploadedTheses.FirstOrDefault(t => t.RNGForThesisUploadedAsCompany == companythesisId);
+            if (thesisObj == null) return;
+
+            int acceptedCount = acceptedApplicantsCountPerThesis_ForCompanyThesis.GetValueOrDefault(companythesisId, 0);
+            int availableSlots = availableSlotsPerThesis_ForCompanyThesis.GetValueOrDefault(companythesisId, thesisObj.OpenSlots_CompanyThesis);
+
+            if (acceptedCount >= availableSlots)
+            {
+                await JS.InvokeVoidAsync("alert", $"Έχετε Αποδεχτεί {acceptedCount}/{availableSlots} Αιτούντες");
+                return;
+            }
+
+            bool isConfirmed = await JS.InvokeAsync<bool>("confirmActionWithHTML", "- ΑΠΟΔΟΧΗ ΑΙΤΗΣΗΣ - \n Η ενέργεια αυτή δεν θα μπορεί να αναιρεθεί. Είστε σίγουρος/η;");
+            if (isConfirmed)
+            {
+                acceptedApplicantsCountPerThesis_ForCompanyThesis[companythesisId] = acceptedCount + 1;
+                StateHasChanged();
+            }
+        }
+
+        private async Task ConfirmAndRejectStudentThesisApplicationAsCompany(long companythesisId, string studentUniqueID)
+        {
+            bool isConfirmed = await JS.InvokeAsync<bool>("confirmActionWithHTML", "- ΑΠΟΡΡΙΨΗ ΑΙΤΗΣΗΣ - \n Η ενέργεια αυτή δεν θα μπορεί να αναιρεθεί. Είστε σίγουρος/η;");
+            if (isConfirmed)
+            {
+                StateHasChanged();
+            }
+        }
+
+        private async Task ShowStudentDetailsInNameAsHyperlink(string studentUniqueId, int applicationId, string source)
+        {
+            // TODO: Implement student details modal
+            await Task.CompletedTask;
+        }
+
+        private void ToggleThesisApplicantSelection(long thesisRng, string studentId, ChangeEventArgs e)
+        {
+            var key = (thesisRng, studentId);
+            if ((bool)e.Value!)
+            {
+                selectedThesisApplicantIds.Add(key);
+            }
+            else
+            {
+                selectedThesisApplicantIds.Remove(key);
+            }
+            StateHasChanged();
+        }
+
+        // Edit Modal Methods
+        private void OnAreaCheckedChangedForEditCompanyThesis(ChangeEventArgs e, Area area)
+        {
+            var isChecked = (bool)e.Value!;
+            if (isChecked)
+            {
+                if (!SelectedAreasToEditForCompanyThesis.Contains(area))
+                {
+                    SelectedAreasToEditForCompanyThesis.Add(area);
+                }
+            }
+            else
+            {
+                SelectedAreasToEditForCompanyThesis.Remove(area);
+                if (SelectedSubFieldsForEditCompanyThesis.ContainsKey(area.AreaName))
+                {
+                    SelectedSubFieldsForEditCompanyThesis.Remove(area.AreaName);
+                }
+            }
+            StateHasChanged();
+        }
+
+        private bool IsAreaSelectedForEditCompanyThesis(Area area)
+        {
+            return SelectedAreasToEditForCompanyThesis.Contains(area);
+        }
+
+        private void ToggleSubFieldsForEditCompanyThesis(Area area)
+        {
+            if (ExpandedAreasForEditCompanyThesis.Contains(area.Id))
+                ExpandedAreasForEditCompanyThesis.Remove(area.Id);
+            else
+                ExpandedAreasForEditCompanyThesis.Add(area.Id);
+            StateHasChanged();
+        }
+
+        private void OnSubFieldCheckedChangedForEditCompanyThesis(ChangeEventArgs e, Area area, string subField)
+        {
+            var isChecked = (bool)e.Value!;
+            if (!SelectedSubFieldsForEditCompanyThesis.ContainsKey(area.AreaName))
+            {
+                SelectedSubFieldsForEditCompanyThesis[area.AreaName] = new HashSet<string>();
+            }
+
+            if (isChecked)
+            {
+                SelectedSubFieldsForEditCompanyThesis[area.AreaName].Add(subField);
+            }
+            else
+            {
+                SelectedSubFieldsForEditCompanyThesis[area.AreaName].Remove(subField);
+            }
+            StateHasChanged();
+        }
+
+        private bool IsSubFieldSelectedForEditCompanyThesis(Area area, string subField)
+        {
+            return SelectedSubFieldsForEditCompanyThesis.ContainsKey(area.AreaName) && 
+                SelectedSubFieldsForEditCompanyThesis[area.AreaName].Contains(subField);
+        }
+
+        private async Task HandleFileUploadForEditCompanyThesisAttachment(InputFileChangeEventArgs e)
+        {
+            // TODO: Implement file upload
+            await Task.CompletedTask;
+        }
+
+        // Pagination Methods for Professor Theses
+        private List<int> GetVisiblePages_ProfessorTheses_AsCompany()
+        {
+            var pages = new List<int>();
+            int current = currentPageForProfessorTheses;
+            int total = (int)Math.Ceiling((double)(professorThesesResultsToFindThesesAsCompany?.Count ?? 0) / professorThesesPerPage);
+        
+            pages.Add(1);
+            if (current > 3) pages.Add(-1);
+        
+            int start = Math.Max(2, current - 1);
+            int end = Math.Min(total - 1, current + 1);
+        
+            for (int i = start; i <= end; i++) pages.Add(i);
+        
+            if (current < total - 2) pages.Add(-1);
+            if (total > 1) pages.Add(total);
+        
+            return pages;
+        }
+
+        private void GoToFirstPage_ProfessorTheses()
+        {
+            currentPageForProfessorTheses = 1;
+            StateHasChanged();
+        }
+
+        private void GoToLastPage_ProfessorTheses()
+        {
+            currentPageForProfessorTheses = (int)Math.Ceiling((double)(professorThesesResultsToFindThesesAsCompany?.Count ?? 0) / professorThesesPerPage);
+            StateHasChanged();
+        }
+
+        private void PreviousPage_ProfessorTheses()
+        {
+            if (currentPageForProfessorTheses > 1)
+            {
+                currentPageForProfessorTheses--;
+                StateHasChanged();
+            }
+        }
+
+        private void NextPage_ProfessorTheses()
+        {
+            int totalPages = (int)Math.Ceiling((double)(professorThesesResultsToFindThesesAsCompany?.Count ?? 0) / professorThesesPerPage);
+            if (currentPageForProfessorTheses < totalPages)
+            {
+                currentPageForProfessorTheses++;
+                StateHasChanged();
+            }
+        }
+
+        private void GoToPage_ProfessorTheses(int page)
+        {
+            int totalPages = (int)Math.Ceiling((double)(professorThesesResultsToFindThesesAsCompany?.Count ?? 0) / professorThesesPerPage);
+            if (page >= 1 && page <= totalPages)
+            {
+                currentPageForProfessorTheses = page;
+                StateHasChanged();
+            }
+        }
+
+        private async Task DownloadProfessorThesisAttachmentWhenSearchForProfessorThesisAsCompany(int thesisId)
+        {
+            var thesis = await dbContext.ProfessorTheses.FindAsync(thesisId);
+            if (thesis?.ThesisAttachment != null)
+            {
+                string base64String = Convert.ToBase64String(thesis.ThesisAttachment);
+                string fileName = $"Thesis_Attachment_{thesisId}.pdf";
+                await JS.InvokeVoidAsync("downloadInternshipAttachmentAsStudent", fileName, base64String);
+            }
+        }
+
+        // Additional missing properties
+        private int itemsPerPage_ProfessorTheses = 10;
+        private int[] pageSizeOptions_SearchForProfessorThesesAsCompany = new[] { 10, 50, 100 };
+        private bool showLoadingModalWhenMarkInterestInProfessorThesis = false;
+        private int loadingProgressWhenMarkInterestInProfessorThesis = 0;
+        private bool isModalVisibleToShowprofessorDetailsAtCompanyThesisInterest = false;
+        private bool isProfessorDetailModalVisible = false;
+        private bool showProfessorModal = false;
+        private List<Area> SelectedAreasToEditForCompanyThesis = new List<Area>();
+        private Dictionary<string, HashSet<string>> SelectedSubFieldsForEditCompanyThesis = new Dictionary<string, HashSet<string>>();
     }
 }
-

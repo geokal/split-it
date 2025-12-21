@@ -221,7 +221,7 @@
                                                                                                                                             <span style="white-space: nowrap; font-size: 12px; font-weight: bold;">Αριθμός Συμμετοχόντων</span>
                                                                                                                                             <input type="number"                                                                                                                                        
                                                                                                                                                    value="@GetOrAddNumberOfPeople(professorEvent.RNGForEventUploadedAsProfessor)" 
-                                                                                                                                                   @onchange="(e) => HandleNumberChangeForParticipantsWhenShowInterestAsACompanyForAProfessorEvent(e, professorEvent.RNGForEventUploadedAsProfessor)"
+                                                                                                                                                   @onchange="(e) => HandleNumberChangeForParticipantsWhenShowInterestAsACompanyForAProfessorEvent(e, professorEvent)"
                                                                                                                                                    min="1" 
                                                                                                                                                    class="form-control" 
                                                                                                                                                    style="width: auto; margin: 0; text-align: center;"/>
@@ -1126,7 +1126,7 @@
                                                             </label>
                                                             <input type="time" 
                                                                    id="CompanyEventTime" 
-                                                                   class="form-control @(showErrorMessageForUploadingCompanyEvent && (companyEvent.CompanyEventTimeOnly == TimeOnly.MinValue || IsTimeInRestrictedRangeWhenUploadEventAsCompany(companyEvent.CompanyEventTimeOnly)) ? "shake error" : "")" 
+                                                                                   class="form-control @(showErrorMessageForUploadingCompanyEvent && (companyEvent.CompanyEventTimeOnly == TimeOnly.MinValue || IsTimeInRestrictedRangeWhenUploadEventAsCompany(companyEvent.CompanyEventTimeOnly.ToTimeSpan())) ? "shake error" : "")" 
                                                                    @bind="companyEvent.CompanyEventTimeOnly" 
                                                                    min="06:00" 
                                                                    max="22:00" />
@@ -1135,7 +1135,7 @@
                                                         {
                                                             <div class="text-danger mt-1">Η ώρα εκδήλωσης είναι υποχρεωτική.</div>
                                                         }
-                                                        @if (showErrorMessageForUploadingCompanyEvent && IsTimeInRestrictedRangeWhenUploadEventAsCompany(companyEvent.CompanyEventTimeOnly))
+                                                        @if (showErrorMessageForUploadingCompanyEvent && IsTimeInRestrictedRangeWhenUploadEventAsCompany(companyEvent.CompanyEventTimeOnly.ToTimeSpan()))
                                                         {
                                                             <div class="text-danger mt-1">Η ώρα πρέπει να είναι μεταξύ 06:00 και 22:00.</div>
                                                         }
@@ -1515,7 +1515,7 @@
                                                                                             </button>
         
                                                                                             <!-- Dropdown menu -->
-                                                                                            @if (activeEventMenuId == companyevent.Id)
+                                                                                            @if (activeEventMenuId.ContainsKey(companyevent.Id) && activeEventMenuId[companyevent.Id])
                                                                                             {
                                                                                                 <!-- Invisible backdrop that covers entire screen -->
                                                                                                 <div class="dropdown-backdrop" @onclick="() => ToggleEventMenu(0)"></div>
@@ -1542,14 +1542,14 @@
                                                                                                     <!-- Status change options -->
                                                                                                     @if (companyevent.CompanyEventStatus == "Δημοσιευμένη")
                                                                                                     {
-                                                                                                        <button class="dropdown-item" @onclick='async () => { await ChangeCompanyEventStatus(companyevent.Id, "Μη Δημοσιευμένη"); ToggleEventMenu(0); }'>
+                                                                                                        <button class="dropdown-item" @onclick='async () => { await ChangeCompanyEventStatus(companyevent, "Μη Δημοσιευμένη"); ToggleEventMenu(0); }'>
                                                                                                             <i class="fas fa-arrow-down text-warning me-2"></i>
                                                                                                             <span>Αποδημοσίευση</span>
                                                                                                         </button>
                                                                                                     }
                                                                                                     else if (companyevent.CompanyEventStatus == "Μη Δημοσιευμένη")
                                                                                                     {
-                                                                                                        <button class="dropdown-item" @onclick='async () => { await ChangeCompanyEventStatus(companyevent.Id, "Δημοσιευμένη"); ToggleEventMenu(0); }'>
+                                                                                                        <button class="dropdown-item" @onclick='async () => { await ChangeCompanyEventStatus(companyevent, "Δημοσιευμένη"); ToggleEventMenu(0); }'>
                                                                                                             <i class="fas fa-arrow-up text-success me-2"></i>
                                                                                                             <span>Δημοσίευση</span>
                                                                                                         </button>
@@ -2574,12 +2574,12 @@
                                                                     <!-- Επισυναπτόμενο Αρχείο -->
                                                                     <div class="form-group">
                                                                         <label><strong>Επισυναπτόμενο Αρχείο</strong></label>
-                                                                        <input type="file" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" @onchange="UploadFileToUpdateCompanyEventAttachment" />
+                                                                        <InputFile class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" OnChange="UploadFileToUpdateCompanyEventAttachment" />
                                                                     </div>
                                                                 </div>
                                                                 <div class="modal-footer">
                                                                     <button class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; padding: 8px 20px; transition: all 0.2s;" 
-                                                                            @onclick="() => UpdateCompanyEvent(currentCompanyEvent)"
+                                                                            @onclick="UpdateCompanyEvent"
                                                                             onmouseover="this.style.backgroundColor='#4a5568'" 
                                                                             onmouseout="this.style.backgroundColor='#2d3748'">
                                                                         <i class="fas fa-save me-2"></i> Αποθήκευση
@@ -2601,4 +2601,3 @@
                                             </div>
 
 <div id="company-events-end"></div>
-

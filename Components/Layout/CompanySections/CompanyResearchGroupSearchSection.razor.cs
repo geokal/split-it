@@ -452,6 +452,43 @@ namespace QuizManager.Components.Layout.CompanySections
             StateHasChanged();
         }
 
+        // Research Group Details Properties (for modal display)
+        private List<FacultyMemberInfo> facultyMembers = new List<FacultyMemberInfo>();
+        private List<NonFacultyMemberInfo> nonFacultyMembers = new List<NonFacultyMemberInfo>();
+        private int patentsCount = 0;
+        private int activeResearchActionsCount = 0;
+        private List<SpinOffCompanyInfo> spinOffCompanies = new List<SpinOffCompanyInfo>();
+        private List<IpodomiInfo> researchGroupIpodomes = new List<IpodomiInfo>();
+        
+        // DTOs for Research Group Details
+        public class FacultyMemberInfo
+        {
+            public string Name { get; set; }
+            public string Surname { get; set; }
+            public string Email { get; set; }
+            public string Department { get; set; }
+        }
+        
+        public class NonFacultyMemberInfo
+        {
+            public string Name { get; set; }
+            public string Surname { get; set; }
+            public string Email { get; set; }
+            public string Role { get; set; }
+        }
+        
+        public class SpinOffCompanyInfo
+        {
+            public string CompanyName { get; set; }
+            public string CompanyAFM { get; set; }
+        }
+        
+        public class IpodomiInfo
+        {
+            public string Name { get; set; }
+            public string Description { get; set; }
+        }
+
         // Pagination Methods
         private IEnumerable<QuizManager.Models.ResearchGroup> GetPaginatedResearchGroupResults()
         {
@@ -459,6 +496,19 @@ namespace QuizManager.Components.Layout.CompanySections
                 .Skip((currentResearchGroupPage_SearchForResearchGroupsAsCompany - 1) * ResearchGroupsPerPage_SearchForResearchGroupsAsCompany)
                 .Take(ResearchGroupsPerPage_SearchForResearchGroupsAsCompany)
                 ?? Enumerable.Empty<QuizManager.Models.ResearchGroup>();
+        }
+        
+        // Load Research Group Details (placeholder - should load from service)
+        private async Task LoadResearchGroupDetailsData(QuizManager.Models.ResearchGroup researchGroup)
+        {
+            // TODO: Load details from service
+            facultyMembers.Clear();
+            nonFacultyMembers.Clear();
+            spinOffCompanies.Clear();
+            researchGroupIpodomes.Clear();
+            patentsCount = 0;
+            activeResearchActionsCount = 0;
+            await Task.CompletedTask;
         }
 
         private void OnPageSizeChange_SearchForResearchGroupsAsCompany(ChangeEventArgs e)
