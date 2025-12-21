@@ -757,6 +757,295 @@ namespace QuizManager.Components.Layout.StudentSections
         {
             return professorThesisDataCache.TryGetValue(rng, out var thesis) ? thesis : null;
         }
+
+        // Additional Missing Properties
+        private QuizManager.Models.Company selectedCompanyDetailsForHyperlinkNameInThesisAsStudent;
+        private QuizManager.Models.Professor selectedProfessorDetailsForHyperlinkNameInThesisAsStudent;
+        private CompanyThesis selectedCompanyThesisDetails;
+        private ProfessorThesis selectedProfessorThesisDetails;
+        private bool showThesisApplications = false;
+        private bool showLoadingModalWhenApplyForThesisAsStudent = false;
+        private HashSet<long> professorThesisIdsApplied = new HashSet<long>();
+        private HashSet<long> companyThesisIdsApplied = new HashSet<long>();
+        
+        // Thesis Search Properties
+        private string thesisSearchForThesesAsStudent = "";
+        private DateTime? thesisStartDateForThesesAsStudent = null;
+        private HashSet<string> selectedThesisAreas = new HashSet<string>();
+        private HashSet<string> selectedThesisSubFields = new HashSet<string>();
+        private List<string> thesisTitleSuggestions = new List<string>();
+        private List<string> professorNameSurnameSuggestions = new List<string>();
+        private List<string> companyNameSuggestionsWhenSearchForProfessorThesisAutocompleteNameAsStudent = new List<string>();
+        private string searchNameSurnameAsStudentToFindProfessor = "";
+        private bool isThesisAreasVisible = false;
+        private bool isSearchInternshipsAsStudentFiltersVisible = false;
+        private bool isLoadingSearchThesisApplicationsAsStudent = false;
+        private HashSet<int> expandedThesisAreas = new HashSet<int>();
+        private List<object> publishedTheses = new List<object>();
+        
+        // Pagination for Thesis Search
+        private int currentThesisPage = 1;
+        private int thesisPageSize = 10;
+        private int totalThesisPages_SearchThesisAsStudent = 1;
+
+        // Profile Image
+        private string ShowProfileImage(byte[] imageBytes)
+        {
+            if (imageBytes == null || imageBytes.Length == 0)
+                return "/images/default-profile.png";
+            return $"data:image/png;base64,{Convert.ToBase64String(imageBytes)}";
+        }
+
+        // Modal Close Methods
+        private void CloseModalForCompanyThesisDetails()
+        {
+            selectedCompanyThesisDetails = null;
+            isModalOpenToSeeCompanyThesisDetails_ThesisStudentApplicationsToShow = false;
+            StateHasChanged();
+        }
+
+        private void CloseModalForProfessorThesisDetails()
+        {
+            selectedProfessorThesisDetails = null;
+            isModalOpenToSeeProfessorThesisDetails_ThesisStudentApplicationsToShow = false;
+            StateHasChanged();
+        }
+
+        private void CloseModalForCompanyNameHyperlinkDetails()
+        {
+            selectedCompanyDetailsForHyperlinkNameInThesisAsStudent = null;
+            showCompanyDetailsModalFromThesis = false;
+            StateHasChanged();
+        }
+
+        private void CloseModalForProfessorNameHyperlinkDetails()
+        {
+            selectedProfessorDetailsForHyperlinkNameInThesisAsStudent = null;
+            showProfessorDetailsModalFromThesis = false;
+            StateHasChanged();
+        }
+
+        // Pagination Methods
+        private void ChangeThesisPage(int newPage)
+        {
+            if (newPage > 0 && newPage <= totalThesisPages_SearchThesisAsStudent)
+            {
+                currentThesisPage = newPage;
+                StateHasChanged();
+            }
+        }
+
+        // Filter Toggle
+        private void ToggleSearchInternshipsAsStudentFiltersVisibility()
+        {
+            isSearchInternshipsAsStudentFiltersVisible = !isSearchInternshipsAsStudentFiltersVisible;
+            StateHasChanged();
+        }
+
+        // Additional Missing Properties
+        private string globalThesisSearch = "";
+        private bool isCompanyDetailsModalOpenForHyperlinkNameAsStudent = false;
+        private int loadingProgressWhenApplyForThesisAsStudent = 0;
+        private List<Area> Areas = new List<Area>();
+        private int[] pageSizeOptions_SearchForThesisAsStudent = new[] { 10, 50, 100 };
+
+        // Search Methods
+        private void SearchThesisApplicationsAsStudent()
+        {
+            // TODO: Implement search logic
+            StateHasChanged();
+        }
+
+        private void ClearSearchFieldsForThesisAsStudent()
+        {
+            thesisSearchForThesesAsStudent = "";
+            searchNameSurnameAsStudentToFindProfessor = "";
+            selectedThesisAreas.Clear();
+            selectedThesisSubFields.Clear();
+            thesisStartDateForThesesAsStudent = null;
+            thesisTitleSuggestions.Clear();
+            professorNameSurnameSuggestions.Clear();
+            companyNameSuggestionsWhenSearchForProfessorThesisAutocompleteNameAsStudent.Clear();
+            StateHasChanged();
+        }
+
+        // Apply for Thesis
+        private async Task ApplyForThesisAsStudent(object thesis)
+        {
+            showLoadingModalWhenApplyForThesisAsStudent = true;
+            loadingProgressWhenApplyForThesisAsStudent = 0;
+            StateHasChanged();
+
+            try
+            {
+                // TODO: Call StudentDashboardService.ApplyForThesisAsync
+                await Task.Delay(100);
+                loadingProgressWhenApplyForThesisAsStudent = 100;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error applying for thesis: {ex.Message}");
+            }
+            finally
+            {
+                showLoadingModalWhenApplyForThesisAsStudent = false;
+                StateHasChanged();
+            }
+        }
+
+        // Show Thesis Details
+        private void ShowCompanyThesisDetailsAsStudent(CompanyThesis thesis)
+        {
+            selectedCompanyThesisDetails = thesis;
+            isModalOpenToSeeCompanyThesisDetails_ThesisStudentApplicationsToShow = true;
+            StateHasChanged();
+        }
+
+        private void ShowProfessorThesisDetailsAsStudent(ProfessorThesis thesis)
+        {
+            selectedProfessorThesisDetails = thesis;
+            isModalOpenToSeeProfessorThesisDetails_ThesisStudentApplicationsToShow = true;
+            StateHasChanged();
+        }
+
+        // Page Size Change
+        private void OnPageSizeChange_SearchForThesisAsStudent(ChangeEventArgs e)
+        {
+            if (int.TryParse(e.Value?.ToString(), out int newSize) && newSize > 0)
+            {
+                thesisPageSize = newSize;
+                currentThesisPage = 1;
+                StateHasChanged();
+            }
+        }
+
+        // Filter Change
+        private void OnFilterChange(ChangeEventArgs e)
+        {
+            // Handle filter change
+            StateHasChanged();
+        }
+
+        // Thesis Area/SubField Methods
+        private void ToggleThesisSubFields(int areaId)
+        {
+            if (expandedThesisAreas.Contains(areaId))
+                expandedThesisAreas.Remove(areaId);
+            else
+                expandedThesisAreas.Add(areaId);
+            StateHasChanged();
+        }
+
+        private void OnThesisAreaCheckboxChanged(Area area, object checkedValue)
+        {
+            bool isChecked = (bool)(checkedValue ?? false);
+            if (isChecked)
+                selectedThesisAreas.Add(area.AreaName);
+            else
+                selectedThesisAreas.Remove(area.AreaName);
+            StateHasChanged();
+        }
+
+        private void OnThesisSubFieldCheckboxChanged(string subField, object checkedValue)
+        {
+            bool isChecked = (bool)(checkedValue ?? false);
+            if (isChecked)
+                selectedThesisSubFields.Add(subField);
+            else
+                selectedThesisSubFields.Remove(subField);
+            StateHasChanged();
+        }
+
+        // Additional Missing Properties
+        private string companyNameSearchForThesesAsStudent = "";
+
+        // Additional Methods
+        private void ToggleThesisAreasVisibility()
+        {
+            isThesisAreasVisible = !isThesisAreasVisible;
+            StateHasChanged();
+        }
+
+        private async Task HandleThesisTitleInputForBothCompaniesAndProfessorsWhenSearchForThesisAsStudent(ChangeEventArgs e)
+        {
+            thesisSearchForThesesAsStudent = e.Value?.ToString().Trim() ?? "";
+            thesisTitleSuggestions.Clear();
+
+            if (thesisSearchForThesesAsStudent.Length >= 2)
+            {
+                try
+                {
+                    // TODO: Load suggestions from database
+                    await Task.CompletedTask;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error loading suggestions: {ex.Message}");
+                }
+            }
+            StateHasChanged();
+        }
+
+        private async Task HandleProfessorInputWhenSearchForProfessorThesisAutocompleteNameAsStudent(ChangeEventArgs e)
+        {
+            searchNameSurnameAsStudentToFindProfessor = e.Value?.ToString().Trim() ?? "";
+            professorNameSurnameSuggestions.Clear();
+
+            if (searchNameSurnameAsStudentToFindProfessor.Length >= 2)
+            {
+                try
+                {
+                    // TODO: Load professor name suggestions
+                    await Task.CompletedTask;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error loading suggestions: {ex.Message}");
+                }
+            }
+            StateHasChanged();
+        }
+
+        private async Task HandleCompanyNameInputWhenSearchForProfessorThesisAutocompleteNameAsStudent(ChangeEventArgs e)
+        {
+            companyNameSearchForThesesAsStudent = e.Value?.ToString().Trim() ?? "";
+            companyNameSuggestionsWhenSearchForProfessorThesisAutocompleteNameAsStudent.Clear();
+
+            if (companyNameSearchForThesesAsStudent.Length >= 2)
+            {
+                try
+                {
+                    // TODO: Load company name suggestions
+                    await Task.CompletedTask;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error loading suggestions: {ex.Message}");
+                }
+            }
+            StateHasChanged();
+        }
+
+        private void SelectThesisTitleSuggestionForBothCompaniesAndProfessorsWhenSearchForThesisAsStudent(string suggestion)
+        {
+            thesisSearchForThesesAsStudent = suggestion;
+            thesisTitleSuggestions.Clear();
+            StateHasChanged();
+        }
+
+        private void SelectProfessorNameSurnameSuggestionWhenSearchForProfessorThesisAutocompleteNameAsStudent(string suggestion)
+        {
+            searchNameSurnameAsStudentToFindProfessor = suggestion;
+            professorNameSurnameSuggestions.Clear();
+            StateHasChanged();
+        }
+
+        private void SelectCompanyNameSuggestionWhenSearchForProfessorThesisAutocompleteNameAsStudent(string suggestion)
+        {
+            companyNameSearchForThesesAsStudent = suggestion;
+            companyNameSuggestionsWhenSearchForProfessorThesisAutocompleteNameAsStudent.Clear();
+            StateHasChanged();
+        }
     }
 }
 
