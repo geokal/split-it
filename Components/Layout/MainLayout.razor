@@ -1,13 +1,11 @@
 @inherits LayoutComponentBase
 @using LinqKit
 @using Newtonsoft.Json
-@using QuizManager.Data; 
+@using QuizManager.Data
 @using System.Security.Claims
-@using Microsoft.EntityFrameworkCore;
 @using QuizManager.Models
 @using System.Net.Mail
 @inject FileUploadService FileUploadService
-@inject Data.AppDbContext dbContext
 @inject Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider AuthenticationStateProvider
 @using Microsoft.AspNetCore.Components.Forms
 @using System.Net.Http.Json
