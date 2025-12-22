@@ -135,7 +135,11 @@ Pages/
 - Company sections use `ICompanyDashboardService`
 - Professor sections use `IProfessorDashboardService`
 - ResearchGroup company search uses `IResearchGroupDashboardService` (lookups/filter/search)
+- QuizViewer pages (1–4) now create contexts via `IDbContextFactory` instead of injecting `AppDbContext`
 - MainLayout/front page use services; remaining ResearchGroup/Student sections still on `AppDbContext` (to migrate)
+
+### Git State
+- Staging/commits currently blocked: `.git` directory is not writable (`index.lock` creation fails). Fix permissions before committing.
 
 ---
 

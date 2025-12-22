@@ -71,6 +71,7 @@ See `docs/ERROR_INVESTIGATION.md` for detailed explanation of error count fluctu
 - ✅ Professor sections now use `IProfessorDashboardService` (Events, Internships, Theses, Company/Student/ResearchGroup searches, Announcements)
 - ✅ ResearchGroup company search now uses `IResearchGroupDashboardService` lookups/filter/search (no direct `DbContext`)
 - ✅ MainLayout/front page already service-driven
+- ✅ QuizViewer pages (1–4) now use `IDbContextFactory` (no injected `AppDbContext`)
 - ⚠️ Remaining ResearchGroup components (Announcements, Events, Professor search, Statistics) and Student sections still inject `AppDbContext` directly (future pass)
 
 ### Extraction Strategy
@@ -96,6 +97,7 @@ See `docs/ERROR_INVESTIGATION.md` for detailed explanation of error count fluctu
 - Business logic in services; Company components fully service-backed
 - Component dependency extraction: 100% complete (CS0103 cleared)
 - Build: **passes** with warnings only (nullable + offline NuGet vulnerability check)
+- Git: commits currently blocked because `.git` directory is not writable (`index.lock` cannot be created); fix permissions before staging
 
 ## Next Steps
 1. ⚠️ Optional: address high-noise nullable/unused-field warnings
