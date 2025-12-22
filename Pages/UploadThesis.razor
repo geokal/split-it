@@ -1,7 +1,7 @@
 ﻿@page "/uploadthesis"
 @using Microsoft.EntityFrameworkCore
 @using QuizManager.Models
-@inject Data.AppDbContext dbContext
+@inject IDbContextFactory<AppDbContext> DbContextFactory
 @inject Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider AuthenticationStateProvider
 @using Microsoft.AspNetCore.Components.Forms
 @using System.Net.Http.Json
@@ -179,14 +179,16 @@
         try
         {
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-            var user = authState.User;
-            var userEmail = user.FindFirst("name")?.Value;
+        var user = authState.User;
+        var userEmail = user.FindFirst("name")?.Value;
+
+        await using var context = await DbContextFactory.CreateDbContextAsync();
             thesis.RNGForThesisUploaded = new Random().NextInt64();
             thesis.ProfessorEmailUsedToUploadThesis = userEmail;
             thesis.ThesisUploadDateTime = DateTime.Now;
 
-            dbContext.ProfessorTheses.Add(thesis);
-            await dbContext.SaveChangesAsync();
+            context.ProfessorTheses.Add(thesis);
+            await context.SaveChangesAsync();
 
             showSuccessMessage = true;
             showErrorMessage = false;
@@ -202,6 +204,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await using var context = await DbContextFactory.CreateDbContextAsync();
         thesis.Professor ??= new ProfessorModel();
 
         var uri = new Uri(NavigationManager.Uri);
@@ -210,7 +213,7 @@
         {
             if (int.TryParse(thesisId, out var id))
             {
-                var thesisToEdit = await dbContext.ProfessorTheses
+                var thesisToEdit = await context.ProfessorTheses
                     .Include(t => t.Professor)
                     .FirstOrDefaultAsync(t => t.Id == id);
 
@@ -251,10 +254,11 @@
     {
         try
         {
-            dbContext.ProfessorTheses.Update(thesis);
             thesis.ThesisTimesUpdated++;
             thesis.ThesisUpdateDateTime = DateTime.Now;
-            await dbContext.SaveChangesAsync();
+            await using var context = await DbContextFactory.CreateDbContextAsync();
+            context.ProfessorTheses.Update(thesis);
+            await context.SaveChangesAsync();
 
             showSuccessUpdateMessage = true;
             showErrorMessage = false;

@@ -1,7 +1,7 @@
 ﻿@page "/searchjobs"
 @using Microsoft.EntityFrameworkCore
 @using QuizManager.Models
-@inject Data.AppDbContext dbContext
+@inject IDbContextFactory<AppDbContext> DbContextFactory
 @inject Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider AuthenticationStateProvider
 @using Microsoft.AspNetCore.Components.Forms
 @using System.Net.Http.Json
@@ -208,8 +208,10 @@
     {
         try
         {
-            var jobs = await dbContext.CompanyJobs.ToListAsync();
-            var companies = await dbContext.Companies.ToListAsync();
+            await using var context = await DbContextFactory.CreateDbContextAsync();
+
+            var jobs = await context.CompanyJobs.ToListAsync();
+            var companies = await context.Companies.ToListAsync();
 
             positions = (from job in jobs
                          join company in companies on job.EmailUsedToUploadJobs equals company.CompanyEmail
@@ -264,7 +266,7 @@
             var student = await GetStudentDetails(user.Identity.Name);
 
             // Check if the student has already applied for this position with the same RNGForPositionUploaded
-            var existingApplication = await dbContext.CompanyJobsApplied
+            var existingApplication = await context.CompanyJobsApplied
                 .FirstOrDefaultAsync(app =>
                     app.StudentRegNumberApplied == student.RegNumber &&
                     app.RNGForPositionApplied == position.RNGForPositionUploaded);
@@ -295,7 +297,7 @@
                 };
 
             dbContext.CompanyJobsApplied.Add(jobApplication);
-            await dbContext.SaveChangesAsync();
+            await context.SaveChangesAsync();
 
             // Display JavaScript alert after successful application
             await JSRuntime.InvokeVoidAsync("alert", $"You have successfully applied for position {position.PositionTitle}. Go to Profile/Show My Applications to view your application details!");
@@ -309,7 +311,8 @@
     // Example method to get student details (this should be implemented based on your logic)
     private async Task<StudentModel> GetStudentDetails(string email)
     {
-        return await dbContext.Students.FirstOrDefaultAsync(s => s.Email == email);
+        await using var context = await DbContextFactory.CreateDbContextAsync();
+        return await context.Students.FirstOrDefaultAsync(s => s.Email == email);
     }
 
 

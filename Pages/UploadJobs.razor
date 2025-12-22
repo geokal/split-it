@@ -1,7 +1,7 @@
 ﻿@page "/uploadjobs"
 @using Microsoft.EntityFrameworkCore
 @using QuizManager.Models
-@inject Data.AppDbContext dbContext
+@inject IDbContextFactory<AppDbContext> DbContextFactory
 @inject Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider AuthenticationStateProvider
 @using Microsoft.AspNetCore.Components.Forms
 @using System.Net.Http.Json
@@ -173,10 +173,11 @@
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
         var userEmail = user.FindFirst("name")?.Value;
+        await using var context = await DbContextFactory.CreateDbContextAsync();
 
         if (!string.IsNullOrEmpty(userEmail))
         {
-            var company = await dbContext.Companies.FirstOrDefaultAsync(c => c.CompanyEmail == userEmail);
+            var company = await context.Companies.FirstOrDefaultAsync(c => c.CompanyEmail == userEmail);
             if (company != null)
             {
                 companyName = company.CompanyName;
@@ -189,7 +190,7 @@
         {
             if (int.TryParse(positionId, out var jobId))
             {
-                var jobToEdit = await dbContext.CompanyJobs.FindAsync(jobId);
+                var jobToEdit = await context.CompanyJobs.FindAsync(jobId);
                 if (jobToEdit != null)
                 {
                     job = jobToEdit;
@@ -240,7 +241,8 @@
             var userEmail = user.FindFirst("name")?.Value;
 
             // Get the company entity first
-            var company = await dbContext.Companies
+            await using var context = await DbContextFactory.CreateDbContextAsync();
+            var company = await context.Companies
                 .FirstOrDefaultAsync(c => c.CompanyEmail == userEmail);
 
             if (company == null)
@@ -259,8 +261,8 @@
             // Associate the job with the company
             job.Company = company;
 
-            dbContext.CompanyJobs.Add(job);
-            await dbContext.SaveChangesAsync();
+            context.CompanyJobs.Add(job);
+            await context.SaveChangesAsync();
 
             showSuccessMessage = true;
             showErrorMessage = false;
@@ -282,10 +284,11 @@
     {
         try
         {
-            dbContext.CompanyJobs.Update(job);
+            await using var context = await DbContextFactory.CreateDbContextAsync();
+            context.CompanyJobs.Update(job);
             job.TimesUpdated++;
             job.UpdateDateTime = DateTime.Now;
-            await dbContext.SaveChangesAsync();
+            await context.SaveChangesAsync();
 
             showSuccessUpdateMessage = true;
             showErrorMessage = false;

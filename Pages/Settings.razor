@@ -12,7 +12,7 @@
 @using System.Text.Json
 @using System.Security.Claims
 @inject IConfiguration Configuration
-@inject Data.AppDbContext dbContext
+@inject IDbContextFactory<AppDbContext> DbContextFactory
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject HttpClient HttpClient
 @inject NavigationManager NavigationManager
@@ -744,21 +744,22 @@
 
         try
         {
+            await using var context = await DbContextFactory.CreateDbContextAsync();
             bool deletionPerformed = false;
 
-            var student = await dbContext.Students.FirstOrDefaultAsync(s => s.Email == userEmail);
-            if (student != null) { dbContext.Students.Remove(student); deletionPerformed = true; }
+            var student = await context.Students.FirstOrDefaultAsync(s => s.Email == userEmail);
+            if (student != null) { context.Students.Remove(student); deletionPerformed = true; }
 
-            var professor = await dbContext.Professors.FirstOrDefaultAsync(p => p.ProfEmail == userEmail);
-            if (professor != null) { dbContext.Professors.Remove(professor); deletionPerformed = true; }
+            var professor = await context.Professors.FirstOrDefaultAsync(p => p.ProfEmail == userEmail);
+            if (professor != null) { context.Professors.Remove(professor); deletionPerformed = true; }
 
-            var company = await dbContext.Companies.FirstOrDefaultAsync(c => c.CompanyEmail == userEmail);
-            if (company != null) { dbContext.Companies.Remove(company); deletionPerformed = true; }
+            var company = await context.Companies.FirstOrDefaultAsync(c => c.CompanyEmail == userEmail);
+            if (company != null) { context.Companies.Remove(company); deletionPerformed = true; }
 
-            var researchGroup = await dbContext.ResearchGroups.FirstOrDefaultAsync(rg => rg.ResearchGroupEmail == userEmail);
-            if (researchGroup != null) { dbContext.ResearchGroups.Remove(researchGroup); deletionPerformed = true; }
+            var researchGroup = await context.ResearchGroups.FirstOrDefaultAsync(rg => rg.ResearchGroupEmail == userEmail);
+            if (researchGroup != null) { context.ResearchGroups.Remove(researchGroup); deletionPerformed = true; }
 
-            if (deletionPerformed) await dbContext.SaveChangesAsync();
+            if (deletionPerformed) await context.SaveChangesAsync();
             return true;
         }
         catch
