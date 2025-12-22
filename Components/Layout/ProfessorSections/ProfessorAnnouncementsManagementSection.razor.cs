@@ -1,16 +1,16 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Forms;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.JSInterop;
 using QuizManager.Data;
 using QuizManager.Models;
+using QuizManager.Services.FrontPage;
+using QuizManager.Services.ProfessorDashboard;
 using QuizManager.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Security.Claims;
 using System.Threading.Tasks;
 using HtmlAgilityPack;
 
@@ -18,11 +18,15 @@ namespace QuizManager.Components.Layout.ProfessorSections
 {
     public partial class ProfessorAnnouncementsManagementSection : ComponentBase
     {
-        [Inject] private AppDbContext dbContext { get; set; } = default!;
+        [Inject] private IProfessorDashboardService ProfessorDashboardService { get; set; } = default!;
+        [Inject] private IFrontPageService FrontPageService { get; set; } = default!;
         [Inject] private IJSRuntime JS { get; set; } = default!;
         [Inject] private HttpClient HttpClient { get; set; } = default!;
         [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
         [Inject] private NavigationManager NavigationManager { get; set; } = default!;
+
+        private ProfessorDashboardData dashboardData = ProfessorDashboardData.Empty;
+        private FrontPageData frontPageData = FrontPageData.Empty;
 
         // User Information
         private string CurrentUserEmail = "";
@@ -136,11 +140,9 @@ namespace QuizManager.Components.Layout.ProfessorSections
             var user = authState.User;
             CurrentUserEmail = user.FindFirst("name")?.Value ?? "";
 
-            // Load professor info
             if (!string.IsNullOrEmpty(CurrentUserEmail))
             {
-                var professor = await dbContext.Professors
-                    .FirstOrDefaultAsync(p => p.ProfEmail == CurrentUserEmail);
+                var professor = await ProfessorDashboardService.GetProfessorProfileAsync();
                 if (professor != null)
                 {
                     professorName = professor.ProfName;
@@ -154,18 +156,29 @@ namespace QuizManager.Components.Layout.ProfessorSections
 
         private async Task LoadDataAsync()
         {
+            await FrontPageService.EnsureDataLoadedAsync();
+            frontPageData = await FrontPageService.LoadFrontPageDataAsync();
+
+            dashboardData = await ProfessorDashboardService.LoadDashboardDataAsync();
+
             // Load news articles
             newsArticles = await FetchNewsArticlesAsync();
             svseNewsArticles = await FetchSVSENewsArticlesAsync();
 
             // Load announcements
-            Announcements = await FetchAnnouncementsAsync();
-            ProfessorAnnouncements = await FetchProfessorAnnouncementsAsync();
-            ResearchGroupAnnouncements = await FetchResearchGroupAnnouncementsAsync();
+            Announcements = frontPageData.CompanyAnnouncements.ToList();
+            ProfessorAnnouncements = frontPageData.ProfessorAnnouncements.ToList();
+            ResearchGroupAnnouncements = frontPageData.ResearchGroupAnnouncements.ToList();
 
             // Load events
-            CompanyEventsToShowAtFrontPage = await FetchCompanyEventsAsync();
-            ProfessorEventsToShowAtFrontPage = await FetchProfessorEventsAsync();
+            CompanyEventsToShowAtFrontPage = frontPageData.CompanyEvents.ToList();
+            ProfessorEventsToShowAtFrontPage = frontPageData.ProfessorEvents.ToList();
+
+            UploadedAnnouncementsAsProfessor = dashboardData.Announcements
+                .Where(a => a.ProfessorAnnouncementProfessorEmail == CurrentUserEmail)
+                .ToList();
+            FilteredAnnouncementsAsProfessor = UploadedAnnouncementsAsProfessor;
+            await ApplyFiltersAndUpdateCountsAsProfessor();
 
             // Calculate total pages
             UpdateTotalPages();
@@ -638,52 +651,72 @@ namespace QuizManager.Components.Layout.ProfessorSections
 
         private async Task<List<AnnouncementAsCompany>> FetchAnnouncementsAsync()
         {
-            return await dbContext.AnnouncementsAsCompany
-                .Include(a => a.Company)
-                .AsNoTracking()
+            if (frontPageData == FrontPageData.Empty)
+            {
+                await FrontPageService.EnsureDataLoadedAsync();
+                frontPageData = await FrontPageService.LoadFrontPageDataAsync();
+            }
+
+            return frontPageData.CompanyAnnouncements
                 .Where(a => a.CompanyAnnouncementStatus == "Δημοσιευμένη")
                 .OrderByDescending(a => a.CompanyAnnouncementUploadDate)
-                .ToListAsync();
+                .ToList();
         }
 
         private async Task<List<AnnouncementAsProfessor>> FetchProfessorAnnouncementsAsync()
         {
-            return await dbContext.AnnouncementsAsProfessor
-                .Include(a => a.Professor)
-                .AsNoTracking()
+            if (frontPageData == FrontPageData.Empty)
+            {
+                await FrontPageService.EnsureDataLoadedAsync();
+                frontPageData = await FrontPageService.LoadFrontPageDataAsync();
+            }
+
+            return frontPageData.ProfessorAnnouncements
                 .Where(a => a.ProfessorAnnouncementStatus == "Δημοσιευμένη")
                 .OrderByDescending(a => a.ProfessorAnnouncementUploadDate)
-                .ToListAsync();
+                .ToList();
         }
 
         private async Task<List<AnnouncementAsResearchGroup>> FetchResearchGroupAnnouncementsAsync()
         {
-            return await dbContext.AnnouncementAsResearchGroup
-                .Include(a => a.ResearchGroup)
-                .AsNoTracking()
+            if (frontPageData == FrontPageData.Empty)
+            {
+                await FrontPageService.EnsureDataLoadedAsync();
+                frontPageData = await FrontPageService.LoadFrontPageDataAsync();
+            }
+
+            return frontPageData.ResearchGroupAnnouncements
                 .Where(a => a.ResearchGroupAnnouncementStatus == "Δημοσιευμένη")
                 .OrderByDescending(a => a.ResearchGroupAnnouncementUploadDate)
-                .ToListAsync();
+                .ToList();
         }
 
         private async Task<List<CompanyEvent>> FetchCompanyEventsAsync()
         {
-            return await dbContext.CompanyEvents
-                .Include(e => e.Company)
-                .AsNoTracking()
+            if (frontPageData == FrontPageData.Empty)
+            {
+                await FrontPageService.EnsureDataLoadedAsync();
+                frontPageData = await FrontPageService.LoadFrontPageDataAsync();
+            }
+
+            return frontPageData.CompanyEvents
                 .Where(e => e.CompanyEventStatus == "Δημοσιευμένη")
                 .OrderByDescending(e => e.CompanyEventUploadedDate)
-                .ToListAsync();
+                .ToList();
         }
 
         private async Task<List<ProfessorEvent>> FetchProfessorEventsAsync()
         {
-            return await dbContext.ProfessorEvents
-                .Include(e => e.Professor)
-                .AsNoTracking()
+            if (frontPageData == FrontPageData.Empty)
+            {
+                await FrontPageService.EnsureDataLoadedAsync();
+                frontPageData = await FrontPageService.LoadFrontPageDataAsync();
+            }
+
+            return frontPageData.ProfessorEvents
                 .Where(e => e.ProfessorEventStatus == "Δημοσιευμένη")
                 .OrderByDescending(e => e.ProfessorEventUploadedDate)
-                .ToListAsync();
+                .ToList();
         }
 
         // Helper Methods
@@ -874,24 +907,27 @@ namespace QuizManager.Components.Layout.ProfessorSections
                 await UpdateProgressWhenSaveAnnouncementAsProfessor(40);
 
                 await UpdateProgressWhenSaveAnnouncementAsProfessor(60);
-                var existingProfessor = await dbContext.Professors
-                    .FirstOrDefaultAsync(p => p.ProfEmail == CurrentUserEmail);
-
-                if (existingProfessor != null)
+                professorannouncement.ProfessorAnnouncementProfessorEmail = CurrentUserEmail;
+                if (professorannouncement.Professor == null)
                 {
-                    professorannouncement.Professor = existingProfessor;
-                    professorannouncement.ProfessorAnnouncementProfessorEmail = existingProfessor.ProfEmail;
-                }
-                else
-                {
-                    await HandleProfessorNotFoundErrorWhenSaveAnnouncementAsProfessor();
-                    return;
+                    professorannouncement.Professor = new Professor
+                    {
+                        ProfEmail = CurrentUserEmail,
+                        ProfName = professorName,
+                        ProfSurname = professorSurname,
+                        ProfDepartment = professorDepartment
+                    };
                 }
                 await UpdateProgressWhenSaveAnnouncementAsProfessor(80);
 
                 await UpdateProgressWhenSaveAnnouncementAsProfessor(90);
-                dbContext.AnnouncementsAsProfessor.Add(professorannouncement);
-                await dbContext.SaveChangesAsync();
+                var result = await ProfessorDashboardService.CreateOrUpdateAnnouncementAsync(professorannouncement);
+                if (!result.Success)
+                {
+                    throw new InvalidOperationException(result.Error ?? "Failed to save announcement.");
+                }
+                await ProfessorDashboardService.RefreshDashboardCacheAsync();
+                dashboardData = await ProfessorDashboardService.LoadDashboardDataAsync();
                 await UpdateProgressWhenSaveAnnouncementAsProfessor(100);
 
                 isSaveAnnouncementAsProfessorSuccessful = true;
@@ -967,9 +1003,10 @@ namespace QuizManager.Components.Layout.ProfessorSections
             {
                 if (!string.IsNullOrEmpty(CurrentUserEmail))
                 {
-                    UploadedAnnouncementsAsProfessor = await dbContext.AnnouncementsAsProfessor
+                    dashboardData = await ProfessorDashboardService.LoadDashboardDataAsync();
+                    UploadedAnnouncementsAsProfessor = dashboardData.Announcements
                         .Where(i => i.ProfessorAnnouncementProfessorEmail == CurrentUserEmail)
-                        .ToListAsync();
+                        .ToList();
                 }
             }
             catch (Exception ex)
@@ -979,18 +1016,11 @@ namespace QuizManager.Components.Layout.ProfessorSections
             StateHasChanged();
         }
 
-        private async Task<List<AnnouncementAsProfessor>> GetUploadedAnnouncementsAsProfessor()
-        {
-            return await dbContext.AnnouncementsAsProfessor
-                .Where(a => a.ProfessorAnnouncementProfessorEmail == CurrentUserEmail)
-                .ToListAsync();
-        }
-
         private async Task ApplyFiltersAndUpdateCountsAsProfessor()
         {
             if (UploadedAnnouncementsAsProfessor == null)
             {
-                UploadedAnnouncementsAsProfessor = await GetUploadedAnnouncementsAsProfessor();
+                await LoadUploadedAnnouncementsAsProfessorAsync();
             }
 
             if (selectedStatusFilterForAnnouncementsAsProfessor == "Όλα")
@@ -1183,18 +1213,16 @@ namespace QuizManager.Components.Layout.ProfessorSections
 
         private async Task UpdateAnnouncementAsProfessor(AnnouncementAsProfessor updatedAnnouncementasProfessor)
         {
-            var existingAnnouncementasProfessor = await dbContext.AnnouncementsAsProfessor.FindAsync(updatedAnnouncementasProfessor.Id);
-
-            if (existingAnnouncementasProfessor != null)
+            var result = await ProfessorDashboardService.CreateOrUpdateAnnouncementAsync(updatedAnnouncementasProfessor);
+            if (!result.Success)
             {
-                existingAnnouncementasProfessor.ProfessorAnnouncementTitle = updatedAnnouncementasProfessor.ProfessorAnnouncementTitle;
-                existingAnnouncementasProfessor.ProfessorAnnouncementDescription = updatedAnnouncementasProfessor.ProfessorAnnouncementDescription;
-                existingAnnouncementasProfessor.ProfessorAnnouncementAttachmentFile = updatedAnnouncementasProfessor.ProfessorAnnouncementAttachmentFile;
-                await dbContext.SaveChangesAsync();
-                CloseEditModalForAnnouncementsAsProfessor();
-                await LoadUploadedAnnouncementsAsProfessorAsync();
-                await ApplyFiltersAndUpdateCountsAsProfessor();
+                throw new InvalidOperationException(result.Error ?? "Failed to update announcement.");
             }
+
+            await ProfessorDashboardService.RefreshDashboardCacheAsync();
+            await LoadUploadedAnnouncementsAsProfessorAsync();
+            await ApplyFiltersAndUpdateCountsAsProfessor();
+            CloseEditModalForAnnouncementsAsProfessor();
         }
 
         private async Task HandleFileUploadToEditProfessorAnnouncementAttachment(InputFileChangeEventArgs e)
@@ -1244,8 +1272,12 @@ namespace QuizManager.Components.Layout.ProfessorSections
                 var professorannouncement = UploadedAnnouncementsAsProfessor.FirstOrDefault(a => a.Id == professorannouncementId);
                 if (professorannouncement != null)
                 {
-                    professorannouncement.ProfessorAnnouncementStatus = professorannouncementnewStatus;
-                    await dbContext.SaveChangesAsync();
+                    var result = await ProfessorDashboardService.UpdateAnnouncementStatusAsync(professorannouncementId, professorannouncementnewStatus);
+                    if (!result.Success)
+                    {
+                        throw new InvalidOperationException(result.Error ?? "Failed to update status.");
+                    }
+                    await ProfessorDashboardService.RefreshDashboardCacheAsync();
                     await LoadUploadedAnnouncementsAsProfessorAsync();
                     await ApplyFiltersAndUpdateCountsAsProfessor();
                 }
@@ -1269,18 +1301,16 @@ namespace QuizManager.Components.Layout.ProfessorSections
                 try
                 {
                     await UpdateProgressWhenDeleteAnnouncementAsProfessor(30);
-                    var professorannouncement = await dbContext.AnnouncementsAsProfessor.FindAsync(professorannouncementId);
+                    var deleted = await ProfessorDashboardService.DeleteAnnouncementAsync(professorannouncementId);
 
-                    if (professorannouncement != null)
+                    if (deleted)
                     {
                         await UpdateProgressWhenDeleteAnnouncementAsProfessor(60);
-                        dbContext.AnnouncementsAsProfessor.Remove(professorannouncement);
-                        await dbContext.SaveChangesAsync();
+                        await ProfessorDashboardService.RefreshDashboardCacheAsync();
                         await UpdateProgressWhenDeleteAnnouncementAsProfessor(80);
 
                         await UpdateProgressWhenDeleteAnnouncementAsProfessor(90);
-                        UploadedAnnouncementsAsProfessor = await GetUploadedAnnouncementsAsProfessor();
-
+                        await LoadUploadedAnnouncementsAsProfessorAsync();
                         await ApplyFiltersAndUpdateCountsAsProfessor();
 
                         await UpdateProgressWhenDeleteAnnouncementAsProfessor(100);
@@ -1522,15 +1552,14 @@ namespace QuizManager.Components.Layout.ProfessorSections
                         ProfessorAnnouncementUploadDate = DateTime.Now
                     };
 
-                    dbContext.AnnouncementsAsProfessor.Add(newAnnouncement);
+                    await ProfessorDashboardService.CreateOrUpdateAnnouncementAsync(newAnnouncement);
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine($"Error copying professor announcement {originalAnnouncement.Id}: {ex.Message}");
                 }
             }
-
-            await dbContext.SaveChangesAsync();
+            await ProfessorDashboardService.RefreshDashboardCacheAsync();
         }
 
         private async Task UpdateMultipleProfessorAnnouncementStatuses()
@@ -1545,14 +1574,7 @@ namespace QuizManager.Components.Layout.ProfessorSections
         {
             try
             {
-                var announcement = await dbContext.AnnouncementsAsProfessor
-                    .FirstOrDefaultAsync(a => a.Id == announcementId);
-
-                if (announcement != null)
-                {
-                    announcement.ProfessorAnnouncementStatus = newStatus;
-                    await dbContext.SaveChangesAsync();
-                }
+                await ProfessorDashboardService.UpdateAnnouncementStatusAsync(announcementId, newStatus);
             }
             catch (Exception ex)
             {
@@ -1613,5 +1635,3 @@ namespace QuizManager.Components.Layout.ProfessorSections
         }
     }
 }
-
-

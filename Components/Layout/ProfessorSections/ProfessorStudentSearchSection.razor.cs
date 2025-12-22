@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Components;
-using Microsoft.EntityFrameworkCore;
-using QuizManager.Data;
 using QuizManager.Models;
+using QuizManager.Services.ProfessorDashboard;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,7 +10,7 @@ namespace QuizManager.Components.Layout.ProfessorSections
 {
     public partial class ProfessorStudentSearchSection : ComponentBase
     {
-        [Inject] private AppDbContext dbContext { get; set; } = default!;
+        [Inject] private IProfessorDashboardService ProfessorDashboardService { get; set; } = default!;
 
         // Form Visibility
         private bool isProfessorSearchStudentFormVisible = false;
@@ -138,17 +137,21 @@ namespace QuizManager.Components.Layout.ProfessorSections
             StateHasChanged();
         }
 
-        private void HandleStudentNameInput(ChangeEventArgs e)
+        private async Task HandleStudentNameInput(ChangeEventArgs e)
         {
             searchNameAsProfessorToFindStudent = e.Value?.ToString() ?? "";
             if (!string.IsNullOrWhiteSpace(searchNameAsProfessorToFindStudent) && searchNameAsProfessorToFindStudent.Length >= 2)
             {
-                studentNameSuggestions = dbContext.Students
-                    .Where(s => s.Name.Contains(searchNameAsProfessorToFindStudent))
-                    .Select(s => s.Name)
-                    .Distinct()
-                    .Take(10)
-                    .ToList();
+                studentNameSuggestions = (await ProfessorDashboardService.SearchStudentsAsync(new StudentSearchFilter
+                {
+                    Name = searchNameAsProfessorToFindStudent,
+                    MaxResults = 50
+                }))
+                .Select(s => s.Name)
+                .Where(n => !string.IsNullOrWhiteSpace(n))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Take(10)
+                .ToList();
             }
             else
             {
@@ -164,17 +167,21 @@ namespace QuizManager.Components.Layout.ProfessorSections
             StateHasChanged();
         }
 
-        private void HandleStudentSurnameInput(ChangeEventArgs e)
+        private async Task HandleStudentSurnameInput(ChangeEventArgs e)
         {
             searchSurnameAsProfessorToFindStudent = e.Value?.ToString() ?? "";
             if (!string.IsNullOrWhiteSpace(searchSurnameAsProfessorToFindStudent) && searchSurnameAsProfessorToFindStudent.Length >= 2)
             {
-                studentSurnameSuggestions = dbContext.Students
-                    .Where(s => s.Surname.Contains(searchSurnameAsProfessorToFindStudent))
-                    .Select(s => s.Surname)
-                    .Distinct()
-                    .Take(10)
-                    .ToList();
+                studentSurnameSuggestions = (await ProfessorDashboardService.SearchStudentsAsync(new StudentSearchFilter
+                {
+                    Surname = searchSurnameAsProfessorToFindStudent,
+                    MaxResults = 50
+                }))
+                .Select(s => s.Surname)
+                .Where(n => !string.IsNullOrWhiteSpace(n))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Take(10)
+                .ToList();
             }
             else
             {
@@ -200,14 +207,10 @@ namespace QuizManager.Components.Layout.ProfessorSections
 
         private List<string> GetAllStudentDepartments()
         {
-            return dbContext.Students
-                .Select(s => s.Department)
-                .Distinct()
-                .OrderBy(d => d)
-                .ToList();
+            return new List<string>(); // Deprecated; using service lookups instead
         }
 
-        private void SearchStudentsAsProfessorToFindStudent()
+        private async Task SearchStudentsAsProfessorToFindStudent()
         {
             var combinedSearchAreas = new List<string>();
 
@@ -223,50 +226,21 @@ namespace QuizManager.Components.Layout.ProfessorSections
                 .Distinct()
                 .ToList();
 
-            var students = dbContext.Students
-                .AsEnumerable()
-                .Where(s =>
-                {
-                    // Use NormalizeAreas method for student areas
-                    var normalizedStudentAreas = NormalizeAreas(s.AreasOfExpertise).ToList();
+            var filter = new StudentSearchFilter
+            {
+                Name = searchNameAsProfessorToFindStudent,
+                Surname = searchSurnameAsProfessorToFindStudent,
+                RegistrationNumber = searchRegNumberAsProfessorToFindStudent,
+                School = searchSchoolAsProfessorToFindStudent,
+                Department = searchDepartmentAsProfessorToFindStudent,
+                AreasOfExpertise = string.Join(',', normalizedSearchAreas),
+                Keywords = searchKeywordsAsProfessorToFindStudent,
+                MaxResults = 500
+            };
 
-                    // Extract expanded areas including subfields
-                    var expandedStudentAreas = ExpandAreasWithSubfields(normalizedStudentAreas);
+            var students = await ProfessorDashboardService.SearchStudentsAsync(filter);
 
-                    var normalizedStudentKeywords = NormalizeKeywords(s.Keywords).ToList();
-
-                    // Enhanced area matching that includes subfields
-                    var areaMatch = !normalizedSearchAreas.Any() ||
-                        normalizedSearchAreas.Any(searchArea =>
-                            expandedStudentAreas.Any(studentArea =>
-                                studentArea.Contains(searchArea, StringComparison.OrdinalIgnoreCase) ||
-                                searchArea.Contains(studentArea, StringComparison.OrdinalIgnoreCase)));
-
-                    var keywordMatch = string.IsNullOrEmpty(searchKeywordsAsProfessorToFindStudent) ||
-                        normalizedStudentKeywords.Any(studentKeyword =>
-                            studentKeyword.Contains(searchKeywordsAsProfessorToFindStudent.Trim().ToLower()) ||
-                            searchKeywordsAsProfessorToFindStudent.Trim().ToLower().Contains(studentKeyword));
-
-                    // Filter by school if selected
-                    bool schoolMatch = true;
-                    if (!string.IsNullOrEmpty(searchSchoolAsProfessorToFindStudent))
-                    {
-                        var schoolDepartments = universityDepartments[searchSchoolAsProfessorToFindStudent];
-                        schoolMatch = schoolDepartments.Contains(s.Department);
-                    }
-
-                    return (string.IsNullOrEmpty(searchEmailAsProfessorToFindStudent) || s.Email.Contains(searchEmailAsProfessorToFindStudent)) &&
-                        (string.IsNullOrEmpty(searchNameAsProfessorToFindStudent) || s.Name.Contains(searchNameAsProfessorToFindStudent)) &&
-                        (string.IsNullOrEmpty(searchSurnameAsProfessorToFindStudent) || s.Surname.Contains(searchSurnameAsProfessorToFindStudent)) &&
-                        (string.IsNullOrEmpty(searchRegNumberAsProfessorToFindStudent) || s.RegNumber.ToString().Contains(searchRegNumberAsProfessorToFindStudent)) &&
-                        (string.IsNullOrEmpty(searchSchoolAsProfessorToFindStudent) || schoolMatch) &&
-                        (string.IsNullOrEmpty(searchDepartmentAsProfessorToFindStudent) || s.Department.Contains(searchDepartmentAsProfessorToFindStudent)) &&
-                        areaMatch &&
-                        keywordMatch;
-                })
-                .ToList();
-
-            searchResultsAsProfessorToFindStudent = students;
+            searchResultsAsProfessorToFindStudent = students.ToList();
             currentStudentPage_SearchForStudentsAsProfessor = 1;
             UpdateTotalPages();
             StateHasChanged();
@@ -438,37 +412,11 @@ namespace QuizManager.Components.Layout.ProfessorSections
             {
                 try
                 {
-                    var allAreas = await dbContext.Areas
-                        .Where(a => a.AreaName.Contains(searchAreasOfExpertiseAsProfessorToFindStudent) || 
-                                (a.AreaSubFields != null && a.AreaSubFields.Contains(searchAreasOfExpertiseAsProfessorToFindStudent)))
-                        .ToListAsync();
-
-                    var suggestionsSet = new HashSet<string>();
-
-                    foreach (var area in allAreas)
-                    {
-                        if (area.AreaName.Contains(searchAreasOfExpertiseAsProfessorToFindStudent, StringComparison.OrdinalIgnoreCase))
-                        {
-                            suggestionsSet.Add(area.AreaName);
-                        }
-
-                        if (!string.IsNullOrEmpty(area.AreaSubFields))
-                        {
-                            var subfields = area.AreaSubFields
-                                .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                                .Select(sub => sub.Trim())
-                                .Where(sub => !string.IsNullOrEmpty(sub) &&
-                                            sub.Contains(searchAreasOfExpertiseAsProfessorToFindStudent, StringComparison.OrdinalIgnoreCase));
-
-                            foreach (var subfield in subfields)
-                            {
-                                var combination = $"{area.AreaName} - {subfield}";
-                                suggestionsSet.Add(combination);
-                            }
-                        }
-                    }
-
-                    areasOfExpertiseSuggestions = suggestionsSet.Take(10).ToList();
+                    var areas = await ProfessorDashboardService.SearchAreasAsync(searchAreasOfExpertiseAsProfessorToFindStudent);
+                    areasOfExpertiseSuggestions = areas
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .Take(10)
+                        .ToList();
                 }
                 catch (Exception ex)
                 {
@@ -512,15 +460,20 @@ namespace QuizManager.Components.Layout.ProfessorSections
             {
                 try
                 {
-                    keywordsSuggestions = await Task.Run(() =>
-                        dbContext.Students
-                            .Where(s => s.Keywords != null && s.Keywords.Contains(searchKeywordsAsProfessorToFindStudent))
-                            .SelectMany(s => s.Keywords.Split(',', StringSplitOptions.RemoveEmptyEntries))
-                            .Select(k => k.Trim())
-                            .Where(k => !string.IsNullOrEmpty(k) && k.Contains(searchKeywordsAsProfessorToFindStudent, StringComparison.OrdinalIgnoreCase))
-                            .Distinct(StringComparer.OrdinalIgnoreCase)
-                            .Take(10)
-                            .ToList());
+                    var students = await ProfessorDashboardService.SearchStudentsAsync(new StudentSearchFilter
+                    {
+                        Keywords = searchKeywordsAsProfessorToFindStudent,
+                        MaxResults = 200
+                    });
+
+                    keywordsSuggestions = students
+                        .SelectMany(s => (s.Keywords ?? string.Empty)
+                            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                            .Select(k => k.Trim()))
+                        .Where(k => !string.IsNullOrWhiteSpace(k) && k.Contains(searchKeywordsAsProfessorToFindStudent, StringComparison.OrdinalIgnoreCase))
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .Take(10)
+                        .ToList();
                 }
                 catch (Exception ex)
                 {

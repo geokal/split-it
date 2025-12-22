@@ -1,26 +1,29 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Forms;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.JSInterop;
 using QuizManager.Data;
 using QuizManager.Models;
+using QuizManager.Services.ProfessorDashboard;
 using QuizManager.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace QuizManager.Components.Layout.ProfessorSections
 {
     public partial class ProfessorThesesSection : ComponentBase
     {
-        [Inject] private AppDbContext dbContext { get; set; } = default!;
+        [Inject] private IProfessorDashboardService ProfessorDashboardService { get; set; } = default!;
         [Inject] private IJSRuntime JS { get; set; } = default!;
         [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
         [Inject] private NavigationManager NavigationManager { get; set; } = default!;
+
+        private ProfessorDashboardData dashboardData = ProfessorDashboardData.Empty;
+        private IReadOnlyList<ProfessorThesisApplied> thesisApplications = Array.Empty<ProfessorThesisApplied>();
+        private ProfessorDashboardLookups lookups = ProfessorDashboardLookups.Empty;
 
         // User Information
         private string CurrentUserEmail = "";
@@ -98,11 +101,9 @@ namespace QuizManager.Components.Layout.ProfessorSections
             var user = authState.User;
             CurrentUserEmail = user.FindFirst("name")?.Value ?? "";
 
-            // Load professor info
             if (!string.IsNullOrEmpty(CurrentUserEmail))
             {
-                var professor = await dbContext.Professors
-                    .FirstOrDefaultAsync(p => p.ProfEmail == CurrentUserEmail);
+                var professor = await ProfessorDashboardService.GetProfessorProfileAsync();
                 if (professor != null)
                 {
                     professorName = professor.ProfName;
@@ -111,20 +112,11 @@ namespace QuizManager.Components.Layout.ProfessorSections
                 }
             }
 
-            // Load areas and skills
-            await LoadAreasAsync();
-            await LoadSkillsAsync();
-        }
-
-        // Data Loading Methods
-        private async Task LoadAreasAsync()
-        {
-            Areas = await dbContext.Areas.ToListAsync();
-        }
-
-        private async Task LoadSkillsAsync()
-        {
-            Skills = await dbContext.Skills.ToListAsync();
+            dashboardData = await ProfessorDashboardService.LoadDashboardDataAsync();
+            thesisApplications = await ProfessorDashboardService.GetThesisApplicationsAsync();
+            lookups = await ProfessorDashboardService.GetLookupsAsync();
+            Areas = lookups.Areas.ToList();
+            Skills = lookups.Skills.ToList();
         }
 
         // Form Visibility Toggle
@@ -438,29 +430,27 @@ namespace QuizManager.Components.Layout.ProfessorSections
                 await UpdateProgressWhenSaveThesisAsProfessor(40);
 
                 await UpdateProgressWhenSaveThesisAsProfessor(60);
-                var professor = await dbContext.Professors
-                    .FirstOrDefaultAsync(p => p.ProfEmail == CurrentUserEmail);
-
-                if (professor == null)
+                professorthesis.ProfessorEmailUsedToUploadThesis = CurrentUserEmail;
+                if (professorthesis.Professor == null)
                 {
-                    professor = new Professor
+                    professorthesis.Professor = new Professor
                     {
                         ProfEmail = CurrentUserEmail,
                         ProfName = professorName,
                         ProfSurname = professorSurname,
                         ProfDepartment = professorDepartment
                     };
-                    dbContext.Professors.Add(professor);
-                    await dbContext.SaveChangesAsync();
                 }
-                await UpdateProgressWhenSaveThesisAsProfessor(80);
-
-                await UpdateProgressWhenSaveThesisAsProfessor(90);
                 professorthesis.ThesisUpdateDateTime = DateTime.Now;
-                professorthesis.Professor = professor;
 
-                dbContext.ProfessorTheses.Add(professorthesis);
-                await dbContext.SaveChangesAsync();
+                await UpdateProgressWhenSaveThesisAsProfessor(80);
+                var result = await ProfessorDashboardService.CreateOrUpdateThesisAsync(professorthesis);
+                if (!result.Success)
+                {
+                    throw new InvalidOperationException(result.Error ?? "Failed to save thesis.");
+                }
+                await ProfessorDashboardService.RefreshDashboardCacheAsync();
+                dashboardData = await ProfessorDashboardService.LoadDashboardDataAsync();
                 await UpdateProgressWhenSaveThesisAsProfessor(100);
 
                 isSaveThesisAsProfessorSuccessful = true;
@@ -529,11 +519,11 @@ namespace QuizManager.Components.Layout.ProfessorSections
             {
                 if (!string.IsNullOrEmpty(CurrentUserEmail))
                 {
-                    UploadedThesesAsProfessor = await dbContext.ProfessorTheses
-                        .Include(t => t.Professor)
+                    dashboardData = await ProfessorDashboardService.LoadDashboardDataAsync();
+                    UploadedThesesAsProfessor = dashboardData.Theses
                         .Where(t => t.ProfessorEmailUsedToUploadThesis == CurrentUserEmail)
                         .OrderByDescending(t => t.ThesisUploadDateTime)
-                        .ToListAsync();
+                        .ToList();
                 }
             }
             catch (Exception ex)
@@ -549,10 +539,6 @@ namespace QuizManager.Components.Layout.ProfessorSections
         private async Task CalculateStatusCountsForThesesAsProfessor()
         {
             await LoadUploadedThesesAsProfessorAsync();
-
-            var filteredThesesAsProfessor = selectedStatusFilterForThesesAsProfessor == "Όλα"
-                ? UploadedThesesAsProfessor
-                : UploadedThesesAsProfessor.Where(i => i.ThesisStatus == selectedStatusFilterForThesesAsProfessor);
 
             totalCountThesesAsProfessor = UploadedThesesAsProfessor.Count();
             publishedCountThesesAsProfessor = UploadedThesesAsProfessor.Count(i => i.ThesisStatus == "Δημοσιευμένη");
@@ -867,40 +853,21 @@ namespace QuizManager.Components.Layout.ProfessorSections
                 currentThesisAsProfessor.ThesisSkills = string.Join(",",
                     SelectedSkillsToEditForProfessorThesis.Select(s => s.SkillName));
 
-                var thesisToUpdate = await dbContext.ProfessorTheses
-                    .Include(t => t.Professor)
-                    .FirstOrDefaultAsync(t => t.Id == currentThesisAsProfessor.Id);
+                currentThesisAsProfessor.ThesisUpdateDateTime = DateTime.Now;
+                currentThesisAsProfessor.ThesisTimesUpdated++;
 
-                if (thesisToUpdate == null)
+                var result = await ProfessorDashboardService.CreateOrUpdateThesisAsync(currentThesisAsProfessor);
+                if (!result.Success)
                 {
-                    await JS.InvokeVoidAsync("alert", "Δεν βρέθηκε η Διπλωματική εργασία");
-                    return;
+                    throw new InvalidOperationException(result.Error ?? "Αποτυχία αποθήκευσης διπλωματικής.");
                 }
 
-                thesisToUpdate.ThesisTitle = currentThesisAsProfessor.ThesisTitle;
-                thesisToUpdate.ThesisDescription = currentThesisAsProfessor.ThesisDescription;
-                thesisToUpdate.ThesisType = currentThesisAsProfessor.ThesisType;
-                thesisToUpdate.ThesisStatus = currentThesisAsProfessor.ThesisStatus;
-                thesisToUpdate.ThesisActivePeriod = currentThesisAsProfessor.ThesisActivePeriod;
-                thesisToUpdate.ThesisAreas = currentThesisAsProfessor.ThesisAreas;
-                thesisToUpdate.ThesisSkills = currentThesisAsProfessor.ThesisSkills;
-                thesisToUpdate.OpenSlots_ProfessorThesis = currentThesisAsProfessor.OpenSlots_ProfessorThesis;
-
-                if (thesisToUpdate.Professor != null && currentThesisAsProfessor.Professor != null && !string.IsNullOrEmpty(currentThesisAsProfessor.Professor.ProfDepartment))
-                {
-                    thesisToUpdate.Professor.ProfDepartment = currentThesisAsProfessor.Professor.ProfDepartment;
-                }
-
-                if (currentThesisAsProfessor.ThesisAttachment != null &&
-                    currentThesisAsProfessor.ThesisAttachment.Length > 0)
-                {
-                    thesisToUpdate.ThesisAttachment = currentThesisAsProfessor.ThesisAttachment;
-                }
-
-                thesisToUpdate.ThesisUpdateDateTime = DateTime.Now;
-                thesisToUpdate.ThesisTimesUpdated++;
-
-                await dbContext.SaveChangesAsync();
+                await ProfessorDashboardService.RefreshDashboardCacheAsync();
+                dashboardData = await ProfessorDashboardService.LoadDashboardDataAsync();
+                UploadedThesesAsProfessor = dashboardData.Theses
+                    .Where(t => t.ProfessorEmailUsedToUploadThesis == CurrentUserEmail)
+                    .OrderByDescending(t => t.ThesisUploadDateTime)
+                    .ToList();
 
                 isEditModalVisibleForThesesAsProfessor = false;
                 currentThesisAsProfessor = null;
@@ -927,8 +894,17 @@ namespace QuizManager.Components.Layout.ProfessorSections
                 var professorthesis = UploadedThesesAsProfessor.FirstOrDefault(a => a.Id == professorthesisId);
                 if (professorthesis != null)
                 {
-                    professorthesis.ThesisStatus = professorthesisnewStatus;
-                    await dbContext.SaveChangesAsync();
+                    var result = await ProfessorDashboardService.UpdateThesisStatusAsync(professorthesisId, professorthesisnewStatus);
+                    if (!result.Success)
+                    {
+                        throw new InvalidOperationException(result.Error ?? "Αποτυχία αλλαγής κατάστασης.");
+                    }
+                    await ProfessorDashboardService.RefreshDashboardCacheAsync();
+                    dashboardData = await ProfessorDashboardService.LoadDashboardDataAsync();
+                    UploadedThesesAsProfessor = dashboardData.Theses
+                        .Where(t => t.ProfessorEmailUsedToUploadThesis == CurrentUserEmail)
+                        .OrderByDescending(t => t.ThesisUploadDateTime)
+                        .ToList();
                     await LoadUploadedThesesAsProfessorAsync();
                     await CalculateStatusCountsForThesesAsProfessor();
                 }
@@ -952,13 +928,17 @@ namespace QuizManager.Components.Layout.ProfessorSections
                 try
                 {
                     await UpdateProgressWhenDeleteThesisAsProfessor(30);
-                    var professorthesis = await dbContext.ProfessorTheses.FindAsync(professorThesisId);
+                    var deleted = await ProfessorDashboardService.DeleteThesisAsync(professorThesisId);
 
-                    if (professorthesis != null)
+                    if (deleted)
                     {
                         await UpdateProgressWhenDeleteThesisAsProfessor(60);
-                        dbContext.ProfessorTheses.Remove(professorthesis);
-                        await dbContext.SaveChangesAsync();
+                        await ProfessorDashboardService.RefreshDashboardCacheAsync();
+                        dashboardData = await ProfessorDashboardService.LoadDashboardDataAsync();
+                        UploadedThesesAsProfessor = dashboardData.Theses
+                            .Where(t => t.ProfessorEmailUsedToUploadThesis == CurrentUserEmail)
+                            .OrderByDescending(t => t.ThesisUploadDateTime)
+                            .ToList();
                         await UpdateProgressWhenDeleteThesisAsProfessor(80);
 
                         await UpdateProgressWhenDeleteThesisAsProfessor(90);
@@ -1207,13 +1187,13 @@ namespace QuizManager.Components.Layout.ProfessorSections
                         IsCompanyInterestedInProfessorThesisStatus = "Δεν έχει γίνει Αποδοχή",
                         ThesisUploadDateTime = DateTime.Now,
                         ThesisUpdateDateTime = DateTime.Now,
-                        ThesisTimesUpdated = 0,
+                    ThesisTimesUpdated = 0,
 
-                        IsCompanyInteresetedInProfessorThesis = false,
-                        CompanyEmailInterestedInProfessorThesis = null
-                    };
+                    IsCompanyInteresetedInProfessorThesis = false,
+                    CompanyEmailInterestedInProfessorThesis = null
+                };
 
-                    dbContext.ProfessorTheses.Add(newThesis);
+                    await ProfessorDashboardService.CreateOrUpdateThesisAsync(newThesis);
                 }
                 catch (Exception ex)
                 {
@@ -1221,7 +1201,12 @@ namespace QuizManager.Components.Layout.ProfessorSections
                 }
             }
 
-            await dbContext.SaveChangesAsync();
+            await ProfessorDashboardService.RefreshDashboardCacheAsync();
+            dashboardData = await ProfessorDashboardService.LoadDashboardDataAsync();
+            UploadedThesesAsProfessor = dashboardData.Theses
+                .Where(t => t.ProfessorEmailUsedToUploadThesis == CurrentUserEmail)
+                .OrderByDescending(t => t.ThesisUploadDateTime)
+                .ToList();
         }
 
         private async Task UpdateMultipleProfessorThesisStatuses()
@@ -1236,14 +1221,7 @@ namespace QuizManager.Components.Layout.ProfessorSections
         {
             try
             {
-                var thesis = await dbContext.ProfessorTheses
-                    .FirstOrDefaultAsync(t => t.Id == thesisId);
-
-                if (thesis != null)
-                {
-                    thesis.ThesisStatus = newStatus;
-                    await dbContext.SaveChangesAsync();
-                }
+                await ProfessorDashboardService.UpdateThesisStatusAsync(thesisId, newStatus);
             }
             catch (Exception ex)
             {
@@ -1667,9 +1645,7 @@ namespace QuizManager.Components.Layout.ProfessorSections
                 await UpdateProgressWhenSaveInternshipAsProfessor(70);
                 if (!string.IsNullOrWhiteSpace(selectedCompanyId) && int.TryParse(selectedCompanyId, out var companyId))
                 {
-                    var company = await dbContext.Companies
-                        .FirstOrDefaultAsync(p => p.Id == companyId);
-
+                    var company = lookups.Companies.FirstOrDefault(p => p.Id == companyId);
                     professorInternship.ProfessorInternshipEKPASupervisor = company?.CompanyName ?? "Unknown Company";
                 }
                 else
@@ -1680,8 +1656,16 @@ namespace QuizManager.Components.Layout.ProfessorSections
 
                 await UpdateProgressWhenSaveInternshipAsProfessor(90);
 
-                dbContext.ProfessorInternships.Add(professorInternship);
-                await dbContext.SaveChangesAsync();
+                var internshipResult = await ProfessorDashboardService.CreateOrUpdateInternshipAsync(professorInternship);
+                if (!internshipResult.Success)
+                {
+                    showLoadingModalForProfessorInternship = false;
+                    showSuccessMessage = false;
+                    showErrorMessage = true;
+                    await JS.InvokeVoidAsync("alert", $"Error saving internship: {internshipResult.Error}");
+                    StateHasChanged();
+                    return;
+                }
                 await UpdateProgressWhenSaveInternshipAsProfessor(100);
 
                 showSuccessMessage = true;
@@ -1948,42 +1932,17 @@ namespace QuizManager.Components.Layout.ProfessorSections
         // Search Company Theses Methods
         private async Task SearchCompanyThesesAsProfessor()
         {
-            var query = dbContext.CompanyTheses
-                .Include(t => t.Company)
-                .Where(t =>
-                    t.CompanyThesisStatus == "Δημοσιευμένη" &&
-                    (t.IsProfessorInterestedInCompanyThesisStatus == "Δεν έχει γίνει Αποδοχή" || 
-                    t.IsProfessorInterestedInCompanyThesisStatus == "Έχετε Αποδεχτεί"));
-
-            if (!string.IsNullOrEmpty(searchCompanyNameToFindThesesAsProfessor))
+            var filter = new CompanyThesisSearchFilter
             {
-                query = query.Where(t => t.Company != null && 
-                                    t.Company.CompanyName.Contains(searchCompanyNameToFindThesesAsProfessor));
-            }
+                CompanyName = searchCompanyNameToFindThesesAsProfessor,
+                Title = searchThesisTitleToFindThesesAsProfessor,
+                Supervisor = searchSupervisorToFindThesesAsProfessor,
+                Department = searchDepartmentToFindThesesAsProfessor,
+                EarliestStartDate = searchStartingDateToFindThesesAsProfessor,
+                MaxResults = 500
+            };
 
-            if (!string.IsNullOrEmpty(searchThesisTitleToFindThesesAsProfessor))
-            {
-                query = query.Where(t => t.CompanyThesisTitle.Contains(searchThesisTitleToFindThesesAsProfessor));
-            }
-
-            if (!string.IsNullOrEmpty(searchSupervisorToFindThesesAsProfessor))
-            {
-                query = query.Where(t => t.CompanyThesisCompanySupervisorFullName.Contains(searchSupervisorToFindThesesAsProfessor));
-            }
-
-            if (!string.IsNullOrEmpty(searchDepartmentToFindThesesAsProfessor))
-            {
-                query = query.Where(t => t.CompanyThesisDepartment.Contains(searchDepartmentToFindThesesAsProfessor));
-            }
-
-            if (searchStartingDateToFindThesesAsProfessor.HasValue)
-            {
-                query = query.Where(t => t.CompanyThesisStartingDate.Date >= searchStartingDateToFindThesesAsProfessor.Value.Date);
-            }
-
-            var initialQuery = await query
-                .OrderByDescending(t => t.CompanyThesisUploadDateTime)
-                .ToListAsync();
+            var initialQuery = await ProfessorDashboardService.SearchCompanyThesesAsync(filter);
 
             if (selectedSkillsToFindThesesAsProfessor.Any())
             {
@@ -1993,7 +1952,7 @@ namespace QuizManager.Components.Layout.ProfessorSections
                     .ToList();
             }
 
-            companyThesesResultsToFindThesesAsProfessor = initialQuery;
+            companyThesesResultsToFindThesesAsProfessor = initialQuery.ToList();
             searchPerformedToFindThesesAsProfessor = true;
             currentPage_CompanyTheses = 1;
             StateHasChanged();
@@ -2024,18 +1983,19 @@ namespace QuizManager.Components.Layout.ProfessorSections
             {
                 try
                 {
-                    companyNameSuggestions = await dbContext.Companies
-                        .Where(c => c.CompanyName.Contains(searchCompanyNameToFindThesesAsProfessor))
+                    companyNameSuggestions = lookups.Companies
+                        .Where(c => c.CompanyName.Contains(searchCompanyNameToFindThesesAsProfessor, StringComparison.OrdinalIgnoreCase))
                         .Select(c => c.CompanyName)
                         .Distinct()
                         .Take(10)
-                        .ToListAsync();
+                        .ToList();
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine($"Error loading company suggestions: {ex.Message}");
                 }
             }
+            await Task.Yield();
             StateHasChanged();
         }
 
@@ -2055,18 +2015,19 @@ namespace QuizManager.Components.Layout.ProfessorSections
             {
                 try
                 {
-                    skillSuggestionsToFindThesesAsProfessor = await dbContext.Skills
-                        .Where(s => s.SkillName.Contains(searchSkillsInputToFindThesesAsProfessor))
+                    skillSuggestionsToFindThesesAsProfessor = lookups.Skills
+                        .Where(s => s.SkillName.Contains(searchSkillsInputToFindThesesAsProfessor, StringComparison.OrdinalIgnoreCase))
                         .Select(s => s.SkillName)
                         .Distinct()
                         .Take(10)
-                        .ToListAsync();
+                        .ToList();
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine($"Error loading skill suggestions: {ex.Message}");
                 }
             }
+            await Task.Yield();
             StateHasChanged();
         }
 
@@ -2121,17 +2082,13 @@ namespace QuizManager.Components.Layout.ProfessorSections
         {
             try
             {
-                var record = await dbContext.ProfessorThesesApplied
-                    .FirstOrDefaultAsync(x => x.Id == applicationId);
-
+                var record = thesisApplications.FirstOrDefault(x => x.Id == applicationId);
                 if (record != null && !record.ProfessorThesisApplied_CandidateInfoSeenFromModal)
                 {
                     record.ProfessorThesisApplied_CandidateInfoSeenFromModal = true;
-                    await dbContext.SaveChangesAsync();
                 }
 
-                var student = await dbContext.Students
-                    .FirstOrDefaultAsync(s => s.Student_UniqueID == studentUniqueID);
+                var student = await ProfessorDashboardService.GetStudentByUniqueIdAsync(studentUniqueID);
 
                 if (student != null)
                 {
@@ -2155,9 +2112,8 @@ namespace QuizManager.Components.Layout.ProfessorSections
         {
             if (professorThesis?.CompanyInterested != null)
             {
-                var company = await dbContext.Companies
-                    .FirstOrDefaultAsync(c => c.CompanyEmail == professorThesis.CompanyInterested.CompanyEmail);
-                    
+                var company = await ProfessorDashboardService.GetCompanyByEmailAsync(professorThesis.CompanyInterested.CompanyEmail);
+
                 if (company != null)
                 {
                     currentCompanyDetails = company;
@@ -2220,8 +2176,7 @@ namespace QuizManager.Components.Layout.ProfessorSections
 
         private async Task ConfirmAndAcceptProfessorThesis(long thesisRNG, string studentUniqueID)
         {
-            var thesisObj = await dbContext.ProfessorTheses
-                .FirstOrDefaultAsync(t => t.RNGForThesisUploaded == thesisRNG);
+            var thesisObj = dashboardData.Theses.FirstOrDefault(t => t.RNGForThesisUploaded == thesisRNG);
             if (thesisObj == null) return;
 
             int acceptedCount = acceptedApplicantsCountPerProfessorThesis.GetValueOrDefault(thesisRNG, 0);
@@ -2234,29 +2189,50 @@ namespace QuizManager.Components.Layout.ProfessorSections
             }
 
             bool isConfirmed = await JS.InvokeAsync<bool>("confirmActionWithHTML", "- ΑΠΟΔΟΧΗ ΑΙΤΗΣΗΣ - \n Η ενέργεια αυτή δεν θα μπορεί να αναιρεθεί. Είστε σίγουρος/η;");
-            if (isConfirmed)
+            if (!isConfirmed) return;
+
+            var result = await ProfessorDashboardService.DecideOnThesisApplicationAsync(thesisRNG, studentUniqueID, ApplicationDecision.Accept);
+            if (!result.Success)
             {
-                acceptedApplicantsCountPerProfessorThesis[thesisRNG] = acceptedCount + 1;
-                StateHasChanged();
+                await JS.InvokeVoidAsync("alert", result.Error ?? "Σφάλμα κατά την αποδοχή της αίτησης");
+                return;
             }
+
+            thesisApplications = await ProfessorDashboardService.GetThesisApplicationsAsync();
+            dashboardData = await ProfessorDashboardService.LoadDashboardDataAsync();
+            acceptedApplicantsCountPerProfessorThesis[thesisRNG] = thesisApplications.Count(a =>
+                a.RNGForProfessorThesisApplied == thesisRNG &&
+                string.Equals(a.ProfessorThesisStatusAppliedAtProfessorSide, "Επιτυχής", StringComparison.OrdinalIgnoreCase));
+            StateHasChanged();
         }
 
         private async Task ConfirmAndRejectProfessorThesis(long thesisRNG, string studentUniqueID)
         {
             bool isConfirmed = await JS.InvokeAsync<bool>("confirmActionWithHTML", "- ΑΠΟΡΡΙΨΗ ΑΙΤΗΣΗΣ - \n Η ενέργεια αυτή δεν θα μπορεί να αναιρεθεί. Είστε σίγουρος/η;");
-            if (isConfirmed)
+            if (!isConfirmed) return;
+
+            var result = await ProfessorDashboardService.DecideOnThesisApplicationAsync(thesisRNG, studentUniqueID, ApplicationDecision.Reject);
+            if (!result.Success)
             {
-                StateHasChanged();
+                await JS.InvokeVoidAsync("alert", result.Error ?? "Σφάλμα κατά την απόρριψη της αίτησης");
+                return;
             }
+
+            thesisApplications = await ProfessorDashboardService.GetThesisApplicationsAsync();
+            dashboardData = await ProfessorDashboardService.LoadDashboardDataAsync();
+            acceptedApplicantsCountPerProfessorThesis[thesisRNG] = thesisApplications.Count(a =>
+                a.RNGForProfessorThesisApplied == thesisRNG &&
+                string.Equals(a.ProfessorThesisStatusAppliedAtProfessorSide, "Επιτυχής", StringComparison.OrdinalIgnoreCase));
+            StateHasChanged();
         }
 
         private async Task DownloadAttachmentForProfessorTheses(int thesisId)
         {
-            var thesis = await dbContext.ProfessorTheses.FirstOrDefaultAsync(t => t.Id == thesisId);
-            if (thesis?.ThesisAttachment == null) return;
+            var download = await ProfessorDashboardService.GetThesisAttachmentAsync(thesisId);
+            if (download?.Data == null || download.Data.Length == 0) return;
 
-            string base64String = Convert.ToBase64String(thesis.ThesisAttachment);
-            string fileName = $"Thesis_Attachment_{thesisId}.pdf";
+            string base64String = Convert.ToBase64String(download.Data);
+            string fileName = string.IsNullOrWhiteSpace(download.FileName) ? $"Thesis_Attachment_{thesisId}.pdf" : download.FileName;
             await JS.InvokeVoidAsync("downloadInternshipAttachmentAsStudent", fileName, base64String);
         }
 

@@ -1,8 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
-using Microsoft.EntityFrameworkCore;
-using QuizManager.Data;
 using QuizManager.Models;
+using QuizManager.Services.ProfessorDashboard;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,8 +11,9 @@ namespace QuizManager.Components.Layout.ProfessorSections
 {
     public partial class ProfessorResearchGroupSearchSection : ComponentBase
     {
-        [Inject] private AppDbContext dbContext { get; set; } = default!;
+        [Inject] private IProfessorDashboardService ProfessorDashboardService { get; set; } = default!;
         [Inject] private Microsoft.AspNetCore.Components.NavigationManager NavigationManager { get; set; } = default!;
+        private ProfessorDashboardLookups lookups = ProfessorDashboardLookups.Empty;
 
         // Form Visibility
         private bool isProfessorSearchResearchGroupVisible = false;
@@ -88,6 +88,12 @@ namespace QuizManager.Components.Layout.ProfessorSections
             {"Νότιο Αιγαίο", new List<string> {"Ρόδος", "Κως", "Κρήτη", "Κάρπαθος", "Σαντορίνη", "Μύκονος", "Νάξος", "Πάρος", "Σύρος", "Άνδρος"}},
             {"Κρήτη", new List<string> {"Ηράκλειο", "Χανιά", "Ρέθυμνο", "Αγία Νικόλαος", "Ιεράπετρα", "Σητεία", "Κίσαμος", "Παλαιόχωρα", "Αρχάνες", "Ανώγεια"}},
         };
+
+        protected override async Task OnInitializedAsync()
+        {
+            lookups = await ProfessorDashboardService.GetLookupsAsync();
+            Areas = lookups.Areas.ToList();
+        }
 
         // Search Fields
         private string searchResearchGroupNameAsProfessorToFindResearchGroup = "";
@@ -212,13 +218,18 @@ namespace QuizManager.Components.Layout.ProfessorSections
             {
                 try
                 {
-                    professorResearchGroupNameSuggestions = await Task.Run(() =>
-                        dbContext.ResearchGroups
-                            .Where(rg => rg.ResearchGroupName.Contains(searchResearchGroupNameAsProfessorToFindResearchGroup))
-                            .Select(rg => rg.ResearchGroupName)
-                            .Distinct()
-                            .Take(10)
-                            .ToList());
+                    var results = await ProfessorDashboardService.SearchResearchGroupsAsync(new ResearchGroupSearchFilter
+                    {
+                        Name = searchResearchGroupNameAsProfessorToFindResearchGroup,
+                        MaxResults = 10
+                    });
+
+                    professorResearchGroupNameSuggestions = results
+                        .Select(rg => rg.ResearchGroupName)
+                        .Where(n => !string.IsNullOrWhiteSpace(n))
+                        .Distinct()
+                        .Take(10)
+                        .ToList()!;
                 }
                 catch (Exception ex)
                 {
@@ -258,11 +269,10 @@ namespace QuizManager.Components.Layout.ProfessorSections
             {
                 try
                 {
-                    // Get all areas from the database that match the search
-                    var allAreas = await dbContext.Areas
-                        .Where(a => a.AreaName.Contains(searchResearchGroupAreasAsProfessorToFindResearchGroup) ||
-                                (a.AreaSubFields != null && a.AreaSubFields.Contains(searchResearchGroupAreasAsProfessorToFindResearchGroup)))
-                        .ToListAsync();
+                    var allAreas = lookups.Areas.Where(a =>
+                            a.AreaName.Contains(searchResearchGroupAreasAsProfessorToFindResearchGroup, StringComparison.OrdinalIgnoreCase) ||
+                            (!string.IsNullOrEmpty(a.AreaSubFields) && a.AreaSubFields.Contains(searchResearchGroupAreasAsProfessorToFindResearchGroup, StringComparison.OrdinalIgnoreCase)))
+                        .ToList();
 
                     // Use HashSet to prevent duplicates
                     var suggestionsSet = new HashSet<string>();
@@ -356,12 +366,12 @@ namespace QuizManager.Components.Layout.ProfessorSections
             {
                 try
                 {
-                    professorResearchGroupSkillsSuggestions = await dbContext.Skills
-                        .Where(s => s.SkillName.Contains(searchResearchGroupSkillsAsProfessorToFindResearchGroup))
+                    professorResearchGroupSkillsSuggestions = lookups.Skills
+                        .Where(s => s.SkillName.Contains(searchResearchGroupSkillsAsProfessorToFindResearchGroup, StringComparison.OrdinalIgnoreCase))
                         .Select(s => s.SkillName)
                         .Distinct()
                         .Take(10)
-                        .ToListAsync();
+                        .ToList();
                 }
                 catch (Exception ex)
                 {
@@ -418,17 +428,35 @@ namespace QuizManager.Components.Layout.ProfessorSections
             {
                 professorHasSearchedForResearchGroups = true;
 
-                // First get all research groups from the database
-                var allResearchGroups = await dbContext.ResearchGroups.ToListAsync();
-
-                // Then filter on the client side
-                var filteredResearchGroups = allResearchGroups.AsEnumerable();
-
-                if (!string.IsNullOrEmpty(searchResearchGroupNameAsProfessorToFindResearchGroup))
+                var areaSearchTerms = new List<string>();
+                if (!string.IsNullOrEmpty(searchResearchGroupAreasAsProfessorToFindResearchGroup))
                 {
-                    filteredResearchGroups = filteredResearchGroups
-                        .Where(rg => rg.ResearchGroupName.Contains(searchResearchGroupNameAsProfessorToFindResearchGroup, StringComparison.OrdinalIgnoreCase));
+                    areaSearchTerms.Add(searchResearchGroupAreasAsProfessorToFindResearchGroup.Trim());
                 }
+                areaSearchTerms.AddRange(professorSelectedResearchGroupAreas);
+                areaSearchTerms = areaSearchTerms.Where(a => !string.IsNullOrWhiteSpace(a)).Distinct().ToList();
+
+                var skillsSearchTerms = new List<string>();
+                if (!string.IsNullOrEmpty(searchResearchGroupSkillsAsProfessorToFindResearchGroup))
+                {
+                    skillsSearchTerms.Add(searchResearchGroupSkillsAsProfessorToFindResearchGroup.Trim());
+                }
+                skillsSearchTerms.AddRange(professorSelectedResearchGroupSkills);
+                skillsSearchTerms = skillsSearchTerms.Where(s => !string.IsNullOrWhiteSpace(s)).Distinct().ToList();
+
+                var filter = new ResearchGroupSearchFilter
+                {
+                    Name = string.IsNullOrWhiteSpace(searchResearchGroupNameAsProfessorToFindResearchGroup)
+                        ? null
+                        : searchResearchGroupNameAsProfessorToFindResearchGroup,
+                    Areas = areaSearchTerms.Any() ? string.Join(",", areaSearchTerms) : null,
+                    Skills = skillsSearchTerms.Any() ? string.Join(",", skillsSearchTerms) : null,
+                    MaxResults = 200
+                };
+
+                var results = await ProfessorDashboardService.SearchResearchGroupsAsync(filter);
+
+                var filteredResearchGroups = results.AsEnumerable();
 
                 if (!string.IsNullOrEmpty(searchResearchGroupSchoolAsProfessorToFindResearchGroup))
                 {
@@ -442,36 +470,20 @@ namespace QuizManager.Components.Layout.ProfessorSections
                         .Where(rg => rg.ResearchGroupUniversityDepartment == searchResearchGroupUniversityDepartmentAsProfessorToFindResearchGroup);
                 }
 
-                // UPDATED AREAS FILTER: Support both selected areas AND manual text input
-                if (professorSelectedResearchGroupAreas.Any() || !string.IsNullOrEmpty(searchResearchGroupAreasAsProfessorToFindResearchGroup))
+                // Additional area matching to support subfield combinations
+                if (areaSearchTerms.Any())
                 {
-                    // Create a combined list of search terms
-                    var areaSearchTerms = new List<string>();
-
-                    // Add manually typed text (if any)
-                    if (!string.IsNullOrEmpty(searchResearchGroupAreasAsProfessorToFindResearchGroup))
+                    filteredResearchGroups = filteredResearchGroups.Where(rg =>
                     {
-                        areaSearchTerms.Add(searchResearchGroupAreasAsProfessorToFindResearchGroup.Trim());
-                    }
+                        var researchGroupAreas = rg.ResearchGroupAreas.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                            .Select(a => a.Trim())
+                            .ToList();
 
-                    // Add selected areas from dropdown
-                    areaSearchTerms.AddRange(professorSelectedResearchGroupAreas);
-
-                    // Remove duplicates and empty entries
-                    areaSearchTerms = areaSearchTerms.Where(a => !string.IsNullOrWhiteSpace(a)).Distinct().ToList();
-
-                    filteredResearchGroups = filteredResearchGroups
-                        .Where(rg => areaSearchTerms.Any(area =>
-                        {
-                            var researchGroupAreas = rg.ResearchGroupAreas.Split(',', StringSplitOptions.RemoveEmptyEntries)
-                                .Select(a => a.Trim())
-                                .ToList();
-
-                            // Check if any research group area contains the search term
-                            return researchGroupAreas.Any(researchArea =>
+                        return areaSearchTerms.Any(area =>
+                            researchGroupAreas.Any(researchArea =>
                                 researchArea.Contains(area, StringComparison.OrdinalIgnoreCase) ||
-                                area.Contains(researchArea, StringComparison.OrdinalIgnoreCase));
-                        }));
+                                area.Contains(researchArea, StringComparison.OrdinalIgnoreCase)));
+                    });
                 }
 
                 professorSearchResultsToFindResearchGroup = filteredResearchGroups.ToList();
@@ -677,56 +689,26 @@ namespace QuizManager.Components.Layout.ProfessorSections
         {
             try
             {
-                // Load Faculty Members
-                var facultyMembersData = await dbContext.ResearchGroup_Professors
-                    .Where(rp => rp.PK_ResearchGroupEmail == researchGroupEmail)
-                    .Join(dbContext.Professors,
-                        rp => rp.PK_ProfessorEmail,
-                        p => p.ProfEmail,
-                        (rp, p) => p)
-                    .ToListAsync();
-
-                professorFacultyMembers = facultyMembersData;
-
-                // Load Non-Faculty Members
-                var nonFacultyMembersData = await dbContext.ResearchGroup_NonFacultyMembers
-                    .Where(rn => rn.PK_ResearchGroupEmail == researchGroupEmail)
-                    .Join(dbContext.Students,
-                        rn => rn.PK_NonFacultyMemberEmail,
-                        s => s.Email,
-                        (rn, s) => s)
-                    .ToListAsync();
-
-                professorNonFacultyMembers = nonFacultyMembersData;
-
-                // Load Spin-off Companies
-                // Note: ResearchGroup_SpinOffCompany table may not join directly with Companies table
-                // Loading just the company information from ResearchGroup_SpinOffCompany for now
-                var spinOffCompanyData = await dbContext.ResearchGroup_SpinOffCompany
-                    .Where(s => s.ResearchGroupEmail == researchGroupEmail)
-                    .ToListAsync();
-                
-                // Try to find companies by AFM if possible
-                // If CompanyAFM doesn't exist, we'll need to adjust this logic
-                professorSpinOffCompanies = new List<Company>();
-                foreach (var spinOff in spinOffCompanyData)
+                var details = await ProfessorDashboardService.GetResearchGroupDetailsAsync(researchGroupEmail);
+                if (details == null)
                 {
-                    var company = await dbContext.Companies
-                        .FirstOrDefaultAsync(c => c.CompanyName == spinOff.ResearchGroup_SpinOff_CompanyTitle);
-                    if (company != null)
-                    {
-                        professorSpinOffCompanies.Add(company);
-                    }
+                    return;
                 }
 
-                // Count Active Research Actions
-                professorActiveResearchActionsCount = await dbContext.ResearchGroup_ResearchActions
-                    .Where(r => r.ResearchGroupEmail == researchGroupEmail && 
-                            r.ResearchGroup_ProjectStatus == "OnGoing")
-                    .CountAsync();
+                professorFacultyMembers = details.FacultyMembers
+                    .Select(f => new Professor { ProfName = f.FullName, ProfEmail = f.Email ?? string.Empty })
+                    .ToList();
 
-                // Count Patents (assuming there's a patents table or count field)
-                professorPatentsCount = 0; // Placeholder - adjust based on actual data model
+                professorNonFacultyMembers = details.NonFacultyMembers
+                    .Select(n => new Student { Email = n.Email ?? string.Empty, Name = n.FullName })
+                    .ToList();
+
+                professorSpinOffCompanies = details.SpinOffCompanies
+                    .Select(s => new Company { CompanyName = s.CompanyTitle })
+                    .ToList();
+
+                professorActiveResearchActionsCount = details.ActiveResearchActionsCount;
+                professorPatentsCount = details.PatentsCount;
             }
             catch (Exception ex)
             {

@@ -131,6 +131,12 @@ Pages/
 - Copied `Components/` folder to JobFinder
 - Removed old `Shared/` structure
 
+### Service Migration Status
+- Company sections use `ICompanyDashboardService`
+- Professor sections use `IProfessorDashboardService`
+- ResearchGroup company search uses `IResearchGroupDashboardService` (lookups/filter/search)
+- MainLayout/front page use services; remaining ResearchGroup/Student sections still on `AppDbContext` (to migrate)
+
 ---
 
 ## _Imports.razor

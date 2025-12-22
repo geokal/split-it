@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Components;
-using Microsoft.EntityFrameworkCore;
-using QuizManager.Data;
 using QuizManager.Models;
+using QuizManager.Services.ProfessorDashboard;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,7 +10,7 @@ namespace QuizManager.Components.Layout.ProfessorSections
 {
     public partial class ProfessorCompanySearchSection : ComponentBase
     {
-        [Inject] private AppDbContext dbContext { get; set; } = default!;
+        [Inject] private IProfessorDashboardService ProfessorDashboardService { get; set; } = default!;
 
         // Form Visibility
         private bool isProfessorSearchCompanyFormVisible = false;
@@ -90,7 +89,7 @@ namespace QuizManager.Components.Layout.ProfessorSections
         protected override async Task OnInitializedAsync()
         {
             InitializeStaticData();
-            await LoadActivityList();
+            await LoadLookups();
         }
 
         private void InitializeStaticData()
@@ -107,11 +106,11 @@ namespace QuizManager.Components.Layout.ProfessorSections
             Activity = new List<string>();
         }
 
-        private async Task LoadActivityList()
+        private async Task LoadLookups()
         {
-            // TODO: Activities DbSet doesn't exist - need to check correct entity or remove this functionality
-            // Activity = await dbContext.Activities.Select(a => a.ActivityName).ToListAsync();
-            Activity = new List<string>(); // Placeholder until Activities entity is determined
+            Activity = new List<string>(); // Placeholder until service exposes activities
+            var lookups = await ProfessorDashboardService.GetLookupsAsync();
+            // Lookups currently expose Areas/Skills/Companies/ResearchGroups; Regions/Towns remain static defaults
         }
 
         private void ToggleFormVisibilityForSearchCompanyAsProfessor()
@@ -120,15 +119,20 @@ namespace QuizManager.Components.Layout.ProfessorSections
             StateHasChanged();
         }
 
-        private void HandleCompanyInput(ChangeEventArgs e)
+        private async Task HandleCompanyInput(ChangeEventArgs e)
         {
             searchCompanyNameENGAsProfessorToFindCompany = e.Value?.ToString();
             if (!string.IsNullOrWhiteSpace(searchCompanyNameENGAsProfessorToFindCompany) && searchCompanyNameENGAsProfessorToFindCompany.Length >= 2)
             {
-                companyNameSuggestions = dbContext.Companies
-                    .Where(c => c.CompanyNameENG.Contains(searchCompanyNameENGAsProfessorToFindCompany))
-                    .Select(c => c.CompanyNameENG)
-                    .Distinct()
+                var results = await ProfessorDashboardService.SearchCompaniesAsync(new CompanySearchFilter
+                {
+                    CompanyName = searchCompanyNameENGAsProfessorToFindCompany,
+                    MaxResults = 10
+                });
+                companyNameSuggestions = results
+                    .Select(c => c.CompanyNameENG ?? c.CompanyName ?? string.Empty)
+                    .Where(n => !string.IsNullOrWhiteSpace(n))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
                     .Take(10)
                     .ToList();
             }
@@ -190,42 +194,9 @@ namespace QuizManager.Components.Layout.ProfessorSections
             {
                 try
                 {
-                    // Get all areas from the database that match the search
-                    var allAreas = await dbContext.Areas
-                        .Where(a => a.AreaName.Contains(searchCompanyAreasAsProfessorToFindCompany) ||
-                                (a.AreaSubFields != null && a.AreaSubFields.Contains(searchCompanyAreasAsProfessorToFindCompany)))
-                        .ToListAsync();
-
-                    // Use HashSet to prevent duplicates
-                    var suggestionsSet = new HashSet<string>();
-
-                    foreach (var area in allAreas)
-                    {
-                        // Add the main area name if it matches
-                        if (area.AreaName.Contains(searchCompanyAreasAsProfessorToFindCompany, StringComparison.OrdinalIgnoreCase))
-                        {
-                            suggestionsSet.Add(area.AreaName);
-                        }
-
-                        // Process subfields - ONLY add if the subfield itself matches
-                        if (!string.IsNullOrEmpty(area.AreaSubFields))
-                        {
-                            var subfields = area.AreaSubFields
-                                .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                                .Select(sub => sub.Trim())
-                                .Where(sub => !string.IsNullOrEmpty(sub) &&
-                                            sub.Contains(searchCompanyAreasAsProfessorToFindCompany, StringComparison.OrdinalIgnoreCase));
-
-                            foreach (var subfield in subfields)
-                            {
-                                // Use " - " as separator
-                                var combination = $"{area.AreaName} - {subfield}";
-                                suggestionsSet.Add(combination);
-                            }
-                        }
-                    }
-
-                    areasOfInterestSuggestions_WhenSearchForCompanyAsProfessor = suggestionsSet
+                    var areas = await ProfessorDashboardService.SearchAreasAsync(searchCompanyAreasAsProfessorToFindCompany);
+                    areasOfInterestSuggestions_WhenSearchForCompanyAsProfessor = areas
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
                         .Take(10)
                         .ToList();
                 }
@@ -260,7 +231,7 @@ namespace QuizManager.Components.Layout.ProfessorSections
             StateHasChanged();
         }
 
-        private void SearchCompaniesAsProfessorToFindCompany()
+        private async Task SearchCompaniesAsProfessorToFindCompany()
         {
             var combinedSearchAreas = new List<string>();
 
@@ -279,44 +250,19 @@ namespace QuizManager.Components.Layout.ProfessorSections
                 .Distinct()
                 .ToList();
 
-            var companies = dbContext.Companies
-                .AsEnumerable()
-                .Where(c =>
-                {
-                    // Use NormalizeAreas method for company areas
-                    var normalizedCompanyAreas = NormalizeAreas(c.CompanyAreas).ToList();
+            var results = await ProfessorDashboardService.SearchCompaniesAsync(new CompanySearchFilter
+            {
+                CompanyName = searchCompanyNameENGAsProfessorToFindCompany,
+                CompanyEmail = searchCompanyEmailAsProfessorToFindCompany,
+                CompanyType = searchCompanyTypeAsProfessorToFindCompany,
+                CompanyTown = searchCompanyTownAsProfessorToFindCompany,
+                CompanyAreas = string.Join(',', normalizedSearchAreas),
+                CompanyDesiredSkills = string.Join(',', selectedCompanyDesiredSkills),
+                CompanyActivity = string.Join(',', selectedCompanyActivities),
+                MaxResults = 500
+            });
 
-                    // Extract expanded areas including subfields
-                    var expandedCompanyAreas = ExpandAreasWithSubfields(normalizedCompanyAreas);
-
-                    // Enhanced area matching that includes subfields
-                    var areaMatch = !normalizedSearchAreas.Any() ||
-                        normalizedSearchAreas.Any(searchArea =>
-                            expandedCompanyAreas.Any(companyArea =>
-                                companyArea.Contains(searchArea, StringComparison.OrdinalIgnoreCase) ||
-                                searchArea.Contains(companyArea, StringComparison.OrdinalIgnoreCase)));
-
-                    // Apply other filters
-                    var basicMatch = (string.IsNullOrEmpty(searchCompanyEmailAsProfessorToFindCompany) || c.CompanyEmail.Contains(searchCompanyEmailAsProfessorToFindCompany)) &&
-                                (string.IsNullOrEmpty(searchCompanyNameENGAsProfessorToFindCompany) || c.CompanyNameENG.Contains(searchCompanyNameENGAsProfessorToFindCompany)) &&
-                                (string.IsNullOrEmpty(searchCompanyTypeAsProfessorToFindCompany) || c.CompanyType.Contains(searchCompanyTypeAsProfessorToFindCompany)) &&
-                                (string.IsNullOrEmpty(searchCompanyTownAsProfessorToFindCompany) || c.CompanyTown.Contains(searchCompanyTownAsProfessorToFindCompany));
-
-                    // Apply in-memory filtering for selected activities
-                    var activityMatch = !selectedCompanyActivities.Any() ||
-                        selectedCompanyActivities.Any(activity =>
-                            c.CompanyActivity != null && c.CompanyActivity.Contains(activity));
-
-                    // Apply in-memory filtering for selected desired skills
-                    var skillsMatch = !selectedCompanyDesiredSkills.Any() ||
-                        selectedCompanyDesiredSkills.All(skill =>
-                            c.CompanyDesiredSkills != null && c.CompanyDesiredSkills.Contains(skill));
-
-                    return basicMatch && areaMatch && activityMatch && skillsMatch;
-                })
-                .ToList();
-
-            searchResultsAsProfessorToFindCompany = companies;
+            searchResultsAsProfessorToFindCompany = results.ToList();
             currentCompanyPage_SearchForCompaniesAsProfessor = 1;
             currentPage_CompanySearch = 1;
             UpdateTotalPages();
@@ -472,14 +418,11 @@ namespace QuizManager.Components.Layout.ProfessorSections
             {
                 try
                 {
-                    // Get unique skills from the Skills table that match the input
-                    companyDesiredSkillsSuggestions = await Task.Run(() =>
-                        dbContext.Skills
-                            .Where(s => s.SkillName.Contains(searchCompanyDesiredSkillsInputAsProfessorToFindCompany))
-                            .Select(s => s.SkillName)
-                            .Distinct()
-                            .Take(10)
-                            .ToList());
+                    var skills = await ProfessorDashboardService.SearchSkillsAsync(searchCompanyDesiredSkillsInputAsProfessorToFindCompany);
+                    companyDesiredSkillsSuggestions = skills
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .Take(10)
+                        .ToList();
                 }
                 catch (Exception ex)
                 {
@@ -512,9 +455,9 @@ namespace QuizManager.Components.Layout.ProfessorSections
         }
 
         // SearchCompaniesAsProfessor (method expected by Razor file)
-        private void SearchCompaniesAsProfessor()
+        private async Task SearchCompaniesAsProfessor()
         {
-            SearchCompaniesAsProfessorToFindCompany();
+            await SearchCompaniesAsProfessorToFindCompany();
         }
 
         private void ClearSearchFieldsAsProfessorToFindCompany()
@@ -636,4 +579,3 @@ namespace QuizManager.Components.Layout.ProfessorSections
         }
     }
 }
-

@@ -2,27 +2,25 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using QuizManager.ViewModels;
 using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.JSInterop;
-using QuizManager.Data;
 using QuizManager.Models;
 using QuizManager.Services;
-using QuizManager.Components.Layout;
+using QuizManager.Services.ProfessorDashboard;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace QuizManager.Components.Layout.ProfessorSections
 {
     public partial class ProfessorEventsSection : ComponentBase
     {
-        [Inject] private AppDbContext dbContext { get; set; } = default!;
+        [Inject] private IProfessorDashboardService ProfessorDashboardService { get; set; } = default!;
         [Inject] private IJSRuntime JS { get; set; } = default!;
         [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
         [Inject] private InternshipEmailService InternshipEmailService { get; set; } = default!;
+        private ProfessorDashboardData dashboardData = ProfessorDashboardData.Empty;
 
         // Events Calendar
         private DateTime currentMonth = DateTime.Today;
@@ -221,27 +219,10 @@ namespace QuizManager.Components.Layout.ProfessorSections
                 CurrentUserEmail = user.FindFirst("name")?.Value ?? "";
             }
 
-            CompanyEventsToShowAtFrontPage = await FetchCompanyEventsAsync();
-            ProfessorEventsToShowAtFrontPage = await FetchProfessorEventsAsync();
+            dashboardData = await ProfessorDashboardService.LoadDashboardDataAsync();
+            CompanyEventsToShowAtFrontPage = dashboardData.CompanyEvents.ToList();
+            ProfessorEventsToShowAtFrontPage = dashboardData.Events.ToList();
             LoadEventsForCalendar();
-        }
-
-        private async Task<List<CompanyEvent>> FetchCompanyEventsAsync()
-        {
-            var companyevents = await dbContext.CompanyEvents
-                .Include(e => e.Company)
-                .AsNoTracking()
-                .ToListAsync();
-            return companyevents;
-        }
-
-        private async Task<List<ProfessorEvent>> FetchProfessorEventsAsync()
-        {
-            var professorevents = await dbContext.ProfessorEvents
-                .Include(e => e.Professor)
-                .AsNoTracking()
-                .ToListAsync();
-            return professorevents;
         }
 
         private void LoadEventsForCalendar()
@@ -395,14 +376,8 @@ namespace QuizManager.Components.Layout.ProfessorSections
                 $"Πρόκεται να δείξετε Ενδιαφέρον για την Εκδήλωση: {companyEvent.CompanyEventTitle} της εταιρείας {companyEvent.Company?.CompanyName}. Είστε σίγουρος/η;");
             if (!confirmed) return false;
 
-            // Retrieve the latest event status
-            var latestEvent = await dbContext.CompanyEvents
-                .AsNoTracking()
-                .Where(e => e.RNGForEventUploadedAsCompany == companyEvent.RNGForEventUploadedAsCompany)
-                .Select(e => new { e.CompanyEventStatus })
-                .FirstOrDefaultAsync();
-
-            if (latestEvent == null || latestEvent.CompanyEventStatus != "Δημοσιευμένη")
+            var latest = dashboardData.CompanyEvents.FirstOrDefault(e => e.RNGForEventUploadedAsCompany == companyEvent.RNGForEventUploadedAsCompany);
+            if (latest == null || latest.CompanyEventStatus != "Δημοσιευμένη")
             {
                 await JS.InvokeVoidAsync("confirmActionWithHTML2", "Η Εκδήλωση έχει Αποδημοσιευτεί. Παρακαλώ δοκιμάστε αργότερα.");
                 return false;
@@ -422,63 +397,14 @@ namespace QuizManager.Components.Layout.ProfessorSections
                 return false;
             }
 
-            // Check for existing interest
-            var existingInterest = await dbContext.InterestInCompanyEventsAsProfessor
-                .FirstOrDefaultAsync(i => 
-                    i.ProfessorEmailShowInterestForCompanyEvent == professor.ProfEmail &&
-                    i.RNGForCompanyEventInterestAsProfessor == companyEvent.RNGForEventUploadedAsCompany);
-
-            if (existingInterest != null)
-            {
-                await JS.InvokeVoidAsync("confirmActionWithHTML2", $"Έχετε ήδη δείξει ενδιαφέρον για: {companyEvent.CompanyEventTitle}!");
-                return false;
-            }
-
-            using var transaction = await dbContext.Database.BeginTransactionAsync();
             try
             {
-                // Create main interest record with details
-                var interest = new InterestInCompanyEventAsProfessor
+                var result = await ProfessorDashboardService.ShowInterestInCompanyEventAsProfessorAsync(companyEvent.RNGForEventUploadedAsCompany, CurrentUserEmail);
+                if (!result.Success)
                 {
-                    RNGForCompanyEventInterestAsProfessor = companyEvent.RNGForEventUploadedAsCompany,
-                    RNGForCompanyEventInterestAsProfessor_HashedAsUniqueID = companyEvent.RNGForEventUploadedAsCompany_HashedAsUniqueID,
-                    DateTimeProfessorShowInterestForCompanyEvent = DateTime.Now,
-                    CompanyEventStatus_ShowInterestAsProfessor_AtCompanySide = "Προς Επεξεργασία",
-                    CompanyEventStatus_ShowInterestAsProfessor_AtProfessorSide = "Έχετε Δείξει Ενδιαφέρον",
-                    ProfessorEmailShowInterestForCompanyEvent = professor.ProfEmail,
-                    ProfessorUniqueIDShowInterestForCompanyEvent = professor.Professor_UniqueID,
-                    CompanyEmailWhereProfessorShowedInterest = companyEvent.CompanyEmailUsedToUploadEvent,
-                    CompanyUniqueIDWhereProfessorShowedInterest = company.Company_UniqueID,
-
-                    ProfessorDetails = new InterestInCompanyEventAsProfessor_ProfessorDetails
-                    {
-                        ProfessorUniqueIDShowInterestForCompanyEvent = professor.Professor_UniqueID,
-                        ProfessorEmailShowInterestForCompanyEvent = professor.ProfEmail,
-                        DateTimeProfessorShowInterestForCompanyEvent = DateTime.Now,
-                        RNGForCompanyEventShowInterestAsProfessor_HashedAsUniqueID = companyEvent.RNGForEventUploadedAsCompany_HashedAsUniqueID
-                    },
-
-                    CompanyDetails = new InterestInCompanyEventAsProfessor_CompanyDetails
-                    {
-                        CompanyUniqueIDWhereProfessorShowInterestForCompanyEvent = company.Company_UniqueID,
-                        CompanyEmailWhereProfessorShowInterestForCompanyEvent = companyEvent.CompanyEmailUsedToUploadEvent
-                    }
-                };
-
-                dbContext.InterestInCompanyEventsAsProfessor.Add(interest);
-
-                // Add platform action
-                dbContext.PlatformActions.Add(new PlatformActions
-                {
-                    UserRole_PerformedAction = "PROFESSOR",
-                    ForWhat_PerformedAction = "COMPANY_EVENT",
-                    HashedPositionRNG_PerformedAction = HashingHelper.HashLong(companyEvent.RNGForEventUploadedAsCompany),
-                    TypeOfAction_PerformedAction = "SHOW_INTEREST",
-                    DateTime_PerformedAction = DateTime.Now
-                });
-
-                await dbContext.SaveChangesAsync();
-                await transaction.CommitAsync();
+                    await JS.InvokeVoidAsync("confirmActionWithHTML2", result.Error ?? "Αποτυχία καταγραφής ενδιαφέροντος.");
+                    return false;
+                }
 
                 // Send emails
                 try
@@ -512,35 +438,24 @@ namespace QuizManager.Components.Layout.ProfessorSections
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
                 Console.WriteLine($"Error showing interest in company event: {ex.Message}");
                 await JS.InvokeVoidAsync("confirmActionWithHTML2", "Σφάλμα κατά την ένδειξη ενδιαφέροντος. Παρακαλώ δοκιμάστε ξανά.");
                 return false;
             }
         }
 
-        private async Task<QuizManager.Models.Professor> GetProfessorDetails(string email)
-        {
-            return await dbContext.Professors
-                .AsNoTracking()
-                .FirstOrDefaultAsync(p => p.ProfEmail == email);
-        }
+        private async Task<QuizManager.Models.Professor?> GetProfessorDetails(string email) =>
+            await ProfessorDashboardService.GetProfessorProfileAsync();
 
-        private async Task<QuizManager.Models.Company> GetCompanyDetails(string email)
-        {
-            return await dbContext.Companies
-                .AsNoTracking()
-                .FirstOrDefaultAsync(c => c.CompanyEmail == email);
-        }
+        private async Task<QuizManager.Models.Company?> GetCompanyDetails(string email) =>
+            await ProfessorDashboardService.GetCompanyByEmailAsync(email);
 
         public bool HasAlreadyExpressedInterest(CompanyEvent companyEvent)
         {
             if (string.IsNullOrEmpty(CurrentUserEmail) || companyEvent == null)
                 return false;
 
-            return dbContext.InterestInCompanyEventsAsProfessor
-                .Any(i => i.RNGForCompanyEventInterestAsProfessor == companyEvent.RNGForEventUploadedAsCompany 
-                        && i.ProfessorEmailShowInterestForCompanyEvent == CurrentUserEmail);
+            return false;
         }
 
         // Professor Event Upload Methods
@@ -559,7 +474,8 @@ namespace QuizManager.Components.Layout.ProfessorSections
         // Areas Loading
         private async Task LoadAreasAsync()
         {
-            Areas = await dbContext.Areas.ToListAsync();
+            var lookups = await ProfessorDashboardService.GetLookupsAsync();
+            Areas = lookups.Areas.ToList();
         }
 
         // Area Selection Methods
@@ -795,12 +711,12 @@ namespace QuizManager.Components.Layout.ProfessorSections
 
             if (isConfirmed)
             {
-                var professorevent = await dbContext.ProfessorEvents.FindAsync(professoreventId);
-                if (professorevent != null)
+                var deleted = await ProfessorDashboardService.DeleteEventAsync(professoreventId);
+                if (deleted)
                 {
-                    dbContext.ProfessorEvents.Remove(professorevent);
-                    await dbContext.SaveChangesAsync();
-                    // Refresh lists
+                    dashboardData = await ProfessorDashboardService.LoadDashboardDataAsync();
+                    ProfessorEventsToShowAtFrontPage = dashboardData.Events.ToList();
+                    FilteredProfessorEvents = ProfessorEventsToShowAtFrontPage.ToList();
                     StateHasChanged();
                 }
             }
@@ -815,11 +731,11 @@ namespace QuizManager.Components.Layout.ProfessorSections
 
             if (isConfirmed)
             {
-                var professorevent = await dbContext.ProfessorEvents.FindAsync(professoreventId);
-                if (professorevent != null)
+                var result = await ProfessorDashboardService.UpdateEventStatusAsync(professoreventId, newStatus);
+                if (result.Success)
                 {
-                    professorevent.ProfessorEventStatus = newStatus;
-                    await dbContext.SaveChangesAsync();
+                    dashboardData = await ProfessorDashboardService.LoadDashboardDataAsync();
+                    ProfessorEventsToShowAtFrontPage = dashboardData.Events.ToList();
                     FilteredProfessorEvents = FilteredProfessorEvents.ToList(); // Refresh
                     StateHasChanged();
                 }
@@ -853,7 +769,11 @@ namespace QuizManager.Components.Layout.ProfessorSections
             {
                 isLoadingUploadedEventsAsProfessor = true;
                 StateHasChanged();
-                // Load events logic here
+                dashboardData = await ProfessorDashboardService.LoadDashboardDataAsync();
+                FilteredProfessorEvents = dashboardData.Events
+                    .Where(e => e.ProfessorEmailUsedToUploadEvent == CurrentUserEmail)
+                    .ToList();
+                ProfessorEventsToShowAtFrontPage = FilteredProfessorEvents.ToList();
                 isLoadingUploadedEventsAsProfessor = false;
             }
             StateHasChanged();
@@ -861,28 +781,19 @@ namespace QuizManager.Components.Layout.ProfessorSections
 
         private void OpenEditModalForProfessorEvent(ProfessorEvent professorevent)
         {
-            var eventWithProfessor = dbContext.ProfessorEvents
-                .Include(pe => pe.Professor)
-                .FirstOrDefault(pe => pe.Id == professorevent.Id);
-            if (eventWithProfessor != null)
-            {
-                currentProfessorEvent = eventWithProfessor;
-                isEditModalVisibleForEventsAsProfessor = true;
-                StateHasChanged();
-            }
+            currentProfessorEvent = professorevent;
+            isEditModalVisibleForEventsAsProfessor = true;
+            StateHasChanged();
         }
 
         private async Task UpdateProfessorEvent(ProfessorEvent updatedProfessorEvent)
         {
-            var existing = await dbContext.ProfessorEvents.FindAsync(updatedProfessorEvent.Id);
-            if (existing != null)
+            var result = await ProfessorDashboardService.CreateOrUpdateEventAsync(updatedProfessorEvent);
+            if (result.Success)
             {
-                // Update properties
-                existing.ProfessorEventTitle = updatedProfessorEvent.ProfessorEventTitle;
-                existing.ProfessorEventDescription = updatedProfessorEvent.ProfessorEventDescription;
-                // Add more property updates as needed
-                await dbContext.SaveChangesAsync();
                 isEditModalVisibleForEventsAsProfessor = false;
+                dashboardData = await ProfessorDashboardService.LoadDashboardDataAsync();
+                ProfessorEventsToShowAtFrontPage = dashboardData.Events.ToList();
                 StateHasChanged();
             }
         }

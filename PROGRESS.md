@@ -68,8 +68,10 @@ See `docs/ERROR_INVESTIGATION.md` for detailed explanation of error count fluctu
 
 ### Service Migration (DbContext → Services)
 - ✅ Company sections now use `ICompanyDashboardService` (Jobs, Internships, Theses, Events, Announcements, Searches)
+- ✅ Professor sections now use `IProfessorDashboardService` (Events, Internships, Theses, Company/Student/ResearchGroup searches, Announcements)
+- ✅ ResearchGroup company search now uses `IResearchGroupDashboardService` lookups/filter/search (no direct `DbContext`)
 - ✅ MainLayout/front page already service-driven
-- ⚠️ Other roles (Professor/ResearchGroup/Student) still inject `AppDbContext` directly (future pass)
+- ⚠️ Remaining ResearchGroup components (Announcements, Events, Professor search, Statistics) and Student sections still inject `AppDbContext` directly (future pass)
 
 ### Extraction Strategy
 1. **Source**: `backups/MainLayout.razor.cs.backup` (33,977 lines - the original monolithic file)

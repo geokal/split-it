@@ -1,25 +1,27 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.JSInterop;
-using QuizManager.Data;
 using QuizManager.Models;
+using QuizManager.Data;
+using QuizManager.Services.ProfessorDashboard;
 using QuizManager.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace QuizManager.Components.Layout.ProfessorSections
 {
     public partial class ProfessorInternshipsSection : ComponentBase
     {
-        [Inject] private AppDbContext dbContext { get; set; } = default!;
+        [Inject] private IProfessorDashboardService ProfessorDashboardService { get; set; } = default!;
         [Inject] private IJSRuntime JS { get; set; } = default!;
         [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
         [Inject] private NavigationManager NavigationManager { get; set; } = default!;
         [Inject] private QuizManager.Services.InternshipEmailService InternshipEmailService { get; set; } = default!;
+
+        private ProfessorDashboardData dashboardData = ProfessorDashboardData.Empty;
+        private IReadOnlyList<ProfessorInternshipApplied> internshipApplications = Array.Empty<ProfessorInternshipApplied>();
 
         // User Information
         private string CurrentUserEmail = "";
@@ -76,6 +78,8 @@ namespace QuizManager.Components.Layout.ProfessorSections
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             var user = authState.User;
             CurrentUserEmail = user.FindFirst("name")?.Value ?? "";
+            dashboardData = await ProfessorDashboardService.LoadDashboardDataAsync();
+            internshipApplications = await ProfessorDashboardService.GetInternshipApplicationsAsync();
         }
 
         // Form Visibility Toggle
@@ -112,11 +116,13 @@ namespace QuizManager.Components.Layout.ProfessorSections
             {
                 if (!string.IsNullOrEmpty(CurrentUserEmail))
                 {
-                    professorInternships = await dbContext.ProfessorInternships
-                        .Include(i => i.Professor)
+                    dashboardData = await ProfessorDashboardService.LoadDashboardDataAsync();
+                    internshipApplications = await ProfessorDashboardService.GetInternshipApplicationsAsync();
+
+                    professorInternships = dashboardData.Internships
                         .Where(i => i.ProfessorEmailUsedToUploadInternship == CurrentUserEmail)
                         .OrderByDescending(i => i.ProfessorInternshipUploadDate)
-                        .ToListAsync();
+                        .ToList();
 
                     FilterProfessorInternships();
                     CalculateStatusCountsForInternshipsAsProfessor();
@@ -230,23 +236,23 @@ namespace QuizManager.Components.Layout.ProfessorSections
         {
             try
             {
-                var student = studentDataCache.Values.FirstOrDefault(s => s.Email == studentEmail);
-                
+                var student = studentDataCache.Values.FirstOrDefault(s => s.Email.Equals(studentEmail, StringComparison.OrdinalIgnoreCase));
+
                 if (student == null)
                 {
-                    student = await dbContext.Students
-                        .FirstOrDefaultAsync(s => s.Email == studentEmail);
-                    
+                    student = await ProfessorDashboardService.GetStudentByEmailAsync(studentEmail);
                     if (student != null)
-                        studentDataCache[studentEmail] = student;
+                    {
+                        studentDataCache[studentEmail.ToLower()] = student;
+                    }
                 }
-                
+
                 if (student?.Attachment == null)
                 {
                     await JS.InvokeVoidAsync("alert", "Δεν βρέθηκε βιογραφικό για αυτόν τον φοιτητή");
                     return;
                 }
-                
+
                 var fileName = $"CV_{student.Name}_{student.Surname}.pdf";
                 string base64String = Convert.ToBase64String(student.Attachment);
                 await JS.InvokeVoidAsync("downloadInternshipAttachmentAsStudent", fileName, base64String);
@@ -331,12 +337,16 @@ namespace QuizManager.Components.Layout.ProfessorSections
 
         private async Task DownloadAttachmentForProfessorInternships(int internshipId)
         {
-            var internship = await dbContext.ProfessorInternships.FindAsync(internshipId);
-            if (internship != null && internship.ProfessorInternshipAttachment != null)
+            var attachment = await ProfessorDashboardService.GetInternshipAttachmentAsync(internshipId);
+            if (attachment != null && attachment.Data.Length > 0)
             {
-                var fileName = $"{internship.ProfessorInternshipTitle}_Attachment.pdf";
-                var mimeType = "application/pdf";
-                await JS.InvokeVoidAsync("BlazorDownloadAttachmentPositionFile", fileName, mimeType, internship.ProfessorInternshipAttachment);
+                var fileName = string.IsNullOrWhiteSpace(attachment.FileName)
+                    ? $"Internship_{internshipId}_Attachment.pdf"
+                    : attachment.FileName;
+                var mimeType = string.IsNullOrWhiteSpace(attachment.ContentType)
+                    ? "application/pdf"
+                    : attachment.ContentType;
+                await JS.InvokeVoidAsync("BlazorDownloadAttachmentPositionFile", fileName, mimeType, attachment.Data);
             }
         }
 
@@ -401,20 +411,14 @@ namespace QuizManager.Components.Layout.ProfessorSections
         {
             try
             {
-                var internship = await dbContext.ProfessorInternships
-                    .Where(i => i.RNGForInternshipUploadedAsProfessor == internshipId)
-                    .FirstOrDefaultAsync();
-
-                if (internship == null)
+                if (internshipApplications == null || internshipApplications.Count == 0)
                 {
-                    return Enumerable.Empty<ProfessorInternshipApplied>();
+                    internshipApplications = await ProfessorDashboardService.GetInternshipApplicationsAsync();
                 }
 
-                return await dbContext.ProfessorInternshipsApplied
+                return internshipApplications
                     .Where(a => a.RNGForProfessorInternshipApplied == internshipId)
-                    .Include(a => a.StudentDetails)
-                    .AsNoTracking()
-                    .ToListAsync();
+                    .ToList();
             }
             catch (Exception ex)
             {
@@ -430,48 +434,23 @@ namespace QuizManager.Components.Layout.ProfessorSections
             {
                 var studentEmails = professorInternshipApplicantsMap.Values
                     .SelectMany(x => x)
-                    .Select(a => a.StudentDetails.StudentEmailAppliedForProfessorInternship)
+                    .Select(a => a.StudentDetails?.StudentEmailAppliedForProfessorInternship ?? a.StudentEmailAppliedForProfessorInternship)
                     .Distinct()
                     .ToList();
 
-                var students = await dbContext.Students
-                    .Where(s => studentEmails.Contains(s.Email.ToLower()))
-                    .Select(s => new Student
-                    {
-                        Id = s.Id,
-                        Student_UniqueID = s.Student_UniqueID,
-                        Email = s.Email,
-                        Image = s.Image,
-                        Name = s.Name,
-                        Surname = s.Surname,
-                        Telephone = s.Telephone,
-                        PermanentAddress = s.PermanentAddress,
-                        PermanentRegion = s.PermanentRegion,
-                        PermanentTown = s.PermanentTown,
-                        Attachment = s.Attachment,
-                        LinkedInProfile = s.LinkedInProfile,
-                        PersonalWebsite = s.PersonalWebsite,
-                        Transport = s.Transport,
-                        RegNumber = s.RegNumber,
-                        University = s.University,
-                        Department = s.Department,
-                        EnrollmentDate = s.EnrollmentDate,
-                        StudyYear = s.StudyYear,
-                        LevelOfDegree = s.LevelOfDegree,
-                        AreasOfExpertise = s.AreasOfExpertise,
-                        Keywords = s.Keywords,
-                        ExpectedGraduationDate = s.ExpectedGraduationDate,
-                        CompletedECTS = s.CompletedECTS
-                    })
-                    .AsNoTracking()
-                    .ToListAsync();
-
-                foreach (var student in students)
+                foreach (var email in studentEmails.Where(e => !string.IsNullOrWhiteSpace(e)))
                 {
-                    studentDataCache[student.Email.ToLower()] = student;
+                    var key = email.ToLower();
+                    if (studentDataCache.ContainsKey(key)) continue;
+
+                    var student = await ProfessorDashboardService.GetStudentByEmailAsync(email);
+                    if (student != null)
+                    {
+                        studentDataCache[key] = student;
+                    }
                 }
 
-                Console.WriteLine($"Loaded {students.Count} professor internship student records");
+                Console.WriteLine($"Loaded {studentDataCache.Count} professor internship student records");
             }
             catch (Exception ex)
             {
@@ -489,31 +468,12 @@ namespace QuizManager.Components.Layout.ProfessorSections
 
             if (isConfirmed)
             {
-                var internship = await dbContext.ProfessorInternships
-                    .FirstOrDefaultAsync(i => i.Id == internshipId);
-
-                if (internship != null)
+                var result = await ProfessorDashboardService.UpdateInternshipStatusAsync(internshipId, newStatus);
+                if (result.Success)
                 {
-                    internship.ProfessorUploadedInternshipStatus = newStatus;
-
-                    if (newStatus == "Αποσυρμένη")
-                    {
-                        var rngForInternship = internship.RNGForInternshipUploadedAsProfessor;
-
-                        var studentApplications = await dbContext.ProfessorInternshipsApplied
-                            .Where(a => a.RNGForProfessorInternshipApplied == rngForInternship)
-                            .ToListAsync();
-
-                        foreach (var application in studentApplications)
-                        {
-                            application.InternshipStatusAppliedAtTheProfessorSide = "Απορρίφθηκε (Απόσυρση Θέσεως Από Καθηγητή)";
-                            application.InternshipStatusAppliedAtTheStudentSide = "Απορρίφθηκε (Απόσυρση Θέσεως Από Καθηγητή)";
-                        }
-                    }
-
-                    await dbContext.SaveChangesAsync();
-
                     await LoadProfessorInternships();
+                    internshipApplications = await ProfessorDashboardService.GetInternshipApplicationsAsync();
+
                     var tabUrl = $"{NavigationManager.Uri.Split('?')[0]}#professor-internships";
                     NavigationManager.NavigateTo(tabUrl, true);
                     await Task.Delay(500);
@@ -624,21 +584,21 @@ namespace QuizManager.Components.Layout.ProfessorSections
         {
             try
             {
-                var application = await dbContext.ProfessorInternshipsApplied
-                    .Include(a => a.StudentDetails)
-                    .FirstOrDefaultAsync(a => a.Id == applicationId);
+                var application = internshipApplications.FirstOrDefault(a => a.Id == applicationId);
+                var studentEmail = application?.StudentDetails?.StudentEmailAppliedForProfessorInternship
+                    ?? application?.StudentEmailAppliedForProfessorInternship
+                    ?? string.Empty;
 
-                if (application?.StudentDetails != null)
+                if (!string.IsNullOrWhiteSpace(studentEmail))
                 {
-                    var studentEmail = application.StudentDetails.StudentEmailAppliedForProfessorInternship;
                     if (studentDataCache.TryGetValue(studentEmail.ToLower(), out var cachedStudent))
                     {
                         selectedStudent = cachedStudent;
                     }
                     else
                     {
-                        var student = await dbContext.Students
-                            .FirstOrDefaultAsync(s => s.Student_UniqueID == studentUniqueID);
+                        var student = await ProfessorDashboardService.GetStudentByUniqueIdAsync(studentUniqueID) ??
+                                      await ProfessorDashboardService.GetStudentByEmailAsync(studentEmail);
                         if (student != null)
                         {
                             selectedStudent = student;
@@ -701,17 +661,15 @@ namespace QuizManager.Components.Layout.ProfessorSections
                 try
                 {
                     await UpdateProgressWhenDeleteProfessorInternship(30);
-                    var internship = await dbContext.ProfessorInternships.FindAsync(internshipId);
+                    var deleted = await ProfessorDashboardService.DeleteInternshipAsync(internshipId);
 
-                    if (internship != null)
+                    if (deleted)
                     {
                         await UpdateProgressWhenDeleteProfessorInternship(60);
-                        dbContext.ProfessorInternships.Remove(internship);
-                        await dbContext.SaveChangesAsync();
-                        await UpdateProgressWhenDeleteProfessorInternship(80);
-
-                        await UpdateProgressWhenDeleteProfessorInternship(90);
                         await LoadProfessorInternships();
+
+                        await UpdateProgressWhenDeleteProfessorInternship(80);
+                        await UpdateProgressWhenDeleteProfessorInternship(90);
 
                         await UpdateProgressWhenDeleteProfessorInternship(100);
 
@@ -965,7 +923,7 @@ namespace QuizManager.Components.Layout.ProfessorSections
                         ProfessorInternshipUploadDate = DateTime.Now
                     };
 
-                    dbContext.ProfessorInternships.Add(newInternship);
+                    await ProfessorDashboardService.CreateOrUpdateInternshipAsync(newInternship);
                 }
                 catch (Exception ex)
                 {
@@ -973,7 +931,7 @@ namespace QuizManager.Components.Layout.ProfessorSections
                 }
             }
 
-            await dbContext.SaveChangesAsync();
+            await LoadProfessorInternships();
         }
 
         private async Task UpdateMultipleProfessorInternshipStatuses()
@@ -988,31 +946,7 @@ namespace QuizManager.Components.Layout.ProfessorSections
         {
             try
             {
-                var internship = await dbContext.ProfessorInternships
-                    .FirstOrDefaultAsync(i => i.Id == internshipId);
-
-                if (internship != null)
-                {
-                    internship.ProfessorUploadedInternshipStatus = newStatus;
-
-                    // If status is changed to "Αποσυρμένη", handle student applications
-                    if (newStatus == "Αποσυρμένη")
-                    {
-                        var rngForInternship = internship.RNGForInternshipUploadedAsProfessor;
-
-                        var applications = await dbContext.ProfessorInternshipsApplied
-                            .Where(a => a.RNGForProfessorInternshipApplied == rngForInternship)
-                            .ToListAsync();
-
-                        foreach (var application in applications)
-                        {
-                            application.InternshipStatusAppliedAtTheProfessorSide = "Απορρίφθηκε (Απόσυρση Θέσεως Από Καθηγητή)";
-                            application.InternshipStatusAppliedAtTheStudentSide = "Απορρίφθηκε (Απόσυρση Θέσεως Από Καθηγητή)";
-                        }
-                    }
-
-                    await dbContext.SaveChangesAsync();
-                }
+                await ProfessorDashboardService.UpdateInternshipStatusAsync(internshipId, newStatus);
             }
             catch (Exception ex)
             {
@@ -1065,57 +999,61 @@ namespace QuizManager.Components.Layout.ProfessorSections
         {
             try
             {
-                // Fetch application with related internship
-                var application = await dbContext.ProfessorInternshipsApplied
-                    .Join(dbContext.ProfessorInternships.Include(i => i.Professor),
-                        applied => applied.RNGForProfessorInternshipApplied,
-                        internship => internship.RNGForInternshipUploadedAsProfessor,
-                        (applied, internship) => new { Application = applied, Internship = internship })
-                    .FirstOrDefaultAsync(x => x.Application.RNGForProfessorInternshipApplied == internshipRNG &&
-                                            x.Application.StudentDetails.StudentUniqueIDAppliedForProfessorInternship == studentUniqueID);
+                var result = await ProfessorDashboardService.DecideOnInternshipApplicationAsync(
+                    internshipRNG,
+                    studentUniqueID,
+                    ApplicationDecision.Accept);
 
-                if (application == null)
+                if (!result.Success)
                 {
-                    await SafeInvokeJsAsync(() => JS.InvokeVoidAsync("confirmActionWithHTML2", 
-                        "Δεν βρέθηκε η Αίτηση ή ο Φοιτητής").AsTask());
+                    await SafeInvokeJsAsync(() => JS.InvokeVoidAsync("confirmActionWithHTML2",
+                        result.Error ?? "Δεν βρέθηκε η Αίτηση ή ο Φοιτητής").AsTask());
                     return;
                 }
 
-                // Update status directly on the main application entity
-                application.Application.InternshipStatusAppliedAtTheProfessorSide = "Επιτυχής";
-                application.Application.InternshipStatusAppliedAtTheStudentSide = "Επιτυχής";
-
-                await dbContext.SaveChangesAsync();
+                internshipApplications = await ProfessorDashboardService.GetInternshipApplicationsAsync();
+                dashboardData = await ProfessorDashboardService.LoadDashboardDataAsync();
+                await LoadProfessorInternships();
 
                 try
                 {
-                    // Get student details
-                    var student = await GetStudentDetails(application.Application.StudentDetails.StudentEmailAppliedForProfessorInternship);
+                    var application = internshipApplications.FirstOrDefault(x =>
+                        x.RNGForProfessorInternshipApplied == internshipRNG &&
+                        (x.StudentDetails?.StudentUniqueIDAppliedForProfessorInternship == studentUniqueID ||
+                         x.StudentUniqueIDAppliedForProfessorInternship == studentUniqueID));
+
+                    var internship = professorInternships.FirstOrDefault(t => t.RNGForInternshipUploadedAsProfessor == internshipRNG);
+                    var professor = dashboardData.ProfessorProfile;
+                    var studentEmail = application?.StudentDetails?.StudentEmailAppliedForProfessorInternship ??
+                        application?.StudentEmailAppliedForProfessorInternship ?? string.Empty;
+                    var student = await GetStudentDetails(studentEmail);
+                    var hashedId = application?.RNGForProfessorInternshipApplied_HashedAsUniqueID ?? string.Empty;
+                    var professorName = $"{professor?.ProfName} {professor?.ProfSurname}".Trim();
 
                     // Send acceptance email to student
                     await InternshipEmailService.SendAcceptanceEmailAsProfessorToStudentAfterHeAppliedForInternshipPosition(
-                        application.Application.StudentDetails.StudentEmailAppliedForProfessorInternship.Trim(),
+                        studentEmail.Trim(),
                         student?.Name,
                         student?.Surname,
-                        application.Internship.ProfessorInternshipTitle,
-                        application.Application.RNGForProfessorInternshipApplied_HashedAsUniqueID,
-                        $"{application.Internship.Professor.ProfName} {application.Internship.Professor.ProfSurname}"
+                        internship?.ProfessorInternshipTitle,
+                        hashedId,
+                        professorName
                     );
 
                     // Send notification email to professor
                     await InternshipEmailService.SendAcceptanceConfirmationEmailToProfessorAfterStudentAppliedForInternshipPosition(
-                        application.Application.ProfessorDetails.ProfessorEmailWhereStudentAppliedForProfessorInternship.Trim(),
-                        $"{application.Internship.Professor.ProfName} {application.Internship.Professor.ProfSurname}",
+                        professor?.ProfEmail?.Trim() ?? string.Empty,
+                        professorName,
                         student?.Name,
                         student?.Surname,
-                        application.Application.RNGForProfessorInternshipApplied_HashedAsUniqueID,
-                        application.Internship.ProfessorInternshipTitle
+                        hashedId,
+                        internship?.ProfessorInternshipTitle
                     );
 
                     await SafeInvokeJsAsync(() => JS.InvokeVoidAsync("confirmActionWithHTML2", 
                         $"Ενημερώσεις Αποδοχής στάλθηκαν τόσο στον Φοιτητή " +
                         $"({student?.Name} {student?.Surname}) " +
-                        $"όσο και στον Καθηγητή ({application.Internship.Professor.ProfName} {application.Internship.Professor.ProfSurname})").AsTask());
+                        $"όσο και στον Καθηγητή ({professorName})").AsTask());
 
                     StateHasChanged();
                 }
@@ -1138,57 +1076,61 @@ namespace QuizManager.Components.Layout.ProfessorSections
         {
             try
             {
-                // Fetch application with related internship
-                var application = await dbContext.ProfessorInternshipsApplied
-                    .Join(dbContext.ProfessorInternships.Include(i => i.Professor),
-                        applied => applied.RNGForProfessorInternshipApplied,
-                        internship => internship.RNGForInternshipUploadedAsProfessor,
-                        (applied, internship) => new { Application = applied, Internship = internship })
-                    .FirstOrDefaultAsync(x => x.Application.RNGForProfessorInternshipApplied == internshipRNG &&
-                                        x.Application.StudentDetails.StudentUniqueIDAppliedForProfessorInternship == studentUniqueID);
+                var result = await ProfessorDashboardService.DecideOnInternshipApplicationAsync(
+                    internshipRNG,
+                    studentUniqueID,
+                    ApplicationDecision.Reject);
 
-                if (application == null)
+                if (!result.Success)
                 {
                     await SafeInvokeJsAsync(() => JS.InvokeVoidAsync("confirmActionWithHTML2", 
-                        "Δεν βρέθηκε η Αίτηση ή ο Φοιτητής").AsTask());
+                        result.Error ?? "Δεν βρέθηκε η Αίτηση ή ο Φοιτητής").AsTask());
                     return;
                 }
 
-                // Update status directly on the main application entity
-                application.Application.InternshipStatusAppliedAtTheProfessorSide = "Απορρίφθηκε";
-                application.Application.InternshipStatusAppliedAtTheStudentSide = "Απορρίφθηκε";
-
-                await dbContext.SaveChangesAsync();
+                internshipApplications = await ProfessorDashboardService.GetInternshipApplicationsAsync();
+                dashboardData = await ProfessorDashboardService.LoadDashboardDataAsync();
+                await LoadProfessorInternships();
 
                 try
                 {
-                    // Get student details
-                    var student = await GetStudentDetails(application.Application.StudentDetails.StudentEmailAppliedForProfessorInternship);
+                    var application = internshipApplications.FirstOrDefault(x =>
+                        x.RNGForProfessorInternshipApplied == internshipRNG &&
+                        (x.StudentDetails?.StudentUniqueIDAppliedForProfessorInternship == studentUniqueID ||
+                         x.StudentUniqueIDAppliedForProfessorInternship == studentUniqueID));
+
+                    var internship = professorInternships.FirstOrDefault(t => t.RNGForInternshipUploadedAsProfessor == internshipRNG);
+                    var professor = dashboardData.ProfessorProfile;
+                    var studentEmail = application?.StudentDetails?.StudentEmailAppliedForProfessorInternship ??
+                        application?.StudentEmailAppliedForProfessorInternship ?? string.Empty;
+                    var student = await GetStudentDetails(studentEmail);
+                    var hashedId = application?.RNGForProfessorInternshipApplied_HashedAsUniqueID ?? string.Empty;
+                    var professorName = $"{professor?.ProfName} {professor?.ProfSurname}".Trim();
 
                     // Send rejection email to student
                     await InternshipEmailService.SendRejectionEmailAsProfessorToStudentAfterHeAppliedForInternshipPosition(
-                        application.Application.StudentDetails.StudentEmailAppliedForProfessorInternship.Trim(),
+                        studentEmail.Trim(),
                         student?.Name,
                         student?.Surname,
-                        application.Internship.ProfessorInternshipTitle,
-                        application.Application.RNGForProfessorInternshipApplied_HashedAsUniqueID,
-                        $"{application.Internship.Professor.ProfName} {application.Internship.Professor.ProfSurname}"
+                        internship?.ProfessorInternshipTitle,
+                        hashedId,
+                        professorName
                     );
 
                     // Send notification email to professor
                     await InternshipEmailService.SendRejectionConfirmationEmailToProfessorAfterStudentAppliedForInternshipPosition(
-                        application.Application.ProfessorDetails.ProfessorEmailWhereStudentAppliedForProfessorInternship.Trim(),
-                        $"{application.Internship.Professor.ProfName} {application.Internship.Professor.ProfSurname}",
+                        professor?.ProfEmail?.Trim() ?? string.Empty,
+                        professorName,
                         student?.Name,
                         student?.Surname,
-                        application.Application.RNGForProfessorInternshipApplied_HashedAsUniqueID,
-                        application.Internship.ProfessorInternshipTitle
+                        hashedId,
+                        internship?.ProfessorInternshipTitle
                     );
 
                     await SafeInvokeJsAsync(() => JS.InvokeVoidAsync("confirmActionWithHTML2",
                         $"Η Απόρριψη της Αίτησης κοινοποιήθηκε μέσω Email τόσο στον Φοιτητή " +
                         $"({student?.Name} {student?.Surname}) " +
-                        $"όσο και στον Καθηγητή ({application.Internship.Professor.ProfName} {application.Internship.Professor.ProfSurname})").AsTask());
+                        $"όσο και στον Καθηγητή ({professorName})").AsTask());
 
                     StateHasChanged();
                 }
@@ -1309,6 +1251,9 @@ namespace QuizManager.Components.Layout.ProfessorSections
 
                     await SafeInvokeJsAsync(() => JS.InvokeVoidAsync("confirmActionWithHTML2", resultMessage).AsTask());
 
+                    internshipApplications = await ProfessorDashboardService.GetInternshipApplicationsAsync();
+                    await LoadProfessorInternships();
+
                     // Set the flag to trigger refresh
                     actionsPerformedToAcceptorRejectInternshipsAsProfessor = true;
                     StateHasChanged();
@@ -1336,52 +1281,55 @@ namespace QuizManager.Components.Layout.ProfessorSections
         {
             try
             {
-                // Fetch application with related internship
-                var application = await dbContext.ProfessorInternshipsApplied
-                    .Join(dbContext.ProfessorInternships.Include(i => i.Professor),
-                        applied => applied.RNGForProfessorInternshipApplied,
-                        internship => internship.RNGForInternshipUploadedAsProfessor,
-                        (applied, internship) => new { Application = applied, Internship = internship })
-                    .FirstOrDefaultAsync(x => x.Application.RNGForProfessorInternshipApplied == internshipRNG &&
-                                            x.Application.StudentDetails.StudentUniqueIDAppliedForProfessorInternship == studentUniqueID);
+                var result = await ProfessorDashboardService.DecideOnInternshipApplicationAsync(
+                    internshipRNG,
+                    studentUniqueID,
+                    ApplicationDecision.Accept);
 
-                if (application == null)
+                if (!result.Success)
                 {
-                    Console.WriteLine($"Professor internship application not found: {internshipRNG}-{studentUniqueID}");
+                    Console.WriteLine($"Professor internship application not found: {internshipRNG}-{studentUniqueID} ({result.Error})");
                     return;
                 }
 
-                // Update status directly on the main application entity
-                application.Application.InternshipStatusAppliedAtTheProfessorSide = "Επιτυχής";
-                application.Application.InternshipStatusAppliedAtTheStudentSide = "Επιτυχής";
-
-                await dbContext.SaveChangesAsync();
+                internshipApplications = await ProfessorDashboardService.GetInternshipApplicationsAsync();
+                dashboardData = await ProfessorDashboardService.LoadDashboardDataAsync();
 
                 if (sendEmails)
                 {
                     try
                     {
-                        // Get student details
-                        var student = await GetStudentDetails(application.Application.StudentDetails.StudentEmailAppliedForProfessorInternship);
+                        var application = internshipApplications.FirstOrDefault(x =>
+                            x.RNGForProfessorInternshipApplied == internshipRNG &&
+                            (x.StudentDetails?.StudentUniqueIDAppliedForProfessorInternship == studentUniqueID ||
+                             x.StudentUniqueIDAppliedForProfessorInternship == studentUniqueID));
+
+                        var internship = professorInternships.FirstOrDefault(t => t.RNGForInternshipUploadedAsProfessor == internshipRNG);
+                        var professor = dashboardData.ProfessorProfile;
+                        var studentEmail = application?.StudentDetails?.StudentEmailAppliedForProfessorInternship ??
+                            application?.StudentEmailAppliedForProfessorInternship ?? string.Empty;
+                        var student = await GetStudentDetails(studentEmail);
+                        var hashedId = application?.RNGForProfessorInternshipApplied_HashedAsUniqueID ?? string.Empty;
+                        var professorName = $"{professor?.ProfName} {professor?.ProfSurname}".Trim();
 
                         // Send acceptance email to student
                         await InternshipEmailService.SendAcceptanceEmailAsProfessorToStudentAfterHeAppliedForInternshipPosition(
-                            application.Application.StudentDetails.StudentEmailAppliedForProfessorInternship.Trim(),
+                            studentEmail.Trim(),
                             student?.Name,
                             student?.Surname,
-                            application.Internship.ProfessorInternshipTitle,
-                            application.Application.RNGForProfessorInternshipApplied_HashedAsUniqueID,
-                            $"{application.Internship.Professor.ProfName} {application.Internship.Professor.ProfSurname}"
+                            internship?.ProfessorInternshipTitle,
+                            hashedId,
+                            professorName
                         );
 
                         // Send notification email to professor
                         await InternshipEmailService.SendAcceptanceConfirmationEmailToProfessorAfterStudentAppliedForInternshipPosition(
-                            application.Application.ProfessorDetails.ProfessorEmailWhereStudentAppliedForProfessorInternship.Trim(),
-                            $"{application.Internship.Professor.ProfName} {application.Internship.Professor.ProfSurname}",
+                            professor?.ProfEmail?.Trim() ?? string.Empty,
+                            professorName,
                             student?.Name,
                             student?.Surname,
-                            application.Application.RNGForProfessorInternshipApplied_HashedAsUniqueID,
-                            application.Internship.ProfessorInternshipTitle
+                            hashedId,
+                            internship?.ProfessorInternshipTitle
                         );
 
                         Console.WriteLine($"Professor internship acceptance emails sent for: {internshipRNG}-{studentUniqueID}");
@@ -1407,52 +1355,55 @@ namespace QuizManager.Components.Layout.ProfessorSections
         {
             try
             {
-                // Fetch application with related internship
-                var application = await dbContext.ProfessorInternshipsApplied
-                    .Join(dbContext.ProfessorInternships.Include(i => i.Professor),
-                        applied => applied.RNGForProfessorInternshipApplied,
-                        internship => internship.RNGForInternshipUploadedAsProfessor,
-                        (applied, internship) => new { Application = applied, Internship = internship })
-                    .FirstOrDefaultAsync(x => x.Application.RNGForProfessorInternshipApplied == internshipRNG &&
-                                        x.Application.StudentDetails.StudentUniqueIDAppliedForProfessorInternship == studentUniqueID);
+                var result = await ProfessorDashboardService.DecideOnInternshipApplicationAsync(
+                    internshipRNG,
+                    studentUniqueID,
+                    ApplicationDecision.Reject);
 
-                if (application == null)
+                if (!result.Success)
                 {
-                    Console.WriteLine($"Professor internship application not found: {internshipRNG}-{studentUniqueID}");
+                    Console.WriteLine($"Professor internship application not found: {internshipRNG}-{studentUniqueID} ({result.Error})");
                     return;
                 }
 
-                // Update status directly on the main application entity
-                application.Application.InternshipStatusAppliedAtTheProfessorSide = "Απορρίφθηκε";
-                application.Application.InternshipStatusAppliedAtTheStudentSide = "Απορρίφθηκε";
-
-                await dbContext.SaveChangesAsync();
+                internshipApplications = await ProfessorDashboardService.GetInternshipApplicationsAsync();
+                dashboardData = await ProfessorDashboardService.LoadDashboardDataAsync();
 
                 if (sendEmails)
                 {
                     try
                     {
-                        // Get student details
-                        var student = await GetStudentDetails(application.Application.StudentDetails.StudentEmailAppliedForProfessorInternship);
+                        var application = internshipApplications.FirstOrDefault(x =>
+                            x.RNGForProfessorInternshipApplied == internshipRNG &&
+                            (x.StudentDetails?.StudentUniqueIDAppliedForProfessorInternship == studentUniqueID ||
+                             x.StudentUniqueIDAppliedForProfessorInternship == studentUniqueID));
+
+                        var internship = professorInternships.FirstOrDefault(t => t.RNGForInternshipUploadedAsProfessor == internshipRNG);
+                        var professor = dashboardData.ProfessorProfile;
+                        var studentEmail = application?.StudentDetails?.StudentEmailAppliedForProfessorInternship ??
+                            application?.StudentEmailAppliedForProfessorInternship ?? string.Empty;
+                        var student = await GetStudentDetails(studentEmail);
+                        var hashedId = application?.RNGForProfessorInternshipApplied_HashedAsUniqueID ?? string.Empty;
+                        var professorName = $"{professor?.ProfName} {professor?.ProfSurname}".Trim();
 
                         // Send rejection email to student
                         await InternshipEmailService.SendRejectionEmailAsProfessorToStudentAfterHeAppliedForInternshipPosition(
-                            application.Application.StudentDetails.StudentEmailAppliedForProfessorInternship.Trim(),
+                            studentEmail.Trim(),
                             student?.Name,
                             student?.Surname,
-                            application.Internship.ProfessorInternshipTitle,
-                            application.Application.RNGForProfessorInternshipApplied_HashedAsUniqueID,
-                            $"{application.Internship.Professor.ProfName} {application.Internship.Professor.ProfSurname}"
+                            internship?.ProfessorInternshipTitle,
+                            hashedId,
+                            professorName
                         );
 
                         // Send notification email to professor
                         await InternshipEmailService.SendRejectionConfirmationEmailToProfessorAfterStudentAppliedForInternshipPosition(
-                            application.Application.ProfessorDetails.ProfessorEmailWhereStudentAppliedForProfessorInternship.Trim(),
-                            $"{application.Internship.Professor.ProfName} {application.Internship.Professor.ProfSurname}",
+                            professor?.ProfEmail?.Trim() ?? string.Empty,
+                            professorName,
                             student?.Name,
                             student?.Surname,
-                            application.Application.RNGForProfessorInternshipApplied_HashedAsUniqueID,
-                            application.Internship.ProfessorInternshipTitle
+                            hashedId,
+                            internship?.ProfessorInternshipTitle
                         );
 
                         Console.WriteLine($"Professor internship rejection emails sent for: {internshipRNG}-{studentUniqueID}");
@@ -1482,8 +1433,18 @@ namespace QuizManager.Components.Layout.ProfessorSections
 
             try
             {
-                return await dbContext.Students
-                    .FirstOrDefaultAsync(s => s.Email.ToLower() == email.ToLower());
+                var key = email.ToLower();
+                if (studentDataCache.TryGetValue(key, out var cached))
+                {
+                    return cached;
+                }
+
+                var student = await ProfessorDashboardService.GetStudentByEmailAsync(email);
+                if (student != null)
+                {
+                    studentDataCache[key] = student;
+                }
+                return student;
             }
             catch (Exception ex)
             {
@@ -1508,4 +1469,3 @@ namespace QuizManager.Components.Layout.ProfessorSections
         }
     }
 }
-
