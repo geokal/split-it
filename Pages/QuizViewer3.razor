@@ -7,7 +7,6 @@
 @using System.Security.Claims
 @using System.Text.RegularExpressions
 @inject IJSRuntime JSRuntime
-@inject Data.AppDbContext dbContext
 @inject FileUploadService FileUploadService
 @inject IDbContextFactory<AppDbContext> DbContextFactory
 @inject Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider AuthenticationStateProvider
@@ -1395,8 +1394,7 @@
         loadingProgressWhenSubmitProfessorForm = 0;
         StateHasChanged();
 
-        // Declare dbContext outside the try block to avoid scope issues
-        using var dbContext = await DbContextFactory.CreateDbContextAsync();
+        await using var context = await DbContextFactory.CreateDbContextAsync();
 
         try
         {
@@ -1489,7 +1487,7 @@
 
             if (!userAlreadyRegistered)
             {
-                var existingProfessor = await dbContext.Professors
+                var existingProfessor = await context.Professors
                     .FirstOrDefaultAsync(c => c.ProfEmail == newProfessor.ProfEmail);
 
                 if (existingProfessor != null)
@@ -1518,14 +1516,14 @@
 
             if (userAlreadyRegistered)
             {
-                dbContext.Professors.Update(newProfessor);
+                context.Professors.Update(newProfessor);
             }
             else
             {
-                dbContext.Professors.Add(newProfessor);
+                context.Professors.Add(newProfessor);
             }
 
-            await dbContext.SaveChangesAsync();
+            await context.SaveChangesAsync();
 
             await UpdateProgressWhenSubmitProfessorForm(100, 200);
 
@@ -1593,19 +1591,19 @@
         var user = authState.User;
         var userEmail = user.Identity.Name;
 
-        using var dbContext = await DbContextFactory.CreateDbContextAsync();
+        await using var context = await DbContextFactory.CreateDbContextAsync();
 
-        await CheckResearchGroupMembership();
+        await CheckResearchGroupMembership(context);
 
         // Load available Areas
-        availableProfessorAreas = await dbContext.Areas.ToListAsync();
+        availableProfessorAreas = await context.Areas.ToListAsync();
 
         // Load available Skills - extract SkillName from Skill objects
-        var skillsFromDb = await dbContext.Skills.ToListAsync();
+        var skillsFromDb = await context.Skills.ToListAsync();
         availableProfessorSkills = skillsFromDb.Select(s => s.SkillName).ToList();
 
         // Retrieve professor data from the database
-        var professorFromDb = await dbContext.Professors.FirstOrDefaultAsync(s => s.ProfEmail == userEmail);        
+        var professorFromDb = await context.Professors.FirstOrDefaultAsync(s => s.ProfEmail == userEmail);        
 
         newProfessor.ProfUniversity = ProfUniversityInitialName;
         newProfessor.ProfCourses = ""; 
@@ -1634,7 +1632,7 @@
             userAlreadyRegistered = true;
             newProfessor = professorFromDb; // Load existing data
 
-            await CheckResearchGroupMembership();
+            await CheckResearchGroupMembership(context);
 
             // Load professor's selected areas
             if (!string.IsNullOrEmpty(professorFromDb.ProfGeneralFieldOfWork))
@@ -1962,7 +1960,7 @@
             // Step 2: Database operations
             await UpdateProgressWhenUpdateProfessorRegistration(30, 200);
 
-            using var dbContext = await DbContextFactory.CreateDbContextAsync();
+            await using var context = await DbContextFactory.CreateDbContextAsync();
             string originalName = null;
             string originalSurname = null;
             string originalDepartment = null;
@@ -1972,7 +1970,7 @@
             if (userAlreadyRegistered)
             {
                 // Update existing professor
-                var existingProfessor = await dbContext.Professors
+                var existingProfessor = await context.Professors
                     .FirstOrDefaultAsync(p => p.Professor_UniqueID == newProfessor.Professor_UniqueID);
 
                 if (existingProfessor != null)
@@ -2012,7 +2010,7 @@
                     existingProfessor.ProfGeneralFieldOfWork = string.Join(",", selectedAreasForProfessor.Select(a => a.FullName).Where(a => !string.IsNullOrWhiteSpace(a)));
                     existingProfessor.ProfGeneralSkills = string.Join(",", selectedSkillsForProfessor.Where(s => !string.IsNullOrWhiteSpace(s)));
 
-                    dbContext.Professors.Update(existingProfessor);
+                    context.Professors.Update(existingProfessor);
                 }
             }
             else
@@ -2026,11 +2024,11 @@
                     newProfessor.Professor_UniqueID = "PROF_" + HashingHelper.HashString(newProfessor.ProfEmail);
                 }
 
-                dbContext.Professors.Add(newProfessor);
+                context.Professors.Add(newProfessor);
             }
 
             // Save all changes to the professor first
-            await dbContext.SaveChangesAsync();
+            await context.SaveChangesAsync();
 
             await UpdateProgressWhenUpdateProfessorRegistration(70, 200);
 
@@ -2049,13 +2047,13 @@
 
                 if (nameChanged || surnameChanged || departmentChanged || universityChanged)
                 {
-                    await UpdateProfessorInternships(dbContext, professorEmail,
+                    await UpdateProfessorInternships(context, professorEmail,
                         nameChanged ? newProfessor.ProfName : null,
                         surnameChanged ? newProfessor.ProfSurname : null,
                         departmentChanged ? newProfessor.ProfDepartment : null,
                         universityChanged ? newProfessor.ProfUniversity : null);
 
-                    await UpdateProfessorTheses(dbContext, professorEmail,
+                    await UpdateProfessorTheses(context, professorEmail,
                         nameChanged ? newProfessor.ProfName : null,
                         surnameChanged ? newProfessor.ProfSurname : null);
                 }
@@ -2108,7 +2106,7 @@
         await Task.Delay(50);
     }
 
-    private async Task UpdateProfessorInternships(AppDbContext dbContext,
+    private async Task UpdateProfessorInternships(AppDbContext context,
     string professorEmail,
     string newName,
     string newSurname,
@@ -2116,7 +2114,7 @@
     string newUniversity)
     {
         // Get internships with professor information
-        var internships = await dbContext.ProfessorInternships
+        var internships = await context.ProfessorInternships
             .Include(i => i.Professor) // Include professor navigation property
             .Where(i => i.ProfessorEmailUsedToUploadInternship == professorEmail) // Updated property
             .ToListAsync();
@@ -2144,16 +2142,16 @@
             internship.ProfessorInternshipLastUpdate = DateTime.Now;
         }
 
-        await dbContext.SaveChangesAsync();
+        await context.SaveChangesAsync();
     }
 
-    private async Task UpdateProfessorTheses(AppDbContext dbContext,
+    private async Task UpdateProfessorTheses(AppDbContext context,
     string professorEmail,
     string newName,
     string newSurname)
     {
         // Get all theses uploaded by this professor
-        var theses = await dbContext.ProfessorTheses
+        var theses = await context.ProfessorTheses
             .Where(t => t.ProfessorEmailUsedToUploadThesis == professorEmail)
             .Include(t => t.Professor) // Include the ProfessorModel navigation property
             .ToListAsync();
@@ -2176,7 +2174,7 @@
             thesis.ThesisTimesUpdated += 1;
         }
 
-        await dbContext.SaveChangesAsync();
+        await context.SaveChangesAsync();
     }
 
 
@@ -2304,6 +2302,7 @@
 
     private async Task MoveSelectedFieldOfWorkToLeft()
     {
+        await using var context = await DbContextFactory.CreateDbContextAsync();
         var newlySelectedFields = await GetSelectedItemsFromDOM("selectedFieldsOfWork");
 
         foreach (var fieldName in newlySelectedFields)
@@ -2314,7 +2313,7 @@
                 selectedFieldsOfWork.Remove(field);
 
                 // Only add back if it's a predefined field (exists in original DB)
-                var originalField = await dbContext.Areas.FirstOrDefaultAsync(a => a.AreaName == fieldName);
+                var originalField = await context.Areas.FirstOrDefaultAsync(a => a.AreaName == fieldName);
                 if (originalField != null)
                 {
                     availableFieldsOfWork.Add(originalField);
@@ -2561,22 +2560,20 @@
         }
     }
 
-    private async Task CheckResearchGroupMembership()
+    private async Task CheckResearchGroupMembership(AppDbContext context)
     {
-        using var dbContext = await DbContextFactory.CreateDbContextAsync();
-
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
         var userEmail = user.Identity.Name;
 
         // First, check if professor exists in any research group
-        var researchGroupMembership = await dbContext.ResearchGroup_Professors
+        var researchGroupMembership = await context.ResearchGroup_Professors
             .FirstOrDefaultAsync(rgp => rgp.PK_ProfessorEmail == userEmail);
 
         if (researchGroupMembership != null)
         {
             // If found, get the research group details
-            var researchGroup = await dbContext.ResearchGroups
+            var researchGroup = await context.ResearchGroups
                 .FirstOrDefaultAsync(rg => rg.ResearchGroupEmail == researchGroupMembership.PK_ResearchGroupEmail);
 
             newProfessor.ProfResearchGroup = researchGroup?.ResearchGroupName;

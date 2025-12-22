@@ -20,7 +20,6 @@
 @inject IJSRuntime JSRuntime
 @inject Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
-@inject Data.AppDbContext dbContext
 
 
 <style>
@@ -3348,14 +3347,14 @@
 
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
-        using var dbContext = await DbContextFactory.CreateDbContextAsync();
+        await using var context = await DbContextFactory.CreateDbContextAsync();
 
         var researchGroupEmail = user.Identity.Name;
-        var researchGroupFromDb = await dbContext.ResearchGroups.FirstOrDefaultAsync(s => s.ResearchGroupEmail == researchGroupEmail);
+        var researchGroupFromDb = await context.ResearchGroups.FirstOrDefaultAsync(s => s.ResearchGroupEmail == researchGroupEmail);
 
         InitializeManualProject();
 
-        availableResearchGroupAreas = await dbContext.Areas.ToListAsync();
+        availableResearchGroupAreas = await context.Areas.ToListAsync();
         await LoadAvailableResearchGroupSkills();
 
         if (researchGroupFromDb != null)
@@ -3421,7 +3420,7 @@
         if (newResearchGroup != null && newResearchGroup.Id != 0)
         {
             // Load the areas already assigned to the research group
-            var existingResearchGroupAreas = await dbContext.ResearchGroups
+            var existingResearchGroupAreas = await context.ResearchGroups
                 .Where(rg => rg.Id == newResearchGroup.Id)
                 .Select(rg => rg.ResearchGroupAreas)
                 .FirstOrDefaultAsync();
@@ -3468,7 +3467,7 @@
             FilterResearchGroupAvailableAreasBasedOnSelection();
 
             // Load the skills already assigned to the research group
-            var existingResearchGroupSkills = await dbContext.ResearchGroups
+            var existingResearchGroupSkills = await context.ResearchGroups
                 .Where(rg => rg.Id == newResearchGroup.Id)
                 .Select(rg => rg.ResearchGroupSkills)
                 .FirstOrDefaultAsync();
@@ -3485,7 +3484,7 @@
             // Filter available skills based on selection
             FilterResearchGroupAvailableSkillsBasedOnSelection();
 
-            var existingResearchGroupKeywords = await dbContext.ResearchGroups
+            var existingResearchGroupKeywords = await context.ResearchGroups
                 .Where(rg => rg.Id == newResearchGroup.Id)
                 .Select(rg => rg.ResearchGroupKeywords)
                 .FirstOrDefaultAsync();
@@ -3523,7 +3522,7 @@
         loadingProgressWhenSubmitResearchGroupForm = 0;
         StateHasChanged();
 
-        using var dbContext = await DbContextFactory.CreateDbContextAsync();
+        await using var context = await DbContextFactory.CreateDbContextAsync();
 
         try
         {
@@ -3609,7 +3608,7 @@
 
             if (!isRegistered)
             {
-                var existingResearchGroup = await dbContext.ResearchGroups
+                var existingResearchGroup = await context.ResearchGroups
                     .FirstOrDefaultAsync(rg => rg.ResearchGroupEmail == newResearchGroup.ResearchGroupEmail);
 
                 if (existingResearchGroup != null)
@@ -3626,7 +3625,7 @@
 
             await UpdateProgressWhenSubmitResearchGroupForm(50, 200);
 
-            using var transaction = await dbContext.Database.BeginTransactionAsync();
+            await using var transaction = await context.Database.BeginTransactionAsync();
 
             try
             {
@@ -3634,7 +3633,7 @@
                 newResearchGroup.ResearchGroupSkills = string.Join(",", selectedResearchGroupSkills);
                 newResearchGroup.ResearchGroupKeywords = ResearchGroupKeywords;
 
-                var existingResearchGroup = await dbContext.ResearchGroups
+                var existingResearchGroup = await context.ResearchGroups
                     .FirstOrDefaultAsync(rg => rg.ResearchGroupEmail == newResearchGroup.ResearchGroupEmail);
 
                 string researchGroupEmail = newResearchGroup.ResearchGroupEmail;
@@ -3642,26 +3641,26 @@
                 if (existingResearchGroup != null)
                 {
                     // Update case
-                    dbContext.Entry(existingResearchGroup).CurrentValues.SetValues(newResearchGroup);
+                    context.Entry(existingResearchGroup).CurrentValues.SetValues(newResearchGroup);
                     newResearchGroup = existingResearchGroup;
 
                     await UpdateProgressWhenSubmitResearchGroupForm(60, 200);
-                    await HandleMemberUpdates(dbContext, researchGroupEmail);
+                    await HandleMemberUpdates(context, researchGroupEmail);
 
                     await UpdateProgressWhenSubmitResearchGroupForm(70, 200);
-                    await HandlePublicationUpdates(dbContext, researchGroupEmail);
+                    await HandlePublicationUpdates(context, researchGroupEmail);
 
                     await UpdateProgressWhenSubmitResearchGroupForm(75, 200);
-                    await HandlePatentUpdates(dbContext, researchGroupEmail);
+                    await HandlePatentUpdates(context, researchGroupEmail);
 
                     await UpdateProgressWhenSubmitResearchGroupForm(80, 200);
-                    await HandleSpinOffUpdates(dbContext, researchGroupEmail);
+                    await HandleSpinOffUpdates(context, researchGroupEmail);
 
                     await UpdateProgressWhenSubmitResearchGroupForm(85, 200);
-                    await HandleProjectUpdates(dbContext, researchGroupEmail);
+                    await HandleProjectUpdates(context, researchGroupEmail);
 
                     await UpdateProgressWhenSubmitResearchGroupForm(90, 200);
-                    await HandleIpodomesUpdates(dbContext, researchGroupEmail);
+                    await HandleIpodomesUpdates(context, researchGroupEmail);
 
                     updated = true;
                 }
@@ -3669,31 +3668,31 @@
                 {
                     newResearchGroup.ResearchGroup_UniqueID = "RG_" + HashingHelper.HashString(newResearchGroup.ResearchGroupEmail);
 
-                    dbContext.ResearchGroups.Add(newResearchGroup);
-                    await dbContext.SaveChangesAsync();
+                    context.ResearchGroups.Add(newResearchGroup);
+                    await context.SaveChangesAsync();
 
                     await UpdateProgressWhenSubmitResearchGroupForm(60, 200);
-                    await HandleMemberUpdates(dbContext, researchGroupEmail);
+                    await HandleMemberUpdates(context, researchGroupEmail);
 
                     await UpdateProgressWhenSubmitResearchGroupForm(70, 200);
-                    await HandlePublicationUpdates(dbContext, researchGroupEmail);
+                    await HandlePublicationUpdates(context, researchGroupEmail);
 
                     await UpdateProgressWhenSubmitResearchGroupForm(75, 200);
-                    await HandlePatentUpdates(dbContext, researchGroupEmail);
+                    await HandlePatentUpdates(context, researchGroupEmail);
 
                     await UpdateProgressWhenSubmitResearchGroupForm(80, 200);
-                    await HandleSpinOffUpdates(dbContext, researchGroupEmail);
+                    await HandleSpinOffUpdates(context, researchGroupEmail);
 
                     await UpdateProgressWhenSubmitResearchGroupForm(85, 200);
-                    await HandleProjectUpdates(dbContext, researchGroupEmail);
+                    await HandleProjectUpdates(context, researchGroupEmail);
 
                     await UpdateProgressWhenSubmitResearchGroupForm(90, 200);
-                    await HandleIpodomesUpdates(dbContext, researchGroupEmail);
+                    await HandleIpodomesUpdates(context, researchGroupEmail);
 
                     saved = true;
                 }
 
-                await dbContext.SaveChangesAsync();
+                await context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
                 await UpdateProgressWhenSubmitResearchGroupForm(95, 200);
@@ -3941,10 +3940,10 @@
     {
         try
         {
-            using var dbContext = await DbContextFactory.CreateDbContextAsync();
+            await using var context = await DbContextFactory.CreateDbContextAsync();
 
             // Load existing patents for this research group
-            var existingPatents = await dbContext.ResearchGroup_Patents
+            var existingPatents = await context.ResearchGroup_Patents
                 .Where(rp => rp.ResearchGroupEmail == newResearchGroup.ResearchGroupEmail)
                 .ToListAsync();
 
@@ -4225,8 +4224,8 @@
         loadingProgressWhenUpdateResearchGroupRegistration = 0;
         StateHasChanged();
 
-        // Declare dbContext outside try block
-        using var dbContext = await DbContextFactory.CreateDbContextAsync();
+        // Declare context outside try block
+        await using var context = await DbContextFactory.CreateDbContextAsync();
 
         try
         {
@@ -4304,14 +4303,14 @@
             // Step 2: Database operations
             await UpdateProgressWhenUpdateResearchGroupRegistration(30, 200);
 
-            using var transaction = await dbContext.Database.BeginTransactionAsync();
+            await using var transaction = await context.Database.BeginTransactionAsync();
 
             try
             {
                 if (isRegistered)
                 {
                     // Update existing research group
-                    var existingResearchGroup = await dbContext.ResearchGroups
+                    var existingResearchGroup = await context.ResearchGroups
                         .FirstOrDefaultAsync(rg => rg.ResearchGroupEmail == newResearchGroup.ResearchGroupEmail);
 
                     if (existingResearchGroup != null)
@@ -4322,27 +4321,27 @@
                         newResearchGroup.ResearchGroupKeywords = ResearchGroupKeywords;
 
                         // Update research group fields
-                        dbContext.Entry(existingResearchGroup).CurrentValues.SetValues(newResearchGroup);
+                        context.Entry(existingResearchGroup).CurrentValues.SetValues(newResearchGroup);
 
                         await UpdateProgressWhenUpdateResearchGroupRegistration(50, 200);
-                        await HandleMemberUpdates(dbContext, existingResearchGroup.ResearchGroupEmail);
+                        await HandleMemberUpdates(context, existingResearchGroup.ResearchGroupEmail);
 
                         await UpdateProgressWhenUpdateResearchGroupRegistration(60, 200);
-                        await HandlePublicationUpdates(dbContext, existingResearchGroup.ResearchGroupEmail);
+                        await HandlePublicationUpdates(context, existingResearchGroup.ResearchGroupEmail);
 
                         await UpdateProgressWhenUpdateResearchGroupRegistration(70, 200);
-                        await HandlePatentUpdates(dbContext, existingResearchGroup.ResearchGroupEmail);
+                        await HandlePatentUpdates(context, existingResearchGroup.ResearchGroupEmail);
 
                         await UpdateProgressWhenUpdateResearchGroupRegistration(75, 200);
-                        await HandleSpinOffUpdates(dbContext, existingResearchGroup.ResearchGroupEmail);
+                        await HandleSpinOffUpdates(context, existingResearchGroup.ResearchGroupEmail);
 
                         await UpdateProgressWhenUpdateResearchGroupRegistration(80, 200);
-                        await HandleProjectUpdates(dbContext, existingResearchGroup.ResearchGroupEmail);
+                        await HandleProjectUpdates(context, existingResearchGroup.ResearchGroupEmail);
 
                         await UpdateProgressWhenUpdateResearchGroupRegistration(85, 200);
-                        await HandleIpodomesUpdates(dbContext, existingResearchGroup.ResearchGroupEmail);
+                        await HandleIpodomesUpdates(context, existingResearchGroup.ResearchGroupEmail);
 
-                        await dbContext.SaveChangesAsync();
+                        await context.SaveChangesAsync();
                         await transaction.CommitAsync();
 
                         await UpdateProgressWhenUpdateResearchGroupRegistration(95, 200);
@@ -4418,12 +4417,12 @@
         {
             hasSearched = true;
             // Search professors from database
-            using var dbContext = await DbContextFactory.CreateDbContextAsync();
-            professorNameSurnameSuggestions = await dbContext.Professors
+            await using var context = await DbContextFactory.CreateDbContextAsync();
+            professorNameSurnameSuggestions = await context.Professors
                 .Where(p => p.ProfName.Contains(currentProfessorSearch) ||
-                           p.ProfSurname.Contains(currentProfessorSearch) ||
-                           (p.ProfName + " " + p.ProfSurname).Contains(currentProfessorSearch) ||
-                           p.ProfEmail.Contains(currentProfessorSearch))
+                            p.ProfSurname.Contains(currentProfessorSearch) ||
+                            (p.ProfName + " " + p.ProfSurname).Contains(currentProfessorSearch) ||
+                            p.ProfEmail.Contains(currentProfessorSearch))
                 .Select(p => p.ProfName + " " + p.ProfSurname + (string.IsNullOrEmpty(p.ProfEmail) ? "" : $" ({p.ProfEmail})"))
                 .Distinct()
                 .ToListAsync();
@@ -4452,17 +4451,17 @@
 
                 if (isRegistered && !string.IsNullOrEmpty(newResearchGroup.ResearchGroupEmail))
                 {
-                    using var dbContext = await DbContextFactory.CreateDbContextAsync();
+                    await using var context = await DbContextFactory.CreateDbContextAsync();
 
-                    var publicationsToRemove = await dbContext.ResearchGroup_Publications
+                    var publicationsToRemove = await context.ResearchGroup_Publications
                         .Where(p => p.PK_ResearchGroupEmail == newResearchGroup.ResearchGroupEmail &&
                                    p.PK_ResearchGroupMemberEmail == professorEmail)
                         .ToListAsync();
 
                     if (publicationsToRemove.Any())
                     {
-                        dbContext.ResearchGroup_Publications.RemoveRange(publicationsToRemove);
-                        await dbContext.SaveChangesAsync();
+                        context.ResearchGroup_Publications.RemoveRange(publicationsToRemove);
+                        await context.SaveChangesAsync();
                     }
                 }
 
@@ -4491,17 +4490,17 @@
 
                 if (isRegistered && !string.IsNullOrEmpty(newResearchGroup.ResearchGroupEmail))
                 {
-                    using var dbContext = await DbContextFactory.CreateDbContextAsync();
+                    await using var context = await DbContextFactory.CreateDbContextAsync();
 
-                    var publicationsToRemove = await dbContext.ResearchGroup_Publications
+                    var publicationsToRemove = await context.ResearchGroup_Publications
                         .Where(p => p.PK_ResearchGroupEmail == newResearchGroup.ResearchGroupEmail &&
                                    p.PK_ResearchGroupMemberEmail == studentEmail)
                         .ToListAsync();
 
                     if (publicationsToRemove.Any())
                     {
-                        dbContext.ResearchGroup_Publications.RemoveRange(publicationsToRemove);
-                        await dbContext.SaveChangesAsync();
+                        context.ResearchGroup_Publications.RemoveRange(publicationsToRemove);
+                        await context.SaveChangesAsync();
                     }
                 }
 
@@ -4581,12 +4580,12 @@
         {
             hasSearchedStudent = true;
             showInvitationPromptWhenSendInvitationEmailToStudent = true; 
-            using var dbContext = await DbContextFactory.CreateDbContextAsync();
-            studentNameSurnameSuggestions = await dbContext.Students
+            await using var context = await DbContextFactory.CreateDbContextAsync();
+            studentNameSurnameSuggestions = await context.Students
                 .Where(s => s.Name.Contains(currentStudentSearch) ||
-                           s.Surname.Contains(currentStudentSearch) ||
-                           (s.Name + " " + s.Surname).Contains(currentStudentSearch) ||
-                           s.Email.Contains(currentStudentSearch))
+                            s.Surname.Contains(currentStudentSearch) ||
+                            (s.Name + " " + s.Surname).Contains(currentStudentSearch) ||
+                            s.Email.Contains(currentStudentSearch))
                 .Select(s => s.Name + " " + s.Surname + (string.IsNullOrEmpty(s.Email) ? "" : $" ({s.Email})"))
                 .Distinct()
                 .ToListAsync();
@@ -4618,7 +4617,7 @@
                 return;
             }
 
-            using var dbContext = await DbContextFactory.CreateDbContextAsync();
+            await using var context = await DbContextFactory.CreateDbContextAsync();
 
             var namePart = emailMatch.Success ? studentNameSurname.Substring(0, emailMatch.Index).Trim() : studentNameSurname;
             var nameParts = namePart.Split(new[] { ' ' }, 2, StringSplitOptions.RemoveEmptyEntries);
@@ -4629,13 +4628,13 @@
 
             if (!string.IsNullOrEmpty(email))
             {
-                student = await dbContext.Students
+                student = await context.Students
                     .FirstOrDefaultAsync(s => s.Email == email);
             }
 
             if (student == null && nameParts.Length >= 2)
             {
-                student = await dbContext.Students
+                student = await context.Students
                     .FirstOrDefaultAsync(s =>
                         s.Name == nameParts[0] &&
                         s.Surname == nameParts[1]);
@@ -4708,7 +4707,7 @@
     {
         if (!isRegistered || newResearchGroup?.Id == null) return;
 
-        using var dbContext = await DbContextFactory.CreateDbContextAsync();
+        await using var context = await DbContextFactory.CreateDbContextAsync();
 
         // Clear current selections and tracking sets
         SelectedProfessors.Clear();
@@ -4719,12 +4718,12 @@
         existingFacultyEmails.Clear();
         existingNonFacultyEmails.Clear();
 
-        var existingProfessors = await dbContext.ResearchGroup_Professors
+        var existingProfessors = await context.ResearchGroup_Professors
             .Where(rp => rp.PK_ResearchGroupEmail == newResearchGroup.ResearchGroupEmail)
             .ToListAsync();
 
         var professorEmails = existingProfessors.Select(ep => ep.PK_ProfessorEmail).ToList();
-        var professors = await dbContext.Professors
+        var professors = await context.Professors
             .Where(p => professorEmails.Contains(p.ProfEmail))
             .ToListAsync();
 
@@ -4762,12 +4761,12 @@
             }
         }
 
-        var existingStudents = await dbContext.ResearchGroup_NonFacultyMembers
+        var existingStudents = await context.ResearchGroup_NonFacultyMembers
             .Where(rnf => rnf.PK_ResearchGroupEmail == newResearchGroup.ResearchGroupEmail)
             .ToListAsync();
 
         var studentEmails = existingStudents.Select(es => es.PK_NonFacultyMemberEmail).ToList();
-        var students = await dbContext.Students
+        var students = await context.Students
             .Where(s => studentEmails.Contains(s.Email))
             .ToListAsync();
 
@@ -5409,9 +5408,9 @@
     {
         try
         {
-            using var dbContext = await DbContextFactory.CreateDbContextAsync();
+            await using var context = await DbContextFactory.CreateDbContextAsync();
 
-            var existingSpinOffs = await dbContext.ResearchGroup_SpinOffCompany
+            var existingSpinOffs = await context.ResearchGroup_SpinOffCompany
                 .Where(rs => rs.ResearchGroupEmail == newResearchGroup.ResearchGroupEmail)
                 .ToListAsync();
 
@@ -5652,9 +5651,9 @@
     {
         try
         {
-            using var dbContext = await DbContextFactory.CreateDbContextAsync();
+            await using var context = await DbContextFactory.CreateDbContextAsync();
 
-            existingProjects = await dbContext.ResearchGroup_ResearchActions
+            existingProjects = await context.ResearchGroup_ResearchActions
                 .Where(rp => rp.ResearchGroupEmail == newResearchGroup.ResearchGroupEmail)
                 .ToListAsync();
 
@@ -5739,7 +5738,7 @@
                 return;
             }
 
-            using var dbContext = await DbContextFactory.CreateDbContextAsync();
+            await using var context = await DbContextFactory.CreateDbContextAsync();
 
             var namePart = emailMatch.Success ? professorNameSurname.Substring(0, emailMatch.Index).Trim() : professorNameSurname;
             var nameParts = namePart.Split(new[] { ' ' }, 2, StringSplitOptions.RemoveEmptyEntries);
@@ -5750,13 +5749,13 @@
 
             if (!string.IsNullOrEmpty(email))
             {
-                professor = await dbContext.Professors
+                professor = await context.Professors
                     .FirstOrDefaultAsync(p => p.ProfEmail == email);
             }
 
             if (professor == null && nameParts.Length >= 2)
             {
-                professor = await dbContext.Professors
+                professor = await context.Professors
                     .FirstOrDefaultAsync(p =>
                         p.ProfName == nameParts[0] &&
                         p.ProfSurname == nameParts[1]);
@@ -6189,11 +6188,11 @@
 
     private async Task LoadAvailableResearchGroupSkills()
     {
-        using var dbContext = await DbContextFactory.CreateDbContextAsync();
+        await using var context = await DbContextFactory.CreateDbContextAsync();
 
         // Assuming you have a Skills table in your database
         // Adjust this based on your actual database structure
-        var skillsFromDb = await dbContext.Skills.Select(s => s.SkillName).ToListAsync();
+        var skillsFromDb = await context.Skills.Select(s => s.SkillName).ToListAsync();
         availableResearchGroupSkills = skillsFromDb;
     }
 
@@ -7058,9 +7057,9 @@
 
     private async Task LoadExistingIpodomes()
     {
-        using var dbContext = await DbContextFactory.CreateDbContextAsync();
+        await using var context = await DbContextFactory.CreateDbContextAsync();
     
-        existingIpodomes = await dbContext.ResearchGroup_Ipodomes
+        existingIpodomes = await context.ResearchGroup_Ipodomes
             .Where(i => i.ResearchGroupEmail == newResearchGroup.ResearchGroupEmail)
             .ToListAsync();
 
@@ -7201,5 +7200,3 @@
         }
     }
 }
-
-
