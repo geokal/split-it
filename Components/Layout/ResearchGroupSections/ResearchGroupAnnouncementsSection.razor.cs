@@ -18,7 +18,7 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
 {
     public partial class ResearchGroupAnnouncementsSection : ComponentBase
     {
-        [Inject] private AppDbContext dbContext { get; set; } = default!;
+        [Inject] private IDbContextFactory<AppDbContext> DbContextFactory { get; set; } = default!;
         [Inject] private IJSRuntime JS { get; set; } = default!;
         [Inject] private HttpClient Http { get; set; } = default!;
         [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
@@ -116,17 +116,19 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
 
         private async Task LoadAnnouncementsData()
         {
-                announcements = await dbContext.AnnouncementsAsCompany
+            await using var context = await DbContextFactory.CreateDbContextAsync();
+
+            announcements = await context.AnnouncementsAsCompany
                 .Where(a => a.CompanyAnnouncementStatus == "Δημοσιευμένη")
                 .OrderByDescending(a => a.CompanyAnnouncementUploadDate)
                 .ToListAsync();
 
-                ProfessorAnnouncements = await dbContext.AnnouncementsAsProfessor
+            ProfessorAnnouncements = await context.AnnouncementsAsProfessor
                 .Where(a => a.ProfessorAnnouncementStatus == "Δημοσιευμένη")
                 .OrderByDescending(a => a.ProfessorAnnouncementUploadDate)
                 .ToListAsync();
 
-            ResearchGroupAnnouncements = await dbContext.AnnouncementAsResearchGroup
+            ResearchGroupAnnouncements = await context.AnnouncementAsResearchGroup
                 .Where(a => a.ResearchGroupAnnouncementStatus == "Δημοσιευμένη")
                 .OrderByDescending(a => a.ResearchGroupAnnouncementUploadDate)
                 .ToListAsync();
@@ -355,8 +357,11 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
                     return;
                 }
 
-                dbContext.AnnouncementAsResearchGroup.Add(researchGroupAnnouncement);
-                await dbContext.SaveChangesAsync();
+                await using (var context = await DbContextFactory.CreateDbContextAsync())
+                {
+                    context.AnnouncementAsResearchGroup.Add(researchGroupAnnouncement);
+                    await context.SaveChangesAsync();
+                }
 
                 isSaveResearchGroupAnnouncementSuccessful = true;
                 saveResearchGroupAnnouncementMessage = "Η Ανακοίνωση Δημιουργήθηκε Επιτυχώς";
@@ -416,7 +421,8 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
 
         private async Task<List<AnnouncementAsResearchGroup>> GetUploadedResearchGroupAnnouncements()
         {
-            return await dbContext.AnnouncementAsResearchGroup
+            await using var context = await DbContextFactory.CreateDbContextAsync();
+            return await context.AnnouncementAsResearchGroup
                 .Include(a => a.ResearchGroup)
                 .Where(a => a.ResearchGroupAnnouncementResearchGroupEmail == CurrentUserEmail)
                 .OrderByDescending(a => a.ResearchGroupAnnouncementUploadDate)
@@ -508,11 +514,12 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
             {
                 showLoadingModalForDeleteResearchGroupAnnouncement = true;
                 loadingProgress = 0;
-                var announcement = await dbContext.AnnouncementAsResearchGroup.FindAsync(announcementId);
+                await using var context = await DbContextFactory.CreateDbContextAsync();
+                var announcement = await context.AnnouncementAsResearchGroup.FindAsync(announcementId);
                 if (announcement != null)
                 {
-                    dbContext.AnnouncementAsResearchGroup.Remove(announcement);
-                    await dbContext.SaveChangesAsync();
+                    context.AnnouncementAsResearchGroup.Remove(announcement);
+                    await context.SaveChangesAsync();
                     UploadedResearchGroupAnnouncements = await GetUploadedResearchGroupAnnouncements();
                     FilterResearchGroupAnnouncements();
                 }
@@ -533,7 +540,13 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
                 if (announcement != null)
                 {
                     announcement.ResearchGroupAnnouncementStatus = newStatus;
-                    await dbContext.SaveChangesAsync();
+                    await using var context = await DbContextFactory.CreateDbContextAsync();
+                    var dbAnnouncement = await context.AnnouncementAsResearchGroup.FindAsync(announcementId);
+                    if (dbAnnouncement != null)
+                    {
+                        dbAnnouncement.ResearchGroupAnnouncementStatus = newStatus;
+                        await context.SaveChangesAsync();
+                    }
                     UploadedResearchGroupAnnouncements = await GetUploadedResearchGroupAnnouncements();
                     FilterResearchGroupAnnouncements();
                 }
@@ -565,7 +578,8 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
 
         private async Task UpdateResearchGroupAnnouncement(AnnouncementAsResearchGroup announcement)
         {
-            var existingAnnouncement = await dbContext.AnnouncementAsResearchGroup.FindAsync(announcement.Id);
+            await using var context = await DbContextFactory.CreateDbContextAsync();
+            var existingAnnouncement = await context.AnnouncementAsResearchGroup.FindAsync(announcement.Id);
             if (existingAnnouncement != null)
             {
                 existingAnnouncement.ResearchGroupAnnouncementTitle = announcement.ResearchGroupAnnouncementTitle;
@@ -575,7 +589,7 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
                 {
                     existingAnnouncement.ResearchGroupAnnouncementAttachmentFile = researchGroupAnnouncementAttachmentFile;
                 }
-                await dbContext.SaveChangesAsync();
+                await context.SaveChangesAsync();
                 UploadedResearchGroupAnnouncements = await GetUploadedResearchGroupAnnouncements();
                 FilterResearchGroupAnnouncements();
                 isResearchGroupEditModalVisible = false;
@@ -644,6 +658,7 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
 
             if (!isConfirmed) return;
 
+            await using var context = await DbContextFactory.CreateDbContextAsync();
             foreach (var id in selectedResearchGroupAnnouncementIds)
             {
                 var original = FilteredResearchGroupAnnouncements.FirstOrDefault(a => a.Id == id);
@@ -661,11 +676,11 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
                         ResearchGroupAnnouncementRNG = new Random().NextInt64(),
                         ResearchGroupAnnouncementRNG_HashedAsUniqueID = HashingHelper.HashLong(new Random().NextInt64())
                     };
-                    dbContext.AnnouncementAsResearchGroup.Add(copy);
+                    context.AnnouncementAsResearchGroup.Add(copy);
                 }
             }
 
-            await dbContext.SaveChangesAsync();
+            await context.SaveChangesAsync();
             UploadedResearchGroupAnnouncements = await GetUploadedResearchGroupAnnouncements();
             FilterResearchGroupAnnouncements();
             CancelBulkEditForResearchGroupAnnouncements();
@@ -714,7 +729,15 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
                 announcement.ResearchGroupAnnouncementStatus = newStatus;
             }
 
-            await dbContext.SaveChangesAsync();
+            await using var context = await DbContextFactory.CreateDbContextAsync();
+            var ids = announcementsToUpdate.Select(a => a.Id).ToList();
+            var dbAnnouncements = await context.AnnouncementAsResearchGroup.Where(a => ids.Contains(a.Id)).ToListAsync();
+            foreach (var dbAnnouncement in dbAnnouncements)
+            {
+                dbAnnouncement.ResearchGroupAnnouncementStatus = newStatus;
+            }
+
+            await context.SaveChangesAsync();
             UploadedResearchGroupAnnouncements = await GetUploadedResearchGroupAnnouncements();
             FilterResearchGroupAnnouncements();
             CancelBulkEditForResearchGroupAnnouncements();

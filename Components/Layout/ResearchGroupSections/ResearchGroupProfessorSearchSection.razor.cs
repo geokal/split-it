@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Components;
-using Microsoft.EntityFrameworkCore;
-using QuizManager.Data;
 using QuizManager.Models;
+using QuizManager.Services.ResearchGroupDashboard;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,10 +10,11 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
 {
     public partial class ResearchGroupProfessorSearchSection : ComponentBase
     {
-        [Inject] private AppDbContext dbContext { get; set; } = default!;
+        [Inject] private IResearchGroupDashboardService ResearchGroupDashboardService { get; set; } = default!;
 
         // Form Visibility
         private bool isRGSearchProfessorVisible = false;
+        private ResearchGroupDashboardLookups lookups = ResearchGroupDashboardLookups.Empty;
 
         // Search Fields
         private string searchNameSurnameAsRGToFindProfessor = "";
@@ -68,6 +68,11 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
             ? (int)Math.Ceiling((double)searchResultsAsRGToFindProfessor.Count / ProfessorsPerPage_SearchForProfessorsAsRG)
             : 1;
 
+        protected override async Task OnInitializedAsync()
+        {
+            lookups = await ResearchGroupDashboardService.GetLookupsAsync();
+        }
+
         // Visibility Toggle
         private void ToggleRGSearchProfessorVisible()
         {
@@ -76,15 +81,18 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
         }
 
         // Search Input Handlers
-        private void HandleProfessorInputWhenSearchForProfessorAsRG(ChangeEventArgs e)
+        private async Task HandleProfessorInputWhenSearchForProfessorAsRG(ChangeEventArgs e)
         {
             searchNameSurnameAsRGToFindProfessor = e.Value?.ToString();
             if (!string.IsNullOrWhiteSpace(searchNameSurnameAsRGToFindProfessor) && searchNameSurnameAsRGToFindProfessor.Length >= 2)
             {
-                professorNameSurnameSuggestionsAsRG = dbContext.Professors
-                    .Where(p => (p.ProfName + " " + p.ProfSurname).Contains(searchNameSurnameAsRGToFindProfessor))
-                    .Select(p => p.ProfName + " " + p.ProfSurname)
+                var matches = await ResearchGroupDashboardService.SearchProfessorsAsync(searchNameSurnameAsRGToFindProfessor);
+
+                professorNameSurnameSuggestionsAsRG = matches
+                    .Select(p => $"{p.ProfName} {p.ProfSurname}".Trim())
+                    .Where(n => !string.IsNullOrWhiteSpace(n))
                     .Distinct()
+                    .Take(10)
                     .ToList();
             }
             else
@@ -108,10 +116,10 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
             {
                 try
                 {
-                    var allAreas = await dbContext.Areas
-                        .Where(a => a.AreaName.Contains(searchAreasOfInterestAsRGToFindProfessor) ||
-                                (a.AreaSubFields != null && a.AreaSubFields.Contains(searchAreasOfInterestAsRGToFindProfessor)))
-                        .ToListAsync();
+                    var allAreas = lookups.Areas.Where(a =>
+                            a.AreaName.Contains(searchAreasOfInterestAsRGToFindProfessor, StringComparison.OrdinalIgnoreCase) ||
+                            (!string.IsNullOrEmpty(a.AreaSubFields) && a.AreaSubFields.Contains(searchAreasOfInterestAsRGToFindProfessor, StringComparison.OrdinalIgnoreCase)))
+                        .ToList();
 
                     var suggestionsSet = new HashSet<string>();
 
@@ -166,7 +174,7 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
         }
 
         // Search Execution
-        private void SearchProfessorsAsRGToFindProfessor()
+        private async Task SearchProfessorsAsRGToFindProfessor()
         {
             var combinedSearchAreas = new List<string>();
 
@@ -181,35 +189,32 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
                 .Distinct()
                 .ToList();
 
-            var professors = dbContext.Professors
-                .AsEnumerable()
-                .Where(p =>
+            var request = new ResearchGroupProfessorSearchRequest
+            {
+                NameOrSurname = string.IsNullOrWhiteSpace(searchNameSurnameAsRGToFindProfessor) ? null : searchNameSurnameAsRGToFindProfessor,
+                School = string.IsNullOrWhiteSpace(searchSchoolAsRGToFindProfessor) ? null : searchSchoolAsRGToFindProfessor,
+                Department = string.IsNullOrWhiteSpace(searchDepartmentAsRGToFindProfessor) ? null : searchDepartmentAsRGToFindProfessor,
+                Areas = normalizedSearchAreas
+            };
+
+            var professors = await ResearchGroupDashboardService.FilterProfessorsAsync(request);
+
+            var filtered = professors.AsEnumerable();
+            if (normalizedSearchAreas.Any())
+            {
+                filtered = filtered.Where(p =>
                 {
                     var normalizedProfessorAreas = NormalizeAreas(p.ProfGeneralFieldOfWork).ToList();
                     var expandedProfessorAreas = ExpandAreasWithSubfields(normalizedProfessorAreas);
 
-                    var areaMatch = !normalizedSearchAreas.Any() ||
-                        normalizedSearchAreas.Any(searchArea =>
-                            expandedProfessorAreas.Any(professorArea =>
-                                professorArea.Contains(searchArea, StringComparison.OrdinalIgnoreCase) ||
-                                searchArea.Contains(professorArea, StringComparison.OrdinalIgnoreCase)));
+                    return normalizedSearchAreas.Any(searchArea =>
+                        expandedProfessorAreas.Any(professorArea =>
+                            professorArea.Contains(searchArea, StringComparison.OrdinalIgnoreCase) ||
+                            searchArea.Contains(professorArea, StringComparison.OrdinalIgnoreCase)));
+                });
+            }
 
-                    bool schoolMatch = true;
-                    if (!string.IsNullOrEmpty(searchSchoolAsRGToFindProfessor))
-                    {
-                        var schoolDepartments = universityDepartments[searchSchoolAsRGToFindProfessor];
-                        schoolMatch = schoolDepartments.Contains(p.ProfDepartment);
-                    }
-
-                    return (string.IsNullOrEmpty(searchNameSurnameAsRGToFindProfessor) ||
-                            (p.ProfName + " " + p.ProfSurname).Contains(searchNameSurnameAsRGToFindProfessor)) &&
-                        (string.IsNullOrEmpty(searchSchoolAsRGToFindProfessor) || schoolMatch) &&
-                        (string.IsNullOrEmpty(searchDepartmentAsRGToFindProfessor) || p.ProfDepartment == searchDepartmentAsRGToFindProfessor) &&
-                        areaMatch;
-                })
-                .ToList();
-
-            searchResultsAsRGToFindProfessor = professors;
+            searchResultsAsRGToFindProfessor = filtered.ToList();
             currentProfessorPage_SearchForProfessorsAsRG = 1;
         }
 
@@ -348,10 +353,10 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
             foreach (var area in areas)
             {
                 expanded.Add(area);
-                var dbArea = dbContext.Areas.FirstOrDefault(a => a.AreaName.ToLower() == area.ToLower());
-                if (dbArea != null && !string.IsNullOrEmpty(dbArea.AreaSubFields))
+                var lookupArea = lookups.Areas.FirstOrDefault(a => a.AreaName.Equals(area, StringComparison.OrdinalIgnoreCase));
+                if (lookupArea != null && !string.IsNullOrEmpty(lookupArea.AreaSubFields))
                 {
-                    var subfields = dbArea.AreaSubFields.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    var subfields = lookupArea.AreaSubFields.Split(',', StringSplitOptions.RemoveEmptyEntries)
                         .Select(s => s.Trim().ToLowerInvariant());
                     foreach (var sub in subfields)
                         expanded.Add(sub);
@@ -361,4 +366,3 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
         }
     }
 }
-

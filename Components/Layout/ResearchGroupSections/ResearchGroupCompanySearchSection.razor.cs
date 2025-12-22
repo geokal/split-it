@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Components;
-using Microsoft.EntityFrameworkCore;
-using QuizManager.Data;
 using QuizManager.Models;
+using QuizManager.Services.ResearchGroupDashboard;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,7 +10,9 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
 {
     public partial class ResearchGroupCompanySearchSection : ComponentBase
     {
-        [Inject] private AppDbContext dbContext { get; set; } = default!;
+        [Inject] private IResearchGroupDashboardService ResearchGroupDashboardService { get; set; } = default!;
+
+        private ResearchGroupDashboardLookups lookups = ResearchGroupDashboardLookups.Empty;
 
         // Form Visibility
         private bool isRGSearchCompanyFormVisible = false;
@@ -128,6 +129,20 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
             (int)Math.Ceiling((double)(searchResultsAsRGToFindCompany?.Count ?? 0) / CompanySearchPerPageAsRG);
 
         // Visibility Toggle
+        protected override async Task OnInitializedAsync()
+        {
+            lookups = await ResearchGroupDashboardService.GetLookupsAsync();
+            if (lookups.Regions.Any())
+            {
+                Regions = lookups.Regions.ToList();
+            }
+            if (lookups.RegionToTownsMap.Any())
+            {
+                RegionToTownsMap = lookups.RegionToTownsMap.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToList());
+                townsByRegion = RegionToTownsMap.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToList());
+            }
+        }
+
         private void ToggleFormVisibilityForSearchCompanyAsRG()
         {
             isRGSearchCompanyFormVisible = !isRGSearchCompanyFormVisible;
@@ -135,15 +150,17 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
         }
 
         // Search Input Handlers
-        private void HandleCompanyInputAsRG(ChangeEventArgs e)
+        private async Task HandleCompanyInputAsRG(ChangeEventArgs e)
         {
             searchCompanyNameENGAsRGToFindCompany = e.Value?.ToString();
             if (!string.IsNullOrWhiteSpace(searchCompanyNameENGAsRGToFindCompany) && searchCompanyNameENGAsRGToFindCompany.Length >= 2)
             {
-                companyNameSuggestionsAsRG = dbContext.Companies
-                    .Where(c => c.CompanyName.Contains(searchCompanyNameENGAsRGToFindCompany))
-                    .Select(c => c.CompanyName)
+                var companies = await ResearchGroupDashboardService.SearchCompaniesAsync(searchCompanyNameENGAsRGToFindCompany);
+                companyNameSuggestionsAsRG = companies
+                    .Select(c => c.CompanyName ?? string.Empty)
+                    .Where(n => !string.IsNullOrWhiteSpace(n))
                     .Distinct()
+                    .Take(10)
                     .ToList();
             }
             else
@@ -167,10 +184,10 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
             {
                 try
                 {
-                    var allAreas = await dbContext.Areas
-                        .Where(a => a.AreaName.Contains(searchCompanyAreasAsRGToFindCompany) ||
-                                (a.AreaSubFields != null && a.AreaSubFields.Contains(searchCompanyAreasAsRGToFindCompany)))
-                        .ToListAsync();
+                    var allAreas = lookups.Areas.Where(a =>
+                            a.AreaName.Contains(searchCompanyAreasAsRGToFindCompany, StringComparison.OrdinalIgnoreCase) ||
+                            (!string.IsNullOrEmpty(a.AreaSubFields) && a.AreaSubFields.Contains(searchCompanyAreasAsRGToFindCompany, StringComparison.OrdinalIgnoreCase)))
+                        .ToList();
 
                     var suggestionsSet = new HashSet<string>();
 
@@ -234,13 +251,13 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
             {
                 try
                 {
-                    companyDesiredSkillsSuggestionsAsRG = await Task.Run(() =>
-                        dbContext.Skills
-                            .Where(s => s.SkillName.Contains(searchCompanyDesiredSkillsInputAsRGToFindCompany))
-                            .Select(s => s.SkillName)
-                            .Distinct()
-                            .Take(10)
-                            .ToList());
+                    var skills = await ResearchGroupDashboardService.SearchSkillsAsync(searchCompanyDesiredSkillsInputAsRGToFindCompany);
+                    companyDesiredSkillsSuggestionsAsRG = skills
+                        .Select(s => s.SkillName)
+                        .Where(n => !string.IsNullOrWhiteSpace(n))
+                        .Distinct()
+                        .Take(10)
+                        .ToList();
                 }
                 catch (Exception ex)
                 {
@@ -269,7 +286,7 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
         }
 
         // Search Execution
-        private void SearchCompaniesAsRG()
+        private async Task SearchCompaniesAsRG()
         {
             var combinedSearchAreas = new List<string>();
 
@@ -284,34 +301,20 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
                 .Distinct()
                 .ToList();
 
-            var companies = dbContext.Companies
-                .AsEnumerable()
-                .Where(c =>
-                {
-                    var normalizedCompanyAreas = NormalizeAreas(c.CompanyAreas).ToList();
-                    var expandedCompanyAreas = ExpandAreasWithSubfields(normalizedCompanyAreas);
+            var request = new ResearchGroupCompanySearchRequest
+            {
+                Email = string.IsNullOrWhiteSpace(searchCompanyEmailAsRGToFindCompany) ? null : searchCompanyEmailAsRGToFindCompany,
+                Name = string.IsNullOrWhiteSpace(searchCompanyNameENGAsRGToFindCompany) ? null : searchCompanyNameENGAsRGToFindCompany,
+                Type = string.IsNullOrWhiteSpace(searchCompanyTypeAsRGToFindCompany) ? null : searchCompanyTypeAsRGToFindCompany,
+                Activity = string.IsNullOrWhiteSpace(searchCompanyActivityrAsRGToFindCompany) ? null : searchCompanyActivityrAsRGToFindCompany,
+                Town = string.IsNullOrWhiteSpace(searchCompanyTownAsRGToFindCompany) ? null : searchCompanyTownAsRGToFindCompany,
+                Areas = normalizedSearchAreas,
+                DesiredSkills = selectedCompanyDesiredSkillsAsRG.ToList()
+            };
 
-                    var areaMatch = !normalizedSearchAreas.Any() ||
-                        normalizedSearchAreas.Any(searchArea =>
-                            expandedCompanyAreas.Any(companyArea =>
-                                companyArea.Contains(searchArea, StringComparison.OrdinalIgnoreCase) ||
-                                searchArea.Contains(companyArea, StringComparison.OrdinalIgnoreCase)));
+            var companies = await ResearchGroupDashboardService.FilterCompaniesAsync(request);
 
-                    var basicMatch = (string.IsNullOrEmpty(searchCompanyEmailAsRGToFindCompany) || c.CompanyEmail.Contains(searchCompanyEmailAsRGToFindCompany)) &&
-                                (string.IsNullOrEmpty(searchCompanyNameENGAsRGToFindCompany) || c.CompanyNameENG.Contains(searchCompanyNameENGAsRGToFindCompany)) &&
-                                (string.IsNullOrEmpty(searchCompanyTypeAsRGToFindCompany) || c.CompanyType.Contains(searchCompanyTypeAsRGToFindCompany)) &&
-                                (string.IsNullOrEmpty(searchCompanyActivityrAsRGToFindCompany) || c.CompanyActivity.Contains(searchCompanyActivityrAsRGToFindCompany)) &&
-                                (string.IsNullOrEmpty(searchCompanyTownAsRGToFindCompany) || c.CompanyTown.Contains(searchCompanyTownAsRGToFindCompany));
-
-                    var skillsMatch = !selectedCompanyDesiredSkillsAsRG.Any() ||
-                        selectedCompanyDesiredSkillsAsRG.All(skill =>
-                            c.CompanyDesiredSkills != null && c.CompanyDesiredSkills.Contains(skill));
-
-                    return basicMatch && areaMatch && skillsMatch;
-                })
-                .ToList();
-
-            searchResultsAsRGToFindCompany = companies;
+            searchResultsAsRGToFindCompany = companies?.ToList();
             currentPage_CompanySearchAsRG = 1;
         }
 
@@ -441,10 +444,10 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
             foreach (var area in areas)
             {
                 expanded.Add(area);
-                var dbArea = dbContext.Areas.FirstOrDefault(a => a.AreaName.ToLower() == area.ToLower());
-                if (dbArea != null && !string.IsNullOrEmpty(dbArea.AreaSubFields))
+                var lookupArea = lookups.Areas.FirstOrDefault(a => a.AreaName.Equals(area, StringComparison.OrdinalIgnoreCase));
+                if (lookupArea != null && !string.IsNullOrEmpty(lookupArea.AreaSubFields))
                 {
-                    var subfields = dbArea.AreaSubFields.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    var subfields = lookupArea.AreaSubFields.Split(',', StringSplitOptions.RemoveEmptyEntries)
                         .Select(s => s.Trim().ToLowerInvariant());
                     foreach (var sub in subfields)
                         expanded.Add(sub);
@@ -454,4 +457,3 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
         }
     }
 }
-

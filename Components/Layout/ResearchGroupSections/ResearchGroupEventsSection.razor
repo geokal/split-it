@@ -170,9 +170,7 @@
                                                                                                 {
                                                                                                     @foreach (var companyEvent in filteredCompanyEvents)
                                                                                                     {
-                                                                                                        bool hasAlreadyExpressedInterest = dbContext.InterestInCompanyEventsAsProfessor
-                                                                                                            .Any(i => i.RNGForCompanyEventInterestAsProfessor == companyEvent.RNGForEventUploadedAsCompany 
-                                                                                                                    && i.ProfessorEmailShowInterestForCompanyEvent == CurrentUserEmail);
+                                                                                                        bool hasAlreadyExpressedInterest = companyEventInterestRngsForProfessor.Contains(companyEvent.RNGForEventUploadedAsCompany);
 
                                                                                                         Console.WriteLine($"Interest found: {hasAlreadyExpressedInterest} for {companyEvent.CompanyEventTitle} with Professor Email {CurrentUserEmail}");
                         

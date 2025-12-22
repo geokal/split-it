@@ -13,11 +13,12 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
 {
     public partial class ResearchGroupEventsSection : ComponentBase
     {
-        [Inject] private AppDbContext dbContext { get; set; } = default!;
+        [Inject] private IDbContextFactory<AppDbContext> DbContextFactory { get; set; } = default!;
         [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
         
         // User Information
         private string CurrentUserEmail = "";
+        private HashSet<long> companyEventInterestRngsForProfessor = new();
         
         // Selected Event (can be CompanyEvent or ProfessorEvent)
         private object? selectedEvent = null;
@@ -64,7 +65,12 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
 
         protected override async Task OnInitializedAsync()
         {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            CurrentUserEmail = user.FindFirst("name")?.Value ?? string.Empty;
+
             await LoadEventsData();
+            await LoadCompanyEventInterestsAsync();
             LoadEventsForCalendar();
         }
 
@@ -74,14 +80,33 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
             ProfessorEventsToShowAtFrontPage = await FetchProfessorEventsAsync();
         }
 
+        private async Task LoadCompanyEventInterestsAsync()
+        {
+            if (string.IsNullOrWhiteSpace(CurrentUserEmail))
+            {
+                companyEventInterestRngsForProfessor.Clear();
+                return;
+            }
+
+            await using var context = await DbContextFactory.CreateDbContextAsync();
+            var interestRngs = await context.InterestInCompanyEventsAsProfessor
+                .Where(i => i.ProfessorEmailShowInterestForCompanyEvent == CurrentUserEmail)
+                .Select(i => i.RNGForCompanyEventInterestAsProfessor)
+                .ToListAsync();
+
+            companyEventInterestRngsForProfessor = interestRngs.ToHashSet();
+        }
+
         private async Task<List<CompanyEvent>> FetchCompanyEventsAsync()
         {
-            return await dbContext.CompanyEvents.AsNoTracking().ToListAsync();
+            await using var context = await DbContextFactory.CreateDbContextAsync();
+            return await context.CompanyEvents.AsNoTracking().ToListAsync();
         }
 
         private async Task<List<ProfessorEvent>> FetchProfessorEventsAsync()
         {
-            return await dbContext.ProfessorEvents.AsNoTracking().ToListAsync();
+            await using var context = await DbContextFactory.CreateDbContextAsync();
+            return await context.ProfessorEvents.AsNoTracking().ToListAsync();
         }
 
         private void LoadEventsForCalendar()
@@ -148,23 +173,24 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
         }
 
         // Date Click Handler
-        private void OnDateClicked(DateTime clickedDate)
+        private async Task OnDateClicked(DateTime clickedDate)
         {
             selectedDay = clickedDate.Day;
             highlightedDay = selectedDay;
             selectedDate = clickedDate;
 
-            selectedDateEvents = dbContext.CompanyEvents
+            await using var context = await DbContextFactory.CreateDbContextAsync();
+            selectedDateEvents = await context.CompanyEvents
                 .Include(e => e.Company)
                 .Where(e => e.CompanyEventStatus == "Δημοσιευμένη" &&
                         e.CompanyEventActiveDate.Date == clickedDate.Date)
-                .ToList();
+                .ToListAsync();
 
-            selectedProfessorDateEvents = dbContext.ProfessorEvents
+            selectedProfessorDateEvents = await context.ProfessorEvents
                 .Include(e => e.Professor)
                 .Where(e => e.ProfessorEventStatus == "Δημοσιευμένη" &&
                         e.ProfessorEventActiveDate.Date == clickedDate.Date)
-                .ToList();
+                .ToListAsync();
 
             if (selectedDateEvents.Any() || selectedProfessorDateEvents.Any())
             {
@@ -209,4 +235,3 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
         }
     }
 }
-

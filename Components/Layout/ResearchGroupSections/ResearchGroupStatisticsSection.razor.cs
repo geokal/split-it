@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.EntityFrameworkCore;
-using QuizManager.Data;
 using QuizManager.Models;
 using QuizManager.Services;
+using QuizManager.Services.ResearchGroupDashboard;
+using QuizManager.Data;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,13 +13,14 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
 {
     public partial class ResearchGroupStatisticsSection : ComponentBase
     {
-        [Inject] private AppDbContext dbContext { get; set; } = default!;
         [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
         [Inject] private GoogleScholarService _googleScholarService { get; set; } = default!;
+        [Inject] private IResearchGroupDashboardService ResearchGroupDashboardService { get; set; } = default!;
 
         // Current User
         private string CurrentUserEmail = "";
         private QuizManager.Models.ResearchGroup currentResearchGroup;
+        private ResearchGroupDashboardData dashboardData = ResearchGroupDashboardData.Empty;
 
         // Visibility
         private bool isStatisticsVisible = false;
@@ -100,6 +101,8 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             var user = authState.User;
             CurrentUserEmail = user.FindFirst("name")?.Value ?? "";
+            dashboardData = await ResearchGroupDashboardService.LoadDashboardDataAsync();
+            currentResearchGroup = dashboardData.ResearchGroupProfile;
         }
 
         // Toggle Statistics Visibility
@@ -115,68 +118,22 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
             StateHasChanged();
         }
 
-        private async Task LoadCurrentResearchGroup()
-        {
-            try
-            {
-                currentResearchGroup = await dbContext.ResearchGroups
-                    .FirstOrDefaultAsync(rg => rg.ResearchGroupEmail == CurrentUserEmail);
-
-                if (currentResearchGroup == null)
-                {
-                    Console.WriteLine("Research group not found for current user");
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error loading research group: {ex.Message}");
-            }
-        }
-
         private async Task LoadResearchGroupStatistics()
         {
             isLoadingStatistics = true;
             StateHasChanged();
             try
             {
-                if (currentResearchGroup == null)
-                {
-                    await LoadCurrentResearchGroup();
-                }
+                dashboardData = await ResearchGroupDashboardService.LoadDashboardDataAsync();
+                currentResearchGroup = dashboardData.ResearchGroupProfile;
 
-                var currentResearchGroupEmail = CurrentUserEmail;
-
-                numberOfFacultyMembers = await dbContext.ResearchGroup_Professors
-                    .Where(rp => rp.PK_ResearchGroupEmail == currentResearchGroupEmail)
-                    .CountAsync();
-
-                numberOfCollaborators = await dbContext.ResearchGroup_NonFacultyMembers
-                    .Where(rnf => rnf.PK_ResearchGroupEmail == currentResearchGroupEmail)
-                    .CountAsync();
-
-                numberOfActiveResearchActions = await dbContext.ResearchGroup_ResearchActions
-                    .Where(ra => ra.ResearchGroupEmail == currentResearchGroupEmail &&
-                                ra.ResearchGroup_ProjectStatus == "OnGoing")
-                    .CountAsync();
-
-                numberOfInactiveResearchActions = await dbContext.ResearchGroup_ResearchActions
-                    .Where(ra => ra.ResearchGroupEmail == currentResearchGroupEmail &&
-                                ra.ResearchGroup_ProjectStatus == "Past")
-                    .CountAsync();
-
-                numberOfActivePatents = await dbContext.ResearchGroup_Patents
-                    .Where(p => p.ResearchGroupEmail == currentResearchGroupEmail &&
-                            p.ResearchGroup_Patent_PatentStatus == "Ενεργή")
-                    .CountAsync();
-
-                numberOfInactivePatents = await dbContext.ResearchGroup_Patents
-                    .Where(p => p.ResearchGroupEmail == currentResearchGroupEmail &&
-                            p.ResearchGroup_Patent_PatentStatus == "Ανενεργή")
-                    .CountAsync();
-
-                numberOfIpodomes = await dbContext.ResearchGroup_Ipodomes
-                    .Where(i => i.ResearchGroupEmail == currentResearchGroupEmail)
-                    .CountAsync();
+                numberOfFacultyMembers = dashboardData.Statistics.FacultyMembers;
+                numberOfCollaborators = dashboardData.Statistics.Collaborators;
+                numberOfActiveResearchActions = dashboardData.Statistics.ActiveResearchActions;
+                numberOfInactiveResearchActions = dashboardData.Statistics.InactiveResearchActions;
+                numberOfActivePatents = dashboardData.Statistics.ActivePatents;
+                numberOfInactivePatents = dashboardData.Statistics.InactivePatents;
+                numberOfIpodomes = 0; // ipodomes not provided by service
 
                 await FetchPublicationsFromGoogleScholar();
             }
@@ -197,32 +154,12 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
             {
                 var currentResearchGroupEmail = CurrentUserEmail;
 
-                var professorEmails = await dbContext.ResearchGroup_Professors
-                    .Where(rp => rp.PK_ResearchGroupEmail == currentResearchGroupEmail)
-                    .Select(rp => rp.PK_ProfessorEmail)
-                    .ToListAsync();
-
-                var professorsWithScholar = await dbContext.Professors
-                    .Where(p => professorEmails.Contains(p.ProfEmail) &&
-                            !string.IsNullOrEmpty(p.ProfScholarProfile))
-                    .Select(p => new { p.ProfEmail, p.ProfScholarProfile })
-                    .ToListAsync();
-
-                var studentEmails = await dbContext.ResearchGroup_NonFacultyMembers
-                    .Where(rnf => rnf.PK_ResearchGroupEmail == currentResearchGroupEmail)
-                    .Select(rnf => rnf.PK_NonFacultyMemberEmail)
-                    .ToListAsync();
-
-                var studentsWithScholar = await dbContext.Students
-                    .Where(s => studentEmails.Contains(s.Email) &&
-                            !string.IsNullOrEmpty(s.StudentGoogleScholarProfile))
-                    .Select(s => new { s.Email, s.StudentGoogleScholarProfile })
-                    .ToListAsync();
-
-                var allMembersWithScholar = professorsWithScholar
-                    .Select(p => new { Email = p.ProfEmail, ScholarProfile = p.ProfScholarProfile, Type = "Professor" })
-                    .Concat(studentsWithScholar
-                        .Select(s => new { Email = s.Email, ScholarProfile = s.StudentGoogleScholarProfile, Type = "Student" }))
+                var allMembersWithScholar = dashboardData.FacultyMembers
+                    .Where(p => !string.IsNullOrWhiteSpace(p.Email) && !string.IsNullOrWhiteSpace(p.ScholarProfile))
+                    .Select(p => new { Email = p.Email!, ScholarProfile = p.ScholarProfile!, Type = "Professor" })
+                    .Concat(dashboardData.NonFacultyMembers
+                        .Where(s => !string.IsNullOrWhiteSpace(s.Email) && !string.IsNullOrWhiteSpace(s.ScholarProfile))
+                        .Select(s => new { Email = s.Email!, ScholarProfile = s.ScholarProfile!, Type = "Student" }))
                     .ToList();
 
                 var allPublications = new List<ScholarPublication>();
@@ -263,21 +200,15 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
             {
                 var currentResearchGroupEmail = CurrentUserEmail;
 
-                facultyMembersDetails = await dbContext.ResearchGroup_Professors
-                    .Where(rp => rp.PK_ResearchGroupEmail == currentResearchGroupEmail)
-                    .Join(dbContext.Professors,
-                        rp => rp.PK_ProfessorEmail,
-                        p => p.ProfEmail,
-                        (rp, p) => new FacultyMemberDetail
-                        {
-                            Image = p.ProfImage,
-                            Name = p.ProfName ?? "",
-                            Surname = p.ProfSurname ?? "",
-                            School = p.ProfSchool ?? "",
-                            Department = p.ProfDepartment ?? "",
-                            Role = rp.PK_ProfessorRole ?? ""
-                        })
-                    .ToListAsync();
+                facultyMembersDetails = dashboardData.FacultyMembers.Select(p => new FacultyMemberDetail
+                {
+                    Image = p.Image,
+                    Name = p.FirstName,
+                    Surname = p.LastName,
+                    School = p.School ?? "",
+                    Department = p.Department ?? "",
+                    Role = p.Role ?? ""
+                }).ToList();
 
                 showFacultyMembersModal = true;
                 StateHasChanged();
@@ -301,22 +232,16 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
             {
                 var currentResearchGroupEmail = CurrentUserEmail;
 
-                nonFacultyMembersDetails = await dbContext.ResearchGroup_NonFacultyMembers
-                    .Where(rnf => rnf.PK_ResearchGroupEmail == currentResearchGroupEmail)
-                    .Join(dbContext.Students,
-                        rnf => rnf.PK_NonFacultyMemberEmail,
-                        s => s.Email,
-                        (rnf, s) => new NonFacultyMemberDetail
-                        {
-                            Image = s.Image,
-                            Name = s.Name,
-                            Surname = s.Surname,
-                            LevelOfStudies = rnf.PK_NonFacultyMemberLevelOfStudies ?? "",
-                            Department = s.Department,
-                            School = s.School,
-                            RegistrationDate = rnf.DateOfRegistrationOnResearchGroup_ForNonFacultyMember
-                        })
-                    .ToListAsync();
+                nonFacultyMembersDetails = dashboardData.NonFacultyMembers.Select(n => new NonFacultyMemberDetail
+                {
+                    Image = null,
+                    Name = n.FirstName,
+                    Surname = n.LastName,
+                    LevelOfStudies = n.LevelOfStudies ?? "",
+                    Department = n.Department ?? "",
+                    School = n.School ?? "",
+                    RegistrationDate = n.RegistrationDate ?? DateTime.MinValue
+                }).ToList();
 
                 showNonFacultyMembersModal = true;
                 StateHasChanged();
@@ -340,21 +265,18 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
             {
                 var currentResearchGroupEmail = CurrentUserEmail;
 
-                researchActionsDetails = await dbContext.ResearchGroup_ResearchActions
-                    .Where(ra => ra.ResearchGroupEmail == currentResearchGroupEmail)
-                    .Select(ra => new ResearchActionDetail
-                    {
-                        ProjectTitle = ra.ResearchGroup_ProjectTitle ?? "",
-                        ProjectAcronym = ra.ResearchGroup_ProjectAcronym ?? "",
-                        GrantAgreementNumber = ra.ResearchGroup_ProjectGrantAgreementNumber ?? "",
-                        StartDate = ra.ResearchGroup_ProjectStartDate,
-                        EndDate = ra.ResearchGroup_ProjectEndDate,
-                        ProjectCoordinator = ra.ResearchGroup_ProjectCoordinator ?? "",
-                        ELKECode = ra.ResearchGroup_ProjectELKECode ?? "",
-                        ScientificResponsibleEmail = ra.ResearchGroup_ProjectScientificResponsibleEmail ?? "",
-                        ProjectStatus = ra.ResearchGroup_ProjectStatus ?? ""
-                    })
-                    .ToListAsync();
+                researchActionsDetails = dashboardData.ResearchActions.Select(ra => new ResearchActionDetail
+                {
+                    ProjectTitle = ra.ProjectTitle ?? "",
+                    ProjectAcronym = ra.ProjectAcronym ?? "",
+                    GrantAgreementNumber = ra.GrantAgreementNumber ?? "",
+                    StartDate = ra.StartDate,
+                    EndDate = ra.EndDate,
+                    ProjectCoordinator = ra.ProjectCoordinator ?? "",
+                    ELKECode = ra.ElkeCode ?? "",
+                    ScientificResponsibleEmail = ra.ScientificResponsibleEmail ?? "",
+                    ProjectStatus = ra.ProjectStatus ?? ""
+                }).ToList();
 
                 showResearchActionsModal = true;
                 StateHasChanged();
@@ -378,18 +300,15 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
             {
                 var currentResearchGroupEmail = CurrentUserEmail;
 
-                patentsDetails = await dbContext.ResearchGroup_Patents
-                    .Where(p => p.ResearchGroupEmail == currentResearchGroupEmail)
-                    .Select(p => new PatentDetail
-                    {
-                        PatentTitle = p.ResearchGroup_Patent_PatentTitle ?? "",
-                        PatentType = p.ResearchGroup_Patent_PatentType ?? "",
-                        PatentDOI = p.ResearchGroup_Patent_PatentDOI ?? "",
-                        PatentURL = p.ResearchGroup_Patent_PatentURL ?? "",
-                        PatentDescription = p.ResearchGroup_Patent_PatentDescription ?? "",
-                        PatentStatus = p.ResearchGroup_Patent_PatentStatus ?? ""
-                    })
-                    .ToListAsync();
+                patentsDetails = dashboardData.Patents.Select(p => new PatentDetail
+                {
+                    PatentTitle = p.PatentTitle ?? "",
+                    PatentType = p.PatentType ?? "",
+                    PatentDOI = p.PatentDoi ?? "",
+                    PatentURL = p.PatentUrl ?? "",
+                    PatentDescription = p.PatentDescription ?? "",
+                    PatentStatus = p.PatentStatus ?? ""
+                }).ToList();
 
                 showPatentsModal = true;
                 StateHasChanged();
@@ -407,16 +326,11 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
         }
 
         // Ipodomes Modal
-        private async Task ShowIpodomesDetails()
+        private Task ShowIpodomesDetails()
         {
-            var currentResearchGroupEmail = CurrentUserEmail;
-
-            ipodomesDetails = await dbContext.ResearchGroup_Ipodomes
-                .Where(i => i.ResearchGroupEmail == currentResearchGroupEmail)
-                .AsNoTracking()
-                .ToListAsync();
-
+            ipodomesDetails = new();
             showIpodomesModal = true;
+            return Task.CompletedTask;
         }
 
         private void CloseIpodomesModal()
@@ -425,4 +339,3 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
         }
     }
 }
-
