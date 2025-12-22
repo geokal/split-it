@@ -1,9 +1,7 @@
-## 2024-XX-XX Company components migrated to services
-- CompanyJobsSection, CompanyInternshipsSection, CompanyThesesSection, CompanyEventsSection, Announcements and search components now depend on ICompanyDashboardService (no direct DbContext usage).
-- Service calls cover CRUD/status updates, lookups (areas/regions/skills/professors), attachments, applications/interest flows, and decisions.
-- Lookups pulled from CompanyDashboardService; Region/Town view models reused in jobs. Added HasCompanyShownInterestInProfessorEvent helper to track interests client-side.
-- Build passes (warnings only: nullable noise, offline NuGet vulnerability check). Remaining roles (Professor/ResearchGroup/Student) still inject DbContext and need future migration.
-
-- QuizViewer pages (1–4) now create contexts via IDbContextFactory; no injected AppDbContext remains there.
-- Git staging currently blocked: cannot create .git/index.lock (permissions/immutable). Fix repo permissions before commits.
-- Remaining migration: ResearchGroup/Student components still use AppDbContext directly; plan to move to services/DbContextFactory.
+## 2024-XX-XX Project snapshot
+- Company sections fully on ICompanyDashboardService (no direct DbContext).
+- QuizViewer pages (1–4) use IDbContextFactory (no injected AppDbContext).
+- Student sections (Events, JobsDisplay, ThesisDisplay, CompanySearch, Internships) now use IDbContextFactory<AppDbContext>.
+- ResearchGroup Announcements/Events already use IDbContextFactory; full service extraction still pending for ResearchGroup + remaining Student flows.
+- Build passes (warnings only: nullable/unused field noise).
+- Git staging/commits now unblocked after fixing .git permissions.
