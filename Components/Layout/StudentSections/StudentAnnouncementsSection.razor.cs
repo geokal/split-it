@@ -1,20 +1,19 @@
 using Microsoft.AspNetCore.Components;
 using QuizManager.ViewModels;
 using Microsoft.JSInterop;
-using Microsoft.EntityFrameworkCore;
-using QuizManager.Data;
 using QuizManager.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using HtmlAgilityPack;
+using QuizManager.Services.FrontPage;
 
 namespace QuizManager.Components.Layout.StudentSections
 {
     public partial class StudentAnnouncementsSection : ComponentBase
     {
-        [Inject] private AppDbContext dbContext { get; set; } = default!;
+        [Inject] private IFrontPageService FrontPageService { get; set; } = default!;
         [Inject] private IJSRuntime JS { get; set; } = default!;
         [Inject] private HttpClient HttpClient { get; set; } = default!;
 
@@ -58,14 +57,17 @@ namespace QuizManager.Components.Layout.StudentSections
 
         private async Task LoadDataAsync()
         {
+            await FrontPageService.EnsureDataLoadedAsync();
+            var frontPageData = await FrontPageService.LoadFrontPageDataAsync();
+
             // Load news articles
             newsArticles = await FetchNewsArticlesAsync();
             svseNewsArticles = await FetchSVSENewsArticlesAsync();
 
             // Load announcements
-            Announcements = await FetchAnnouncementsAsync();
-            ProfessorAnnouncements = await FetchProfessorAnnouncementsAsync();
-            ResearchGroupAnnouncements = await FetchResearchGroupAnnouncementsAsync();
+            Announcements = frontPageData.CompanyAnnouncements.ToList();
+            ProfessorAnnouncements = frontPageData.ProfessorAnnouncements.ToList();
+            ResearchGroupAnnouncements = frontPageData.ResearchGroupAnnouncements.ToList();
 
             // Calculate total pages
             UpdateTotalPages();
@@ -500,39 +502,6 @@ namespace QuizManager.Components.Layout.StudentSections
             }
         }
 
-        private async Task<List<AnnouncementAsCompany>> FetchAnnouncementsAsync()
-        {
-            // Load published company announcements
-            return await dbContext.AnnouncementsAsCompany
-                .Include(a => a.Company)
-                .AsNoTracking()
-                .Where(a => a.CompanyAnnouncementStatus == "Δημοσιευμένη")
-                .OrderByDescending(a => a.CompanyAnnouncementUploadDate)
-                .ToListAsync();
-        }
-
-        private async Task<List<AnnouncementAsProfessor>> FetchProfessorAnnouncementsAsync()
-        {
-            // Load published professor announcements
-            return await dbContext.AnnouncementsAsProfessor
-                .Include(a => a.Professor)
-                .AsNoTracking()
-                .Where(a => a.ProfessorAnnouncementStatus == "Δημοσιευμένη")
-                .OrderByDescending(a => a.ProfessorAnnouncementUploadDate)
-                .ToListAsync();
-        }
-
-        private async Task<List<AnnouncementAsResearchGroup>> FetchResearchGroupAnnouncementsAsync()
-        {
-            // Load published research group announcements
-            return await dbContext.AnnouncementAsResearchGroup
-                .Include(a => a.ResearchGroup)
-                .AsNoTracking()
-                .Where(a => a.ResearchGroupAnnouncementStatus == "Δημοσιευμένη")
-                .OrderByDescending(a => a.ResearchGroupAnnouncementUploadDate)
-                .ToListAsync();
-        }
-
         // Helper Methods
         private void UpdateTotalPages()
         {
@@ -575,4 +544,3 @@ namespace QuizManager.Components.Layout.StudentSections
         }
     }
 }
-

@@ -1,19 +1,19 @@
 using Microsoft.AspNetCore.Components;
 using QuizManager.ViewModels;
 using Microsoft.JSInterop;
-using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using QuizManager.Data;
 using QuizManager.Models;
+using Microsoft.EntityFrameworkCore;
+using QuizManager.Data;
 
 namespace QuizManager.Components.Layout.StudentSections
 {
     public partial class StudentCompanySearchSection : ComponentBase
     {
-        [Inject] private AppDbContext dbContext { get; set; } = default!;
+        [Inject] private IDbContextFactory<AppDbContext> DbContextFactory { get; set; } = default!;
         [Inject] private IJSRuntime JS { get; set; } = default!;
         [Inject] private NavigationManager NavigationManager { get; set; } = default!;
 
@@ -120,16 +120,18 @@ namespace QuizManager.Components.Layout.StudentSections
             StateHasChanged();
         }
 
-        private void HandleCompanyInputAsStudent(ChangeEventArgs e)
+        private async Task HandleCompanyInputAsStudent(ChangeEventArgs e)
         {
             searchCompanyNameENGAsStudentToFindCompany = e.Value?.ToString();
             if (!string.IsNullOrWhiteSpace(searchCompanyNameENGAsStudentToFindCompany) && searchCompanyNameENGAsStudentToFindCompany.Length >= 2)
             {
-                companyNameSuggestionsAsStudent = dbContext.Companies
+                await using var context = await DbContextFactory.CreateDbContextAsync();
+                companyNameSuggestionsAsStudent = await context.Companies
+                    .AsNoTracking()
                     .Where(c => c.CompanyNameENG.Contains(searchCompanyNameENGAsStudentToFindCompany))
                     .Select(c => c.CompanyNameENG)
                     .Distinct()
-                    .ToList();
+                    .ToListAsync();
             }
             else
             {
@@ -223,7 +225,7 @@ namespace QuizManager.Components.Layout.StudentSections
             StateHasChanged();
         }
 
-        private void SearchCompaniesAsStudent()
+        private async Task SearchCompaniesAsStudent()
         {
             var combinedSearchAreas = new List<string>();
 
@@ -238,8 +240,10 @@ namespace QuizManager.Components.Layout.StudentSections
                 .Distinct()
                 .ToList();
 
-            var companies = dbContext.Companies
-                .AsEnumerable()
+            await using var context = await DbContextFactory.CreateDbContextAsync();
+            var companies = (await context.Companies
+                .AsNoTracking()
+                .ToListAsync())
                 .Where(c =>
                 {
                     // GLOBAL SEARCH - Multi-word search across all fields
@@ -512,4 +516,3 @@ namespace QuizManager.Components.Layout.StudentSections
         }
     }
 }
-
