@@ -16,7 +16,7 @@ namespace QuizManager.Components.Layout.StudentSections
 {
     public partial class StudentEventsSection : ComponentBase
     {
-        [Inject] private AppDbContext dbContext { get; set; } = default!;
+        [Inject] private IDbContextFactory<AppDbContext> DbContextFactory { get; set; } = default!;
         [Inject] private IJSRuntime JS { get; set; } = default!;
         [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
 
@@ -120,7 +120,8 @@ namespace QuizManager.Components.Layout.StudentSections
 
         private async Task<List<CompanyEvent>> FetchCompanyEventsAsync()
         {
-            var companyevents = await dbContext.CompanyEvents
+            await using var context = await DbContextFactory.CreateDbContextAsync();
+            var companyevents = await context.CompanyEvents
                 .Include(e => e.Company)
                 .AsNoTracking()
                 .ToListAsync();
@@ -129,7 +130,8 @@ namespace QuizManager.Components.Layout.StudentSections
 
         private async Task<List<ProfessorEvent>> FetchProfessorEventsAsync()
         {
-            var professorevents = await dbContext.ProfessorEvents
+            await using var context = await DbContextFactory.CreateDbContextAsync();
+            var professorevents = await context.ProfessorEvents
                 .Include(e => e.Professor)
                 .AsNoTracking()
                 .ToListAsync();
@@ -298,7 +300,8 @@ namespace QuizManager.Components.Layout.StudentSections
 
         private async Task ShowCompanyDetailsOnHyperlinkAsStudentForCompanyEvents(string companyEmail)
         {
-            currentCompanyDetailsToShowOnHyperlinkAsStudentForCompanyEvents = await dbContext.Companies
+            await using var context = await DbContextFactory.CreateDbContextAsync();
+            currentCompanyDetailsToShowOnHyperlinkAsStudentForCompanyEvents = await context.Companies
                 .FirstOrDefaultAsync(c => c.CompanyEmail == companyEmail);
 
             if (currentCompanyDetailsToShowOnHyperlinkAsStudentForCompanyEvents != null)
@@ -365,13 +368,15 @@ namespace QuizManager.Components.Layout.StudentSections
                 if (isOpening)
                 {
                     // Fetch events
-                    companyEventsToSeeAsStudent = await dbContext.CompanyEvents
+                    await using var context = await DbContextFactory.CreateDbContextAsync();
+
+                    companyEventsToSeeAsStudent = await context.CompanyEvents
                         .Include(e => e.Company)
                         .Where(e => e.CompanyEventStatus == "Δημοσιευμένη")
                         .AsNoTracking()
                         .ToListAsync();
 
-                    professorEventsToSeeAsStudent = await dbContext.ProfessorEvents
+                    professorEventsToSeeAsStudent = await context.ProfessorEvents
                         .Include(e => e.Professor)
                         .Where(e => e.ProfessorEventStatus == "Δημοσιευμένη")
                         .AsNoTracking()
@@ -380,16 +385,16 @@ namespace QuizManager.Components.Layout.StudentSections
                     // Load interest IDs
                     if (!string.IsNullOrEmpty(CurrentUserEmail))
                     {
-                        var student = await dbContext.Students.FirstOrDefaultAsync(s => s.Email == CurrentUserEmail);
+                        var student = await context.Students.FirstOrDefaultAsync(s => s.Email == CurrentUserEmail);
                         if (student != null)
                         {
-                            alreadyInterestedCompanyEventIds = (await dbContext.InterestInCompanyEvents
+                            alreadyInterestedCompanyEventIds = (await context.InterestInCompanyEvents
                                     .Where(i => i.StudentEmailShowInterestForEvent == CurrentUserEmail)
                                     .Select(i => i.RNGForCompanyEventInterest)
                                     .ToListAsync())
                                 .ToHashSet();
 
-                            interestedProfessorEventIds = (await dbContext.InterestInProfessorEvents
+                            interestedProfessorEventIds = (await context.InterestInProfessorEvents
                                     .Where(i => i.StudentEmailShowInterestForEvent == CurrentUserEmail)
                                     .Select(i => i.RNGForProfessorEventInterest)
                                     .ToListAsync())
@@ -660,7 +665,9 @@ namespace QuizManager.Components.Layout.StudentSections
             if (string.IsNullOrEmpty(email))
                 return null;
             
-            return await dbContext.Students
+            await using var context = await DbContextFactory.CreateDbContextAsync();
+
+            return await context.Students
                 .AsNoTracking()
                 .FirstOrDefaultAsync(s => s.Email == email);
         }

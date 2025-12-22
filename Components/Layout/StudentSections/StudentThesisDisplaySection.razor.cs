@@ -14,7 +14,7 @@ namespace QuizManager.Components.Layout.StudentSections
 {
     public partial class StudentThesisDisplaySection : ComponentBase
     {
-        [Inject] private AppDbContext dbContext { get; set; } = default!;
+        [Inject] private IDbContextFactory<AppDbContext> DbContextFactory { get; set; } = default!;
         [Inject] private IJSRuntime JS { get; set; } = default!;
         [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
         [Inject] private NavigationManager NavigationManager { get; set; } = default!;
@@ -137,14 +137,16 @@ namespace QuizManager.Components.Layout.StudentSections
                     {
                         showStudentThesisApplications = true;
 
+                        await using var context = await DbContextFactory.CreateDbContextAsync();
+
                         // Get student details
-                        var student = await dbContext.Students
+                        var student = await context.Students
                             .FirstOrDefaultAsync(s => s.Email == userEmail);
 
                         if (student != null)
                         {
                             // Fetch company thesis applications
-                            companyThesisApplications = await dbContext.CompanyThesesApplied
+                            companyThesisApplications = await context.CompanyThesesApplied
                                 .Include(a => a.StudentDetails)
                                 .Include(a => a.CompanyDetails)
                                 .Where(app => app.StudentEmailAppliedForThesis == userEmail && 
@@ -157,7 +159,7 @@ namespace QuizManager.Components.Layout.StudentSections
                                 .Select(a => a.RNGForCompanyThesisApplied)
                                 .ToList();
 
-                            var theses = await dbContext.CompanyTheses
+                            var theses = await context.CompanyTheses
                                 .Include(t => t.Company) 
                                 .Where(t => thesisRNGs.Contains(t.RNGForThesisUploadedAsCompany))
                                 .ToListAsync();
@@ -169,7 +171,7 @@ namespace QuizManager.Components.Layout.StudentSections
                             }
 
                             // Fetch professor thesis applications
-                            professorThesisApplications = await dbContext.ProfessorThesesApplied
+                            professorThesisApplications = await context.ProfessorThesesApplied
                                 .Include(a => a.StudentDetails)
                                 .Include(a => a.ProfessorDetails)
                                 .Where(app => app.StudentEmailAppliedForProfessorThesis == userEmail && 
@@ -182,7 +184,7 @@ namespace QuizManager.Components.Layout.StudentSections
                                 .Select(a => a.RNGForProfessorThesisApplied)
                                 .ToList();
 
-                            var professorTheses = await dbContext.ProfessorTheses
+                            var professorTheses = await context.ProfessorTheses
                                 .Where(t => professorThesisRNGs.Contains(t.RNGForThesisUploaded))
                                 .ToListAsync();
 
@@ -361,7 +363,9 @@ namespace QuizManager.Components.Layout.StudentSections
                     // Step 1: Get thesis details
                     await UpdateProgressWhenWithdrawThesisApplication(10, 200);
                 
-                    var thesisDetails = await dbContext.CompanyTheses
+                    await using var context = await DbContextFactory.CreateDbContextAsync();
+
+                    var thesisDetails = await context.CompanyTheses
                         .Include(t => t.Company)
                         .FirstOrDefaultAsync(t => t.RNGForThesisUploadedAsCompany == companyThesis.RNGForCompanyThesisApplied);
 
@@ -391,8 +395,8 @@ namespace QuizManager.Components.Layout.StudentSections
                         DateTime_PerformedAction = DateTime.Now
                     };
 
-                    dbContext.PlatformActions.Add(platformAction);
-                    await dbContext.SaveChangesAsync();
+                    context.PlatformActions.Add(platformAction);
+                    await context.SaveChangesAsync();
                 
                     await UpdateProgressWhenWithdrawThesisApplication(70, 200);
 
@@ -463,7 +467,9 @@ namespace QuizManager.Components.Layout.StudentSections
                     // Step 1: Get thesis details
                     await UpdateProgressWhenWithdrawThesisApplication(10, 200);
                 
-                    var thesisDetails = await dbContext.ProfessorTheses
+                    await using var context = await DbContextFactory.CreateDbContextAsync();
+
+                    var thesisDetails = await context.ProfessorTheses
                         .Include(t => t.Professor)
                         .FirstOrDefaultAsync(t => t.RNGForThesisUploaded == professorThesis.RNGForProfessorThesisApplied);
 
@@ -493,8 +499,8 @@ namespace QuizManager.Components.Layout.StudentSections
                         DateTime_PerformedAction = DateTime.Now
                     };
 
-                    dbContext.PlatformActions.Add(platformAction);
-                    await dbContext.SaveChangesAsync();
+                    context.PlatformActions.Add(platformAction);
+                    await context.SaveChangesAsync();
                 
                     await UpdateProgressWhenWithdrawThesisApplication(70, 200);
 
@@ -587,8 +593,10 @@ namespace QuizManager.Components.Layout.StudentSections
                 }
                 else
                 {
+                    await using var context = await DbContextFactory.CreateDbContextAsync();
+
                     // Fetch the company details from the database using email
-                    selectedCompanyDetails_ThesisStudentApplicationsToShow = await dbContext.Companies
+                    selectedCompanyDetails_ThesisStudentApplicationsToShow = await context.Companies
                         .FirstOrDefaultAsync(c => c.CompanyEmail == companyEmail);
 
                     // Add to cache if found
@@ -633,8 +641,10 @@ namespace QuizManager.Components.Layout.StudentSections
                 }
                 else
                 {
+                    await using var context = await DbContextFactory.CreateDbContextAsync();
+
                     // Fetch the professor details from the database using email
-                    selectedProfessorDetails_ThesisStudentApplicationsToShow = await dbContext.Professors
+                    selectedProfessorDetails_ThesisStudentApplicationsToShow = await context.Professors
                         .FirstOrDefaultAsync(p => p.ProfEmail == professorEmail);
 
                     // Add to cache if found
@@ -671,7 +681,9 @@ namespace QuizManager.Components.Layout.StudentSections
         private async Task ShowCompanyThesisDetailsModal_StudentThesisApplications(long thesisRNG)
         {
             // Fetch the company thesis details asynchronously
-            selectedCompanyThesisDetails_ThesisStudentApplicationsToShow = await dbContext.CompanyTheses
+            await using var context = await DbContextFactory.CreateDbContextAsync();
+
+            selectedCompanyThesisDetails_ThesisStudentApplicationsToShow = await context.CompanyTheses
                 .FirstOrDefaultAsync(t => t.RNGForThesisUploadedAsCompany == thesisRNG);
 
             if (selectedCompanyThesisDetails_ThesisStudentApplicationsToShow != null)
@@ -696,7 +708,9 @@ namespace QuizManager.Components.Layout.StudentSections
         private async Task ShowProfessorThesisDetailsModal_StudentThesisApplications(long thesisRNG)
         {
             // Fetch the professor thesis details asynchronously
-            selectedProfessorThesisDetails_ThesisStudentApplicationsToShow = await dbContext.ProfessorTheses
+            await using var context = await DbContextFactory.CreateDbContextAsync();
+
+            selectedProfessorThesisDetails_ThesisStudentApplicationsToShow = await context.ProfessorTheses
                 .FirstOrDefaultAsync(t => t.RNGForThesisUploaded == thesisRNG);
 
             if (selectedProfessorThesisDetails_ThesisStudentApplicationsToShow != null)
@@ -722,7 +736,9 @@ namespace QuizManager.Components.Layout.StudentSections
         private async Task ShowProfessorHyperlinkNameDetailsModalInStudentThesis(string professorEmail)
         {
             // Fetch professor details based on the professorId
-            selectedProfessorDetailsFromThesis = await dbContext.Professors
+            await using var context = await DbContextFactory.CreateDbContextAsync();
+
+            selectedProfessorDetailsFromThesis = await context.Professors
                 .FirstOrDefaultAsync(p => p.ProfEmail == professorEmail);
 
             // Show the modal after fetching the details
@@ -735,7 +751,9 @@ namespace QuizManager.Components.Layout.StudentSections
 
         private async Task ShowCompanyHyperlinkNameDetailsModalInStudentThesis(string companyEmail)
         {
-            selectedCompanyDetailsFromThesis = await dbContext.Companies
+            await using var context = await DbContextFactory.CreateDbContextAsync();
+
+            selectedCompanyDetailsFromThesis = await context.Companies
                 .FirstOrDefaultAsync(c => c.CompanyEmail == companyEmail);
 
             if (selectedCompanyDetailsFromThesis != null)
@@ -748,7 +766,9 @@ namespace QuizManager.Components.Layout.StudentSections
         // Helper Methods
         private async Task<QuizManager.Models.Student> GetStudentDetails(string email)
         {
-            return await dbContext.Students
+            await using var context = await DbContextFactory.CreateDbContextAsync();
+
+            return await context.Students
                 .FirstOrDefaultAsync(s => s.Email == email);
         }
 
@@ -901,7 +921,8 @@ namespace QuizManager.Components.Layout.StudentSections
         // Show Thesis Details
         private async Task ShowCompanyThesisDetailsAsStudent(long thesisRng)
         {
-            selectedCompanyThesisDetails = await dbContext.CompanyTheses
+            await using var context = await DbContextFactory.CreateDbContextAsync();
+            selectedCompanyThesisDetails = await context.CompanyTheses
                 .FirstOrDefaultAsync(t => t.RNGForThesisUploadedAsCompany == thesisRng);
             isModalOpenToSeeCompanyThesisDetails_ThesisStudentApplicationsToShow = selectedCompanyThesisDetails != null;
             StateHasChanged();
@@ -909,7 +930,8 @@ namespace QuizManager.Components.Layout.StudentSections
 
         private async Task ShowProfessorThesisDetailsAsStudent(long thesisRng)
         {
-            selectedProfessorThesisDetails = await dbContext.ProfessorTheses
+            await using var context = await DbContextFactory.CreateDbContextAsync();
+            selectedProfessorThesisDetails = await context.ProfessorTheses
                 .FirstOrDefaultAsync(t => t.RNGForThesisUploaded == thesisRng);
             isModalOpenToSeeProfessorThesisDetails_ThesisStudentApplicationsToShow = selectedProfessorThesisDetails != null;
             StateHasChanged();

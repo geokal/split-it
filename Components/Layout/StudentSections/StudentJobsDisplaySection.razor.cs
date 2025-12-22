@@ -14,7 +14,7 @@ namespace QuizManager.Components.Layout.StudentSections
 {
     public partial class StudentJobsDisplaySection : ComponentBase
     {
-        [Inject] private AppDbContext dbContext { get; set; } = default!;
+        [Inject] private IDbContextFactory<AppDbContext> DbContextFactory { get; set; } = default!;
         [Inject] private IJSRuntime JS { get; set; } = default!;
         [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
         [Inject] private NavigationManager NavigationManager { get; set; } = default!;
@@ -149,14 +149,16 @@ namespace QuizManager.Components.Layout.StudentSections
                     {
                         showStudentJobApplications = true;
 
+                        await using var context = await DbContextFactory.CreateDbContextAsync();
+
                         // Get student details
-                        var student = await dbContext.Students
+                        var student = await context.Students
                             .FirstOrDefaultAsync(s => s.Email == userEmail);
 
                         if (student != null)
                         {
                             // Retrieve job applications using email and unique ID
-                            companyJobApplications = await dbContext.CompanyJobsApplied
+                            companyJobApplications = await context.CompanyJobsApplied
                                 .Where(j => j.StudentEmailAppliedForCompanyJob == userEmail && 
                                         j.StudentUniqueIDAppliedForCompanyJob == student.Student_UniqueID)
                                 .OrderByDescending(j => j.DateTimeStudentAppliedForCompanyJob)
@@ -167,7 +169,7 @@ namespace QuizManager.Components.Layout.StudentSections
                                 .Select(a => a.RNGForCompanyJobApplied)
                                 .ToList();
 
-                            var jobs = await dbContext.CompanyJobs
+                            var jobs = await context.CompanyJobs
                                 .Include(j => j.Company)
                                 .Where(j => jobRNGs.Contains(j.RNGForPositionUploaded))
                                 .ToListAsync();
@@ -313,7 +315,9 @@ namespace QuizManager.Components.Layout.StudentSections
                 // Step 1: Get the related job details
                 await UpdateProgressWhenWithdrawJobApplication(10, 200);
             
-                var job = await dbContext.CompanyJobs
+                await using var context = await DbContextFactory.CreateDbContextAsync();
+
+                var job = await context.CompanyJobs
                     .Include(j => j.Company)
                     .FirstOrDefaultAsync(j => j.RNGForPositionUploaded == application.RNGForCompanyJobApplied);
 
@@ -343,8 +347,8 @@ namespace QuizManager.Components.Layout.StudentSections
                     DateTime_PerformedAction = DateTime.Now
                 };
 
-                dbContext.PlatformActions.Add(platformAction);
-                await dbContext.SaveChangesAsync();
+                context.PlatformActions.Add(platformAction);
+                await context.SaveChangesAsync();
             
                 await UpdateProgressWhenWithdrawJobApplication(70, 200);
 
@@ -433,8 +437,10 @@ namespace QuizManager.Components.Layout.StudentSections
                 }
                 else
                 {
+                    await using var context = await DbContextFactory.CreateDbContextAsync();
+
                     // Fetch the company details from the database using email
-                    selectedCompanyDetails_StudentJobApplications = await dbContext.Companies
+                    selectedCompanyDetails_StudentJobApplications = await context.Companies
                         .FirstOrDefaultAsync(c => c.CompanyEmail == companyEmail);
 
                     // Add to cache if found
@@ -475,8 +481,10 @@ namespace QuizManager.Components.Layout.StudentSections
 
         private async Task ShowCompanyJobDetailsModal_StudentJobApplications(long jobRNG)
         {
+            await using var context = await DbContextFactory.CreateDbContextAsync();
+
             // Fetch the job details asynchronously
-            selectedCompanyJobDetails_StudentJobApplications = await dbContext.CompanyJobs
+            selectedCompanyJobDetails_StudentJobApplications = await context.CompanyJobs
                 .Include(j => j.Company)
                 .FirstOrDefaultAsync(j => j.RNGForPositionUploaded == jobRNG);
 
@@ -502,7 +510,9 @@ namespace QuizManager.Components.Layout.StudentSections
         // Helper Methods
         private async Task<QuizManager.Models.Student> GetStudentDetails(string email)
         {
-            return await dbContext.Students
+            await using var context = await DbContextFactory.CreateDbContextAsync();
+
+            return await context.Students
                 .FirstOrDefaultAsync(s => s.Email == email);
         }
 
@@ -569,7 +579,8 @@ namespace QuizManager.Components.Layout.StudentSections
         {
             if (job.Company == null)
             {
-                await dbContext.Entry(job)
+                await using var context = await DbContextFactory.CreateDbContextAsync();
+                await context.Entry(job)
                     .Reference(j => j.Company)
                     .LoadAsync();
             }
@@ -581,7 +592,9 @@ namespace QuizManager.Components.Layout.StudentSections
 
         private async Task ShowJobDetails(CompanyJobApplied jobApplication)
         {
-            currentJobApplicationMadeAsStudent = await dbContext.CompanyJobs
+            await using var context = await DbContextFactory.CreateDbContextAsync();
+
+            currentJobApplicationMadeAsStudent = await context.CompanyJobs
                 .Include(j => j.Company)
                 .FirstOrDefaultAsync(j => j.RNGForPositionUploaded == jobApplication.RNGForCompanyJobApplied);
 
@@ -755,7 +768,9 @@ namespace QuizManager.Components.Layout.StudentSections
             {
                 try
                 {
-                    jobTitleAutocompleteSuggestionsWhenSearchForCompanyJobsAsStudent = await dbContext.CompanyJobs
+                    await using var context = await DbContextFactory.CreateDbContextAsync();
+
+                    jobTitleAutocompleteSuggestionsWhenSearchForCompanyJobsAsStudent = await context.CompanyJobs
                         .Where(j => j.PositionTitle.Contains(jobSearch) && j.PositionStatus == "Δημοσιευμένη")
                         .Select(j => j.PositionTitle)
                         .Distinct()
@@ -779,7 +794,9 @@ namespace QuizManager.Components.Layout.StudentSections
             {
                 try
                 {
-                    companyNameAutocompleteSuggestionsWhenSearchForCompanyJobsAsStudent = await dbContext.Companies
+                    await using var context = await DbContextFactory.CreateDbContextAsync();
+
+                    companyNameAutocompleteSuggestionsWhenSearchForCompanyJobsAsStudent = await context.Companies
                         .Where(c => c.CompanyName.Contains(companyNameSearch))
                         .Select(c => c.CompanyName)
                         .Distinct()

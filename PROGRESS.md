@@ -66,13 +66,15 @@ See `docs/ERROR_INVESTIGATION.md` for detailed explanation of error count fluctu
 ### Remaining Components (CS0103)
 - None (CS0103 cleared)
 
-### Service Migration (DbContext → Services)
+### Service/Factory Migration (DbContext → Services/Factory)
 - ✅ Company sections now use `ICompanyDashboardService` (Jobs, Internships, Theses, Events, Announcements, Searches)
 - ✅ Professor sections now use `IProfessorDashboardService` (Events, Internships, Theses, Company/Student/ResearchGroup searches, Announcements)
 - ✅ ResearchGroup company search now uses `IResearchGroupDashboardService` lookups/filter/search (no direct `DbContext`)
 - ✅ MainLayout/front page already service-driven
 - ✅ QuizViewer pages (1–4) now use `IDbContextFactory` (no injected `AppDbContext`)
-- ⚠️ Remaining ResearchGroup components (Announcements, Events, Professor search, Statistics) and Student sections still inject `AppDbContext` directly (future pass)
+- ✅ Student sections (Events, JobsDisplay, ThesisDisplay, CompanySearch, Internships) now use `IDbContextFactory`
+- ✅ ResearchGroup Announcements/Events already on `IDbContextFactory` (full service migration still pending)
+- ⚠️ Remaining: migrate Student/ResearchGroup logic into services (currently factory-based, not service-backed)
 
 ### Extraction Strategy
 1. **Source**: `backups/MainLayout.razor.cs.backup` (33,977 lines - the original monolithic file)
