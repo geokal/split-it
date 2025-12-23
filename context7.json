@@ -1,0 +1,33 @@
+{
+  "$schema": "https://context7.com/schema/context7.json",
+  "projectTitle": "ASP.NET Core",
+  "description": "ASP.NET Core is an open-source, cross-platform framework for building modern cloud-based internet-connected applications like web apps, IoT apps, and mobile backends.",
+  "branch": "main",
+  "excludeFolders": [
+    "archive",
+    "archived",
+    "old",
+    "docs/old",
+    "deprecated",
+    "legacy",
+    "previous",
+    "outdated",
+    "superseded"
+  ],
+  "excludeFiles": [
+    "CHANGELOG.md",
+    "changelog.md",
+    "CHANGELOG.mdx",
+    "changelog.mdx",
+    "LICENSE.md",
+    "license.md",
+    "CODE_OF_CONDUCT.md",
+    "code_of_conduct.md"
+  ],
+  "previousVersions": [
+    {
+      "tag": "v8.0.21",
+      "title": "v8.0.21"
+    }
+  ]
+}
