@@ -9,12 +9,14 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.JSInterop;
 using QuizManager.Data;
 using QuizManager.Models;
+using QuizManager.Services.StudentDashboard;
 
 namespace QuizManager.Components.Layout.StudentSections
 {
     public partial class StudentInternshipsSection : ComponentBase
     {
         [Inject] private IDbContextFactory<AppDbContext> DbContextFactory { get; set; } = default!;
+        [Inject] private IStudentDashboardService StudentDashboardService { get; set; } = default!;
         [Inject] private IJSRuntime JS { get; set; } = default!;
         [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
         [Inject] private NavigationManager NavigationManager { get; set; } = default!;
@@ -33,6 +35,7 @@ namespace QuizManager.Components.Layout.StudentSections
         private Dictionary<long, ProfessorInternship> professorInternshipDataCache = new Dictionary<long, ProfessorInternship>();
         private List<AllInternships> publishedInternships = new List<AllInternships>();
         private int totalInternshipCountForInternshipsToSee = 0;
+        private StudentDashboardData _dashboardData = StudentDashboardData.Empty;
 
         // Pagination for Applications
         private int currentPageForInternshipsToSee = 1;
@@ -174,70 +177,43 @@ namespace QuizManager.Components.Layout.StudentSections
 
         private async Task LoadUserInternshipApplications()
         {
+            _dashboardData = await StudentDashboardService.LoadDashboardDataAsync();
             await using var dbContext = await DbContextFactory.CreateDbContextAsync();
-            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-            var user = authState.User;
 
-            // Initialize lists and caches
-            internshipApplications = new List<InternshipApplied>();
-            professorInternshipApplications = new List<ProfessorInternshipApplied>();
-            internshipDataCache = new Dictionary<long, CompanyInternship>();
-            professorInternshipDataCache = new Dictionary<long, ProfessorInternship>();
+            internshipApplications = _dashboardData.CompanyInternshipApplications.ToList();
+            professorInternshipApplications = _dashboardData.ProfessorInternshipApplications.ToList();
 
-            if (user.Identity.IsAuthenticated)
+            // Build caches from DB to keep full model details
+            internshipDataCache.Clear();
+            professorInternshipDataCache.Clear();
+
+            var companyIds = internshipApplications.Select(a => a.RNGForInternshipApplied).Distinct().ToList();
+            if (companyIds.Count > 0)
             {
-                var userEmail = user.FindFirst("name")?.Value;
-
-                if (!string.IsNullOrEmpty(userEmail))
+                var companyInternships = await dbContext.CompanyInternships
+                    .Include(i => i.Company)
+                    .Where(i => companyIds.Contains(i.RNGForInternshipUploadedAsCompany))
+                    .ToListAsync();
+                foreach (var internship in companyInternships)
                 {
-                    // Get student details
-                    var student = await dbContext.Students
-                    .FirstOrDefaultAsync(s => s.Email == userEmail);
-
-                    if (student != null)
-                    {
-                        // Fetch company internship applications with details
-                        internshipApplications = await dbContext.InternshipsApplied
-                            .Include(app => app.StudentDetails)
-                            .Include(app => app.CompanyDetails)
-                            .Where(app => app.StudentDetails.StudentUniqueIDAppliedForInternship == student.Student_UniqueID)
-                            .ToListAsync();
-
-                        // Load all related company internships in one query
-                        var companyInternshipRNGs = internshipApplications.Select(a => a.RNGForInternshipApplied).ToList();
-                        var companyInternships = await dbContext.CompanyInternships
-                            .Include(i => i.Company)
-                            .Where(i => companyInternshipRNGs.Contains(i.RNGForInternshipUploadedAsCompany))
-                            .ToListAsync();
-
-                        // Populate company internship cache
-                        foreach (var internship in companyInternships)
-                        {
-                            internshipDataCache[internship.RNGForInternshipUploadedAsCompany] = internship;
-                        }
-
-                        // Fetch professor internship applications with details
-                        professorInternshipApplications = await dbContext.ProfessorInternshipsApplied
-                            .Include(app => app.StudentDetails)
-                            .Include(app => app.ProfessorDetails)
-                            .Where(app => app.StudentDetails.StudentUniqueIDAppliedForProfessorInternship == student.Student_UniqueID)
-                            .ToListAsync();
-
-                        // Load all related professor internships in one query
-                        var professorInternshipRNGs = professorInternshipApplications.Select(a => a.RNGForProfessorInternshipApplied).ToList();
-                        var professorInternships = await dbContext.ProfessorInternships
-                            .Include(i => i.Professor)
-                            .Where(i => professorInternshipRNGs.Contains(i.RNGForInternshipUploadedAsProfessor))
-                            .ToListAsync();
-
-                        // Populate professor internship cache
-                        foreach (var internship in professorInternships)
-                        {
-                            professorInternshipDataCache[internship.RNGForInternshipUploadedAsProfessor] = internship;
-                        }
-                    }
+                    internshipDataCache[internship.RNGForInternshipUploadedAsCompany] = internship;
                 }
             }
+
+            var professorIds = professorInternshipApplications.Select(a => a.RNGForProfessorInternshipApplied).Distinct().ToList();
+            if (professorIds.Count > 0)
+            {
+                var professorInternships = await dbContext.ProfessorInternships
+                    .Include(i => i.Professor)
+                    .Where(i => professorIds.Contains(i.RNGForInternshipUploadedAsProfessor))
+                    .ToListAsync();
+                foreach (var internship in professorInternships)
+                {
+                    professorInternshipDataCache[internship.RNGForInternshipUploadedAsProfessor] = internship;
+                }
+            }
+
+            showStudentInternshipApplications = _dashboardData.IsAuthenticated && _dashboardData.IsRegisteredStudent;
 
             UpdateTotalInternshipCount();
             StateHasChanged();
@@ -371,7 +347,6 @@ namespace QuizManager.Components.Layout.StudentSections
 
         private async Task WithdrawInternshipApplication(object applicationObj)
         {
-            await using var dbContext = await DbContextFactory.CreateDbContextAsync();
             try
             {
                 if (applicationObj is InternshipApplied companyInternship)
@@ -385,14 +360,13 @@ namespace QuizManager.Components.Layout.StudentSections
                     loadingProgressWhenWithdrawInternshipApplication = 0;
                     StateHasChanged();
 
-                    // Step 1: Get the related internship details
                     await UpdateProgressWhenWithdrawInternshipApplication(10, 200);
-                
-                    var internship = await dbContext.CompanyInternships
-                        .Include(i => i.Company)
-                        .FirstOrDefaultAsync(i => i.RNGForInternshipUploadedAsCompany == companyInternship.RNGForInternshipApplied);
+                    var internship = internshipDataCache.TryGetValue(companyInternship.RNGForInternshipApplied, out var cachedInternship)
+                        ? cachedInternship
+                        : null;
+                    var student = _dashboardData.Student;
 
-                    if (internship == null)
+                    if (!await StudentDashboardService.WithdrawCompanyInternshipApplicationAsync(companyInternship.RNGForInternshipApplied))
                     {
                         showLoadingModalWhenWithdrawInternshipApplication = false;
                         StateHasChanged();
@@ -400,59 +374,32 @@ namespace QuizManager.Components.Layout.StudentSections
                         return;
                     }
 
-                    // Step 2: Update status
-                    await UpdateProgressWhenWithdrawInternshipApplication(30, 200);
-                
-                    companyInternship.InternshipStatusAppliedAtTheCompanySide = "Αποσύρθηκε από τον φοιτητή";
-                    companyInternship.InternshipStatusAppliedAtTheStudentSide = "Αποσύρθηκε από τον φοιτητή";
-
-                    // Step 3: Add platform action
                     await UpdateProgressWhenWithdrawInternshipApplication(50, 200);
-                
-                    var platformAction = new PlatformActions
-                    {
-                        UserRole_PerformedAction = "STUDENT",
-                        ForWhat_PerformedAction = "COMPANY_INTERNSHIP",
-                        HashedPositionRNG_PerformedAction = HashLong(companyInternship.RNGForInternshipApplied),
-                        TypeOfAction_PerformedAction = "SELFWITHDRAW",
-                        DateTime_PerformedAction = DateTime.Now
-                    };
+                    await StudentDashboardService.RefreshDashboardCacheAsync();
+                    await LoadUserInternshipApplications();
 
-                    dbContext.PlatformActions.Add(platformAction);
-                    await dbContext.SaveChangesAsync();
-                
-                    await UpdateProgressWhenWithdrawInternshipApplication(70, 200);
-
-                    // Step 4: Get student details
                     await UpdateProgressWhenWithdrawInternshipApplication(80, 200);
-                
-                    var student = await GetStudentDetails(companyInternship.StudentEmailAppliedForInternship);
-                    if (student == null)
+
+                    if (internship != null && student != null)
                     {
-                        showLoadingModalWhenWithdrawInternshipApplication = false;
-                        StateHasChanged();
-                        await JS.InvokeVoidAsync("alert", "Δεν βρέθηκαν στοιχεία φοιτητή.");
-                        return;
+                        var companyName = internship.Company?.CompanyName ?? "Άγνωστη Εταιρεία";
+
+                        await InternshipEmailService.SendInternshipWithdrawalNotificationToCompany_AsStudent(
+                            companyInternship.CompanyEmailWhereStudentAppliedForInternship,
+                            companyName,
+                            student.Name,
+                            student.Surname,
+                            internship.CompanyInternshipTitle,
+                            companyInternship.RNGForInternshipAppliedAsStudent_HashedAsUniqueID);
+
+                        await InternshipEmailService.SendInternshipWithdrawalConfirmationToStudent_AsCompany(
+                            companyInternship.StudentEmailAppliedForInternship,
+                            student.Name,
+                            student.Surname,
+                            internship.CompanyInternshipTitle,
+                            companyInternship.RNGForInternshipAppliedAsStudent_HashedAsUniqueID,
+                            companyName);
                     }
-
-                    // Step 5: Send notifications
-                    await UpdateProgressWhenWithdrawInternshipApplication(90, 200);
-                
-                    await InternshipEmailService.SendInternshipWithdrawalNotificationToCompany_AsStudent(
-                        companyInternship.CompanyEmailWhereStudentAppliedForInternship,
-                        internship.Company?.CompanyName,
-                        student.Name,
-                        student.Surname,
-                        internship.CompanyInternshipTitle,
-                        companyInternship.RNGForInternshipAppliedAsStudent_HashedAsUniqueID);
-
-                    await InternshipEmailService.SendInternshipWithdrawalConfirmationToStudent_AsCompany(
-                        companyInternship.StudentEmailAppliedForInternship,
-                        student.Name,
-                        student.Surname,
-                        internship.CompanyInternshipTitle,
-                        companyInternship.RNGForInternshipAppliedAsStudent_HashedAsUniqueID,
-                        internship.Company?.CompanyName);
 
                     await UpdateProgressWhenWithdrawInternshipApplication(100, 200);
                 
@@ -485,14 +432,13 @@ namespace QuizManager.Components.Layout.StudentSections
                     loadingProgressWhenWithdrawInternshipApplication = 0;
                     StateHasChanged();
 
-                    // Step 1: Get the related internship details
                     await UpdateProgressWhenWithdrawInternshipApplication(10, 200);
-                
-                    var internship = await dbContext.ProfessorInternships
-                        .Include(i => i.Professor)
-                        .FirstOrDefaultAsync(i => i.RNGForInternshipUploadedAsProfessor == professorInternship.RNGForProfessorInternshipApplied);
+                    var internship = professorInternshipDataCache.TryGetValue(professorInternship.RNGForProfessorInternshipApplied, out var cachedInternship)
+                        ? cachedInternship
+                        : null;
+                    var student = _dashboardData.Student;
 
-                    if (internship == null)
+                    if (!await StudentDashboardService.WithdrawProfessorInternshipApplicationAsync(professorInternship.RNGForProfessorInternshipApplied))
                     {
                         showLoadingModalWhenWithdrawInternshipApplication = false;
                         StateHasChanged();
@@ -500,63 +446,38 @@ namespace QuizManager.Components.Layout.StudentSections
                         return;
                     }
 
-                    // Step 2: Update status
-                    await UpdateProgressWhenWithdrawInternshipApplication(30, 200);
-                
-                    professorInternship.InternshipStatusAppliedAtTheStudentSide = "Αποσύρθηκε από τον φοιτητή";
-                    professorInternship.InternshipStatusAppliedAtTheProfessorSide = "Αποσύρθηκε από τον φοιτητή";
-
-                    // Step 3: Add platform action
                     await UpdateProgressWhenWithdrawInternshipApplication(50, 200);
-                
-                    var platformAction = new PlatformActions
-                    {
-                        UserRole_PerformedAction = "STUDENT",
-                        ForWhat_PerformedAction = "PROFESSOR_INTERNSHIP",
-                        HashedPositionRNG_PerformedAction = HashLong(professorInternship.RNGForProfessorInternshipApplied),
-                        TypeOfAction_PerformedAction = "SELFWITHDRAW",
-                        DateTime_PerformedAction = DateTime.Now
-                    };
+                    await StudentDashboardService.RefreshDashboardCacheAsync();
+                    await LoadUserInternshipApplications();
 
-                    dbContext.PlatformActions.Add(platformAction);
-                    await dbContext.SaveChangesAsync();
-                
-                    await UpdateProgressWhenWithdrawInternshipApplication(70, 200);
-
-                    // Step 4: Get student details
                     await UpdateProgressWhenWithdrawInternshipApplication(80, 200);
-                
-                    var student = await GetStudentDetails(professorInternship.StudentEmailAppliedForProfessorInternship);
-                    if (student == null)
-                    {
-                        showLoadingModalWhenWithdrawInternshipApplication = false;
-                        StateHasChanged();
-                        await JS.InvokeVoidAsync("alert", "Δεν βρέθηκαν στοιχεία φοιτητή.");
-                        return;
-                    }
 
-                    var professorName = internship.Professor != null 
-                        ? $"{internship.Professor.ProfName} {internship.Professor.ProfSurname}" 
+                    var professorName = internship != null && internship.Professor != null
+                        ? $"{internship.Professor.ProfName} {internship.Professor.ProfSurname}"
                         : "Άγνωστος Καθηγητής";
 
                     // Step 5: Send notifications
                     await UpdateProgressWhenWithdrawInternshipApplication(90, 200);
                 
-                    await InternshipEmailService.SendProfessorInternshipWithdrawalNotificationToProfessor(
-                        professorInternship.ProfessorEmailWhereStudentAppliedForInternship,
-                        professorName,
-                        student.Name,
-                        student.Surname,
-                        internship.ProfessorInternshipTitle,
-                        professorInternship.RNGForProfessorInternshipApplied_HashedAsUniqueID);
+                    if (internship != null && student != null)
+                    {
+                        await InternshipEmailService.SendProfessorInternshipWithdrawalNotificationToProfessor(
+                            professorInternship.ProfessorDetails?.ProfessorEmailWhereStudentAppliedForProfessorInternship
+                                ?? professorInternship.ProfessorEmailWhereStudentAppliedForInternship,
+                            professorName,
+                            student.Name,
+                            student.Surname,
+                            internship.ProfessorInternshipTitle,
+                            professorInternship.RNGForProfessorInternshipApplied_HashedAsUniqueID);
 
-                    await InternshipEmailService.SendProfessorInternshipWithdrawalConfirmationToStudent(
-                        professorInternship.StudentEmailAppliedForProfessorInternship,
-                        student.Name,
-                        student.Surname,
-                        internship.ProfessorInternshipTitle,
-                        professorInternship.RNGForProfessorInternshipApplied_HashedAsUniqueID,
-                        professorName);
+                        await InternshipEmailService.SendProfessorInternshipWithdrawalConfirmationToStudent(
+                            professorInternship.StudentEmailAppliedForProfessorInternship,
+                            student.Name,
+                            student.Surname,
+                            internship.ProfessorInternshipTitle,
+                            professorInternship.RNGForProfessorInternshipApplied_HashedAsUniqueID,
+                            professorName);
+                    }
 
                     await UpdateProgressWhenWithdrawInternshipApplication(100, 200);
                 
@@ -603,21 +524,16 @@ namespace QuizManager.Components.Layout.StudentSections
         // Company Details Modals
         private async Task ShowCompanyDetailsInInternshipCompanyName_StudentInternshipApplications(string companyEmail)
         {
-            await using var dbContext = await DbContextFactory.CreateDbContextAsync();
             try
             {
-                // First check if we already have the company details in cache
                 if (companyDataCache.TryGetValue(companyEmail, out var cachedCompany))
                 {
                     selectedCompanyDetails_StudentInternshipApplications = cachedCompany;
                 }
                 else
                 {
-                    // Fetch the company details from the database using email
-                    selectedCompanyDetails_StudentInternshipApplications = await dbContext.Companies
-                        .FirstOrDefaultAsync(c => c.CompanyEmail == companyEmail);
+                    selectedCompanyDetails_StudentInternshipApplications = await StudentDashboardService.GetCompanyByEmailAsync(companyEmail);
 
-                    // Add to cache if found
                     if (selectedCompanyDetails_StudentInternshipApplications != null)
                     { 
                         companyDataCache[companyEmail] = selectedCompanyDetails_StudentInternshipApplications;
@@ -655,11 +571,9 @@ namespace QuizManager.Components.Layout.StudentSections
 
         private async Task ShowCompanyInternshipDetailsModal_StudentInternshipApplications(long internshipRNG)
         {
-            await using var dbContext = await DbContextFactory.CreateDbContextAsync();
-            // Fetch the internship details asynchronously
-            selectedCompanyInternshipDetails_StudentInternshipApplications = await dbContext.CompanyInternships
-                .Include(i => i.Company)
-                .FirstOrDefaultAsync(i => i.RNGForInternshipUploadedAsCompany == internshipRNG);
+            selectedCompanyInternshipDetails_StudentInternshipApplications = internshipDataCache.TryGetValue(internshipRNG, out var cached)
+                ? cached
+                : null;
 
             if (selectedCompanyInternshipDetails_StudentInternshipApplications != null)
             {
@@ -688,9 +602,7 @@ namespace QuizManager.Components.Layout.StudentSections
 
         private async Task ShowCompanyHyperlinkNameDetailsModalInStudentInternships(string companyEmail)
         {
-            await using var dbContext = await DbContextFactory.CreateDbContextAsync();
-            selectedCompanyDetailsFromInternship = await dbContext.Companies
-                .FirstOrDefaultAsync(c => c.CompanyEmail == companyEmail);
+            selectedCompanyDetailsFromInternship = await StudentDashboardService.GetCompanyByEmailAsync(companyEmail);
 
             if (selectedCompanyDetailsFromInternship != null)
             {
@@ -746,14 +658,14 @@ namespace QuizManager.Components.Layout.StudentSections
         // Download Methods
         private async Task DownloadInternshipAttachmentAsStudent(long internshipId)
         {
-            await using var dbContext = await DbContextFactory.CreateDbContextAsync();
-            var internship = await dbContext.CompanyInternships.FirstOrDefaultAsync(i => i.Id == internshipId);
-            if (internship == null || internship.CompanyInternshipAttachment == null)
+            var attachment = await StudentDashboardService.GetCompanyInternshipAttachmentAsync(internshipId);
+            if (attachment == null)
             {
                 await JS.InvokeVoidAsync("alert", "Δεν βρέθηκε συνημμένο αρχείο.");
                 return;
             }
-            // File download logic here
+
+            await JS.InvokeVoidAsync("BlazorDownloadAttachmentPositionFile", attachment.Value.FileName, "application/pdf", attachment.Value.Data);
         }
 
         private async Task DownloadStudentCVForProfessorInternships(string studentEmail)
@@ -819,7 +731,6 @@ namespace QuizManager.Components.Layout.StudentSections
 
         private async Task WithdrawProfessorInternshipApplicationMadeByStudent(ProfessorInternshipApplied application)
         {
-            await using var dbContext = await DbContextFactory.CreateDbContextAsync();
             try
             {
                 var confirmed = await JS.InvokeAsync<bool>("confirmActionWithHTML", 
@@ -831,11 +742,12 @@ namespace QuizManager.Components.Layout.StudentSections
                 StateHasChanged();
 
                 await UpdateProgressWhenWithdrawProfessorInternshipApplication(10, 200);
-                var internship = await dbContext.ProfessorInternships
-                    .Include(i => i.Professor)
-                    .FirstOrDefaultAsync(i => i.RNGForInternshipUploadedAsProfessor == application.RNGForProfessorInternshipApplied);
+                var internship = professorInternshipDataCache.TryGetValue(application.RNGForProfessorInternshipApplied, out var cachedInternship)
+                    ? cachedInternship
+                    : null;
+                var student = _dashboardData.Student;
 
-                if (internship == null)
+                if (!await StudentDashboardService.WithdrawProfessorInternshipApplicationAsync(application.RNGForProfessorInternshipApplied))
                 {
                     showLoadingModalWhenWithdrawProfessorInternshipApplication = false;
                     StateHasChanged();
@@ -843,47 +755,34 @@ namespace QuizManager.Components.Layout.StudentSections
                     return;
                 }
 
-                await UpdateProgressWhenWithdrawProfessorInternshipApplication(30, 200);
-                application.InternshipStatusAppliedAtTheProfessorSide = "Αποσύρθηκε από τον φοιτητή";
-                application.InternshipStatusAppliedAtTheStudentSide = "Αποσύρθηκε από τον φοιτητή";
-
                 await UpdateProgressWhenWithdrawProfessorInternshipApplication(50, 200);
-                dbContext.PlatformActions.Add(new PlatformActions
-                {
-                    UserRole_PerformedAction = "STUDENT",
-                    ForWhat_PerformedAction = "PROFESSOR_INTERNSHIP",
-                    HashedPositionRNG_PerformedAction = HashingHelper.HashLong(application.RNGForProfessorInternshipApplied),
-                    TypeOfAction_PerformedAction = "SELFWITHDRAW",
-                    DateTime_PerformedAction = DateTime.Now
-                });
-                await dbContext.SaveChangesAsync();
+                await StudentDashboardService.RefreshDashboardCacheAsync();
+                await LoadUserInternshipApplications();
 
-                await UpdateProgressWhenWithdrawProfessorInternshipApplication(70, 200);
-                var student = await GetStudentDetails(application.StudentDetails.StudentEmailAppliedForProfessorInternship);
-                if (student == null)
+                await UpdateProgressWhenWithdrawProfessorInternshipApplication(80, 200);
+
+                if (internship != null && student != null)
                 {
-                    showLoadingModalWhenWithdrawProfessorInternshipApplication = false;
-                    StateHasChanged();
-                    await JS.InvokeVoidAsync("alert", "Δεν βρέθηκαν στοιχεία φοιτητή.");
-                    return;
+                    var professorName = internship.Professor != null
+                        ? $"{internship.Professor.ProfName} {internship.Professor.ProfSurname}"
+                        : "Άγνωστος Καθηγητής";
+
+                    await InternshipEmailService.SendProfessorInternshipWithdrawalNotificationToProfessor(
+                        application.ProfessorDetails.ProfessorEmailWhereStudentAppliedForProfessorInternship,
+                        professorName,
+                        student.Name,
+                        student.Surname,
+                        internship.ProfessorInternshipTitle,
+                        application.RNGForProfessorInternshipApplied_HashedAsUniqueID);
+
+                    await InternshipEmailService.SendProfessorInternshipWithdrawalConfirmationToStudent(
+                        application.StudentDetails.StudentEmailAppliedForProfessorInternship,
+                        student.Name,
+                        student.Surname,
+                        internship.ProfessorInternshipTitle,
+                        application.RNGForProfessorInternshipApplied_HashedAsUniqueID,
+                        professorName);
                 }
-
-                await UpdateProgressWhenWithdrawProfessorInternshipApplication(90, 200);
-                await InternshipEmailService.SendProfessorInternshipWithdrawalNotificationToProfessor(
-                    application.ProfessorDetails.ProfessorEmailWhereStudentAppliedForProfessorInternship,
-                    $"{internship.Professor.ProfName} {internship.Professor.ProfSurname}",
-                    student.Name,
-                    student.Surname,
-                    internship.ProfessorInternshipTitle,
-                    application.RNGForProfessorInternshipApplied_HashedAsUniqueID);
-
-                await InternshipEmailService.SendProfessorInternshipWithdrawalConfirmationToStudent(
-                    application.StudentDetails.StudentEmailAppliedForProfessorInternship,
-                    student.Name,
-                    student.Surname,
-                    internship.ProfessorInternshipTitle,
-                    application.RNGForProfessorInternshipApplied_HashedAsUniqueID,
-                    $"{internship.Professor.ProfName} {internship.Professor.ProfSurname}");
 
                 await UpdateProgressWhenWithdrawProfessorInternshipApplication(100, 200);
                 await Task.Delay(500);

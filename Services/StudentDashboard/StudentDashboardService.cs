@@ -334,9 +334,16 @@ namespace QuizManager.Services.StudentDashboard
         {
             try
             {
+                var email = await ResolveCurrentUserEmailAsync(cancellationToken);
+                if (string.IsNullOrEmpty(email))
+                {
+                    return false;
+                }
+
                 await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
                 var application = await context.ProfessorThesesApplied
-                    .FirstOrDefaultAsync(app => app.RNGForProfessorThesisApplied == rngForThesisApplied, cancellationToken);
+                    .FirstOrDefaultAsync(app => app.RNGForProfessorThesisApplied == rngForThesisApplied &&
+                                                app.StudentEmailAppliedForProfessorThesis == email, cancellationToken);
 
                 if (application == null)
                 {
@@ -362,9 +369,16 @@ namespace QuizManager.Services.StudentDashboard
         {
             try
             {
+                var email = await ResolveCurrentUserEmailAsync(cancellationToken);
+                if (string.IsNullOrEmpty(email))
+                {
+                    return false;
+                }
+
                 await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
                 var application = await context.CompanyThesesApplied
-                    .FirstOrDefaultAsync(app => app.RNGForCompanyThesisApplied == rngForThesisApplied, cancellationToken);
+                    .FirstOrDefaultAsync(app => app.RNGForCompanyThesisApplied == rngForThesisApplied &&
+                                                app.StudentEmailAppliedForThesis == email, cancellationToken);
 
                 if (application == null)
                 {
@@ -376,6 +390,7 @@ namespace QuizManager.Services.StudentDashboard
                 application.CompanyThesisStatusAppliedAtCompanySide = "Αποσύρθηκε από τον φοιτητή";
 
                 await context.SaveChangesAsync(cancellationToken);
+                _memoryCache.Remove(DashboardCachePrefix + email);
                 return true;
             }
             catch (Exception ex)
@@ -562,6 +577,86 @@ namespace QuizManager.Services.StudentDashboard
                 _logger.LogError(ex, "Failed to load professor details for {Email}", email);
                 return null;
             }
+        }
+
+        public async Task<Dictionary<long, CompanyInternship>> GetCompanyInternshipsByIdsAsync(IEnumerable<long> ids, CancellationToken cancellationToken = default)
+        {
+            var idList = ids?.ToList() ?? new List<long>();
+            if (idList.Count == 0)
+            {
+                return new Dictionary<long, CompanyInternship>();
+            }
+
+            await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+            var internships = await context.CompanyInternships
+                .Include(i => i.Company)
+                .AsNoTracking()
+                .Where(i => idList.Contains(i.RNGForInternshipUploadedAsCompany))
+                .ToListAsync(cancellationToken);
+
+            return internships.ToDictionary(i => i.RNGForInternshipUploadedAsCompany, i => i);
+        }
+
+        public async Task<Dictionary<long, ProfessorInternship>> GetProfessorInternshipsByIdsAsync(IEnumerable<long> ids, CancellationToken cancellationToken = default)
+        {
+            var idList = ids?.ToList() ?? new List<long>();
+            if (idList.Count == 0)
+            {
+                return new Dictionary<long, ProfessorInternship>();
+            }
+
+            await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+            var internships = await context.ProfessorInternships
+                .Include(i => i.Professor)
+                .AsNoTracking()
+                .Where(i => idList.Contains(i.RNGForInternshipUploadedAsProfessor))
+                .ToListAsync(cancellationToken);
+
+            return internships.ToDictionary(i => i.RNGForInternshipUploadedAsProfessor, i => i);
+        }
+
+        public async Task<CompanyInternship?> GetCompanyInternshipByRngAsync(long rng, CancellationToken cancellationToken = default)
+        {
+            await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+            return await context.CompanyInternships
+                .Include(i => i.Company)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(i => i.RNGForInternshipUploadedAsCompany == rng, cancellationToken);
+        }
+
+        public async Task<ProfessorInternship?> GetProfessorInternshipByRngAsync(long rng, CancellationToken cancellationToken = default)
+        {
+            await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+            return await context.ProfessorInternships
+                .Include(i => i.Professor)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(i => i.RNGForInternshipUploadedAsProfessor == rng, cancellationToken);
+        }
+
+        public async Task<Student?> GetStudentByEmailAsync(string email, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                return null;
+            }
+
+            await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+            return await context.Students
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.Email == email, cancellationToken);
+        }
+
+        public async Task<Student?> GetStudentByUniqueIdAsync(string uniqueId, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(uniqueId))
+            {
+                return null;
+            }
+
+            await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+            return await context.Students
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.Student_UniqueID == uniqueId, cancellationToken);
         }
 
         public async Task<CompanyEventInterestResult?> ShowInterestInCompanyEventAsync(
@@ -935,6 +1030,19 @@ namespace QuizManager.Services.StudentDashboard
                 ?? user.Identity?.Name;
         }
 
+        private async Task<string?> ResolveCurrentUserEmailAsync(CancellationToken cancellationToken)
+        {
+            var authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            if (user?.Identity?.IsAuthenticated != true)
+            {
+                return null;
+            }
+
+            var email = ResolveUserEmail(user);
+            return string.IsNullOrWhiteSpace(email) ? null : email;
+        }
+
         // Helper methods for loading caches
         private static async Task<Dictionary<long, CompanyThesis>> LoadCompanyThesisCacheAsync(
             AppDbContext context,
@@ -1078,4 +1186,3 @@ namespace QuizManager.Services.StudentDashboard
         }
     }
 }
-

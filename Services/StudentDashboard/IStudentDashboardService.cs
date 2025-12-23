@@ -15,6 +15,8 @@ namespace QuizManager.Services.StudentDashboard
 
         Task<IReadOnlyList<string>> GetCompanyNameSuggestionsAsync(string searchTerm, CancellationToken cancellationToken = default);
 
+        Task<bool> WithdrawCompanyThesisApplicationAsync(long rngForThesisApplied, CancellationToken cancellationToken = default);
+
         Task<bool> WithdrawProfessorThesisApplicationAsync(long rngForThesisApplied, CancellationToken cancellationToken = default);
 
         Task<bool> WithdrawCompanyInternshipApplicationAsync(long rngForInternshipApplied, CancellationToken cancellationToken = default);
@@ -28,6 +30,18 @@ namespace QuizManager.Services.StudentDashboard
         Task<Company?> GetCompanyByEmailAsync(string email, CancellationToken cancellationToken = default);
 
         Task<Professor?> GetProfessorByEmailAsync(string email, CancellationToken cancellationToken = default);
+
+        Task<Dictionary<long, CompanyInternship>> GetCompanyInternshipsByIdsAsync(IEnumerable<long> ids, CancellationToken cancellationToken = default);
+
+        Task<Dictionary<long, ProfessorInternship>> GetProfessorInternshipsByIdsAsync(IEnumerable<long> ids, CancellationToken cancellationToken = default);
+
+        Task<CompanyInternship?> GetCompanyInternshipByRngAsync(long rng, CancellationToken cancellationToken = default);
+
+        Task<ProfessorInternship?> GetProfessorInternshipByRngAsync(long rng, CancellationToken cancellationToken = default);
+
+        Task<Student?> GetStudentByEmailAsync(string email, CancellationToken cancellationToken = default);
+
+        Task<Student?> GetStudentByUniqueIdAsync(string uniqueId, CancellationToken cancellationToken = default);
 
         Task<CompanyEventInterestResult?> ShowInterestInCompanyEventAsync(long eventRng, bool needsTransport, string? chosenLocation, CancellationToken cancellationToken = default);
 
