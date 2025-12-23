@@ -82,12 +82,203 @@ namespace QuizManager.Services.ResearchGroupDashboard
             return interestRngs.ToHashSet();
         }
 
-        public Task<MutationResult> CreateOrUpdateAnnouncementAsync(ResearchGroupAnnouncementRequest request, CancellationToken cancellationToken = default)
+        public async Task<IReadOnlyList<AnnouncementAsCompany>> GetPublishedCompanyAnnouncementsAsync(CancellationToken cancellationToken = default)
         {
-            throw new NotImplementedException();
+            await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+            return await context.AnnouncementsAsCompany
+                .AsNoTracking()
+                .Where(a => a.CompanyAnnouncementStatus == "Δημοσιευμένη")
+                .OrderByDescending(a => a.CompanyAnnouncementUploadDate)
+                .ToListAsync(cancellationToken);
         }
 
-        public Task<MutationResult> DeleteAnnouncementAsync(long announcementId, CancellationToken cancellationToken = default)
+        public async Task<IReadOnlyList<AnnouncementAsProfessor>> GetPublishedProfessorAnnouncementsAsync(CancellationToken cancellationToken = default)
+        {
+            await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+            return await context.AnnouncementsAsProfessor
+                .AsNoTracking()
+                .Where(a => a.ProfessorAnnouncementStatus == "Δημοσιευμένη")
+                .OrderByDescending(a => a.ProfessorAnnouncementUploadDate)
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task<IReadOnlyList<AnnouncementAsResearchGroup>> GetPublishedResearchGroupAnnouncementsAsync(CancellationToken cancellationToken = default)
+        {
+            await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+            return await context.AnnouncementAsResearchGroup
+                .AsNoTracking()
+                .Where(a => a.ResearchGroupAnnouncementStatus == "Δημοσιευμένη")
+                .OrderByDescending(a => a.ResearchGroupAnnouncementUploadDate)
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task<IReadOnlyList<AnnouncementAsResearchGroup>> GetUploadedResearchGroupAnnouncementsAsync(string researchGroupEmail, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(researchGroupEmail))
+            {
+                return new List<AnnouncementAsResearchGroup>();
+            }
+
+            await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+            return await context.AnnouncementAsResearchGroup
+                .AsNoTracking()
+                .Where(a => a.ResearchGroupAnnouncementResearchGroupEmail == researchGroupEmail)
+                .OrderByDescending(a => a.ResearchGroupAnnouncementUploadDate)
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task<AnnouncementAsResearchGroup?> CreateAnnouncementAsync(AnnouncementAsResearchGroup announcement, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+                context.AnnouncementAsResearchGroup.Add(announcement);
+                await context.SaveChangesAsync(cancellationToken);
+                return announcement;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating announcement");
+                return null;
+            }
+        }
+
+        public async Task<bool> UpdateAnnouncementAsync(int announcementId, AnnouncementAsResearchGroup updates, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+                var existing = await context.AnnouncementAsResearchGroup.FindAsync(new object[] { announcementId }, cancellationToken: cancellationToken);
+                if (existing == null)
+                {
+                    return false;
+                }
+
+                existing.ResearchGroupAnnouncementTitle = updates.ResearchGroupAnnouncementTitle;
+                existing.ResearchGroupAnnouncementDescription = updates.ResearchGroupAnnouncementDescription;
+                existing.ResearchGroupAnnouncementTimeToBeActive = updates.ResearchGroupAnnouncementTimeToBeActive;
+                if (updates.ResearchGroupAnnouncementAttachmentFile != null)
+                {
+                    existing.ResearchGroupAnnouncementAttachmentFile = updates.ResearchGroupAnnouncementAttachmentFile;
+                }
+
+                await context.SaveChangesAsync(cancellationToken);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating announcement {AnnouncementId}", announcementId);
+                return false;
+            }
+        }
+
+        public async Task<bool> DeleteAnnouncementAsync(int announcementId, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+                var announcement = await context.AnnouncementAsResearchGroup.FindAsync(new object[] { announcementId }, cancellationToken: cancellationToken);
+                if (announcement == null)
+                {
+                    return false;
+                }
+
+                context.AnnouncementAsResearchGroup.Remove(announcement);
+                await context.SaveChangesAsync(cancellationToken);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting announcement {AnnouncementId}", announcementId);
+                return false;
+            }
+        }
+
+        public async Task<MutationResult> DeleteAnnouncementAsync(long announcementId, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+                var announcement = await context.AnnouncementAsResearchGroup.FindAsync(new object[] { announcementId }, cancellationToken: cancellationToken);
+                if (announcement == null)
+                {
+                    return MutationResult.Failed("Announcement not found");
+                }
+
+                context.AnnouncementAsResearchGroup.Remove(announcement);
+                await context.SaveChangesAsync(cancellationToken);
+                return MutationResult.Succeeded(announcementId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting announcement {AnnouncementId}", announcementId);
+                return MutationResult.Failed(ex.Message);
+            }
+        }
+
+        public async Task<bool> BulkCopyAnnouncementsAsync(IEnumerable<int> announcementIds, string researchGroupEmail, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+                var idsList = announcementIds.ToList();
+                var announcements = await context.AnnouncementAsResearchGroup
+                    .Where(a => idsList.Contains(a.Id))
+                    .ToListAsync(cancellationToken);
+
+                foreach (var original in announcements)
+                {
+                    var copy = new AnnouncementAsResearchGroup
+                    {
+                        ResearchGroupAnnouncementTitle = original.ResearchGroupAnnouncementTitle + " (Αντίγραφο)",
+                        ResearchGroupAnnouncementDescription = original.ResearchGroupAnnouncementDescription,
+                        ResearchGroupAnnouncementStatus = "Μη Δημοσιευμένη",
+                        ResearchGroupAnnouncementUploadDate = DateTime.Now,
+                        ResearchGroupAnnouncementResearchGroupEmail = researchGroupEmail,
+                        ResearchGroupAnnouncementTimeToBeActive = original.ResearchGroupAnnouncementTimeToBeActive,
+                        ResearchGroupAnnouncementAttachmentFile = original.ResearchGroupAnnouncementAttachmentFile,
+                        ResearchGroupAnnouncementRNG = new Random().NextInt64(),
+                        ResearchGroupAnnouncementRNG_HashedAsUniqueID = HashingHelper.HashLong(new Random().NextInt64())
+                    };
+                    context.AnnouncementAsResearchGroup.Add(copy);
+                }
+
+                await context.SaveChangesAsync(cancellationToken);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error bulk copying announcements");
+                return false;
+            }
+        }
+
+        public async Task<int> BulkUpdateStatusAsync(IEnumerable<int> announcementIds, string newStatus, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+                var idsList = announcementIds.ToList();
+                var announcements = await context.AnnouncementAsResearchGroup
+                    .Where(a => idsList.Contains(a.Id))
+                    .ToListAsync(cancellationToken);
+
+                foreach (var announcement in announcements)
+                {
+                    announcement.ResearchGroupAnnouncementStatus = newStatus;
+                }
+
+                await context.SaveChangesAsync(cancellationToken);
+                return announcements.Count;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error bulk updating announcement status");
+                return 0;
+            }
+        }
+
+        public Task<MutationResult> CreateOrUpdateAnnouncementAsync(ResearchGroupAnnouncementRequest request, CancellationToken cancellationToken = default)
         {
             throw new NotImplementedException();
         }
