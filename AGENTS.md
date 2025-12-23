@@ -135,8 +135,8 @@ Pages/
 - ✅ Company sections fully use `ICompanyDashboardService` (all sections service-backed)
 - ✅ Professor sections fully use `IProfessorDashboardService` (all sections service-backed)
 - ✅ ResearchGroup sections fully use `IResearchGroupDashboardService` (all sections service-backed)
-- ✅ Student sections mostly use `IStudentDashboardService` (Events, JobsDisplay, ThesisDisplay, Internships)
-- ⚠️ StudentAnnouncementsSection and StudentCompanySearchSection still use `IDbContextFactory` directly
+- ✅ Student sections mostly use `IStudentDashboardService` (Events, JobsDisplay, ThesisDisplay, Internships, CompanySearch)
+- ⚠️ StudentAnnouncementsSection still uses `IDbContextFactory` directly
 - QuizViewer pages (1–4) now create contexts via `IDbContextFactory` instead of injecting `AppDbContext`
 - MainLayout/front page use services
 
@@ -280,7 +280,7 @@ Services/
 - ✅ Professor components now use `IProfessorDashboardService` for all operations
 - ✅ ResearchGroup components now use `IResearchGroupDashboardService` for all operations
 - ✅ Student components mostly use `IStudentDashboardService` (Events, JobsDisplay, ThesisDisplay, Internships)
-- ⚠️ StudentAnnouncementsSection and StudentCompanySearchSection still use `IDbContextFactory` directly (remaining 2 components)
+- ⚠️ StudentAnnouncementsSection still uses `IDbContextFactory` directly (remaining 1 component)
 
 See `ARCHITECTURE_ANALYSIS.md` for detailed architecture reference from JobFinder-refactored.
 
@@ -356,5 +356,5 @@ See `docs/COMPONENT_EXTRACTION_PROGRESS.md` for detailed progress.
 4. ✅ **Minimize MainLayout** - Reduced to 127 lines
 5. ✅ **Extract Component Dependencies** - 100% complete (CS0103 cleared)
 6. ⚠️ **Triage warnings** - Nullable and async warnings
-7. ⚠️ **Complete Student Service Migration** - Migrate remaining 2 Student components (StudentAnnouncementsSection, StudentCompanySearchSection) to use `IStudentDashboardService`
+7. ⚠️ **Complete Student Service Migration** - Migrate remaining 1 Student component (StudentAnnouncementsSection) to use `IStudentDashboardService`
 8. Upgrade to .NET 8 (change `<TargetFramework>net8.0</TargetFramework>`)
