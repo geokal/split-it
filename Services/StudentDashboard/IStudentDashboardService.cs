@@ -54,5 +54,14 @@ namespace QuizManager.Services.StudentDashboard
         Task<ProfessorEventInterestResult?> ShowInterestInProfessorEventAsync(long eventRng, bool needsTransport, string? chosenLocation, CancellationToken cancellationToken = default);
 
         Task<bool> WithdrawProfessorEventInterestAsync(long eventRng, CancellationToken cancellationToken = default);
+
+        // Company search methods for StudentCompanySearchSection
+        Task<IReadOnlyList<Company>> SearchCompaniesAsync(StudentCompanySearchRequest request, CancellationToken cancellationToken = default);
+        Task<IReadOnlyList<string>> GetCompanyTypeSuggestionsAsync(CancellationToken cancellationToken = default);
+        Task<IReadOnlyList<string>> GetCompanyActivitySuggestionsAsync(string searchTerm, CancellationToken cancellationToken = default);
+        Task<IReadOnlyList<string>> GetAreaSuggestionsAsync(string searchTerm, CancellationToken cancellationToken = default);
+        Task<IReadOnlyList<string>> GetSkillSuggestionsAsync(string searchTerm, CancellationToken cancellationToken = default);
+        Task<IReadOnlyList<string>> GetRegionSuggestionsAsync(CancellationToken cancellationToken = default);
+        Task<Dictionary<string, List<string>>> GetRegionToTownsMapAsync(CancellationToken cancellationToken = default);
     }
 }

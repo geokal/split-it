@@ -6,14 +6,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using QuizManager.Models;
-using Microsoft.EntityFrameworkCore;
-using QuizManager.Data;
+using QuizManager.Services.StudentDashboard;
 
 namespace QuizManager.Components.Layout.StudentSections
 {
     public partial class StudentCompanySearchSection : ComponentBase
     {
-        [Inject] private IDbContextFactory<AppDbContext> DbContextFactory { get; set; } = default!;
+        [Inject] private IStudentDashboardService StudentDashboardService { get; set; } = default!;
         [Inject] private IJSRuntime JS { get; set; } = default!;
         [Inject] private NavigationManager NavigationManager { get; set; } = default!;
 
@@ -60,6 +59,37 @@ namespace QuizManager.Components.Layout.StudentSections
         {
             // Initialize static data
             InitializeStaticData();
+            
+            // Load dynamic data from service
+            await LoadServiceDataAsync();
+        }
+
+        private async Task LoadServiceDataAsync()
+        {
+            try
+            {
+                // Load company types from service
+                var companyTypes = await StudentDashboardService.GetCompanyTypeSuggestionsAsync();
+                if (companyTypes.Any())
+                {
+                    ForeasType = companyTypes.ToList();
+                }
+
+                // Load regions from service
+                var regions = await StudentDashboardService.GetRegionSuggestionsAsync();
+                if (regions.Any())
+                {
+                    Regions = regions.ToList();
+                }
+
+                // Load region to towns map
+                var regionToTownsMap = await StudentDashboardService.GetRegionToTownsMapAsync();
+                RegionToTownsMap = regionToTownsMap;
+            }
+            catch (Exception ex)
+            {
+                // Keep static data as fallback if service fails
+            }
         }
 
         private void InitializeStaticData()
@@ -125,13 +155,8 @@ namespace QuizManager.Components.Layout.StudentSections
             searchCompanyNameENGAsStudentToFindCompany = e.Value?.ToString();
             if (!string.IsNullOrWhiteSpace(searchCompanyNameENGAsStudentToFindCompany) && searchCompanyNameENGAsStudentToFindCompany.Length >= 2)
             {
-                await using var context = await DbContextFactory.CreateDbContextAsync();
-                companyNameSuggestionsAsStudent = await context.Companies
-                    .AsNoTracking()
-                    .Where(c => c.CompanyNameENG.Contains(searchCompanyNameENGAsStudentToFindCompany))
-                    .Select(c => c.CompanyNameENG)
-                    .Distinct()
-                    .ToListAsync();
+                var suggestions = await StudentDashboardService.GetCompanyNameSuggestionsAsync(searchCompanyNameENGAsStudentToFindCompany);
+                companyNameSuggestionsAsStudent = suggestions.ToList();
             }
             else
             {
@@ -147,7 +172,7 @@ namespace QuizManager.Components.Layout.StudentSections
             StateHasChanged();
         }
 
-        private void HandleCompanyActivityInputAsStudent(ChangeEventArgs e)
+        private async Task HandleCompanyActivityInputAsStudent(ChangeEventArgs e)
         {
             searchCompanyActivityInputAsStudentToFindCompany = e.Value?.ToString().Trim() ?? string.Empty;
         
@@ -157,10 +182,15 @@ namespace QuizManager.Components.Layout.StudentSections
                 return;
             }
 
-            companyActivitySuggestionsAsStudent = Activity
-                .Where(activity => activity.Contains(searchCompanyActivityInputAsStudentToFindCompany, StringComparison.OrdinalIgnoreCase))
-                .Take(10)
-                .ToList();
+            if (!string.IsNullOrWhiteSpace(searchCompanyActivityInputAsStudentToFindCompany) && searchCompanyActivityInputAsStudentToFindCompany.Length >= 2)
+            {
+                var suggestions = await StudentDashboardService.GetCompanyActivitySuggestionsAsync(searchCompanyActivityInputAsStudentToFindCompany);
+                companyActivitySuggestionsAsStudent = suggestions.Take(10).ToList();
+            }
+            else
+            {
+                companyActivitySuggestionsAsStudent.Clear();
+            }
             StateHasChanged();
         }
 
@@ -240,46 +270,35 @@ namespace QuizManager.Components.Layout.StudentSections
                 .Distinct()
                 .ToList();
 
-            await using var context = await DbContextFactory.CreateDbContextAsync();
-            var companies = (await context.Companies
-                .AsNoTracking()
-                .ToListAsync())
+            // Build search request
+            var searchRequest = new StudentCompanySearchRequest
+            {
+                Email = string.IsNullOrEmpty(globalCompanySearch) ? searchCompanyEmailAsStudentToFindCompany : globalCompanySearch,
+                Name = string.IsNullOrEmpty(globalCompanySearch) ? searchCompanyNameENGAsStudentToFindCompany : globalCompanySearch,
+                Type = string.IsNullOrEmpty(globalCompanySearch) ? searchCompanyTypeAsStudentToFindCompany : globalCompanySearch,
+                Activity = selectedCompanyActivitiesAsStudent.FirstOrDefault(),
+                Town = string.IsNullOrEmpty(globalCompanySearch) ? searchCompanyTownAsStudentToFindCompany : globalCompanySearch,
+                Areas = selectedAreasOfInterestAsStudent.ToList(),
+                DesiredSkills = selectedCompanyDesiredSkillsAsStudent.ToList()
+            };
+
+            var companies = (await StudentDashboardService.SearchCompaniesAsync(searchRequest))
                 .Where(c =>
                 {
-                    // GLOBAL SEARCH - Multi-word search across all fields
+                    // GLOBAL SEARCH - Additional client-side filtering for complex multi-word search
                     if (!string.IsNullOrEmpty(globalCompanySearch))
                     {
                         var searchTerm = globalCompanySearch.Trim();
                         var searchWords = searchTerm.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                     
                         var globalMatch = searchWords.Any(word =>
-                            (c.CompanyEmail?.Contains(word, StringComparison.OrdinalIgnoreCase) == true) ||
-                            (c.CompanyNameENG?.Contains(word, StringComparison.OrdinalIgnoreCase) == true) ||
-                            (c.CompanyType?.Contains(word, StringComparison.OrdinalIgnoreCase) == true) ||
-                            (c.CompanyActivity?.Contains(word, StringComparison.OrdinalIgnoreCase) == true) ||
-                            (c.CompanyTown?.Contains(word, StringComparison.OrdinalIgnoreCase) == true) ||
-                            (c.CompanyAreas?.Contains(word, StringComparison.OrdinalIgnoreCase) == true) ||
-                            (c.CompanyDesiredSkills?.Contains(word, StringComparison.OrdinalIgnoreCase) == true) ||
-                            (c.CompanyDescription?.Contains(word, StringComparison.OrdinalIgnoreCase) == true)); 
+                            (c.CompanyDescription?.Contains(word, StringComparison.OrdinalIgnoreCase) == true) ||
+                            (c.CompanyAreas?.Contains(word, StringComparison.OrdinalIgnoreCase) == true)); 
 
                         if (!globalMatch) return false;
                     }
-                    else
-                    {
-                        // Apply specific filters only when no global search is active
-                        var basicMatch = (string.IsNullOrEmpty(searchCompanyEmailAsStudentToFindCompany) || 
-                                        (c.CompanyEmail?.Contains(searchCompanyEmailAsStudentToFindCompany, StringComparison.OrdinalIgnoreCase) == true)) &&
-                                    (string.IsNullOrEmpty(searchCompanyNameENGAsStudentToFindCompany) || 
-                                        (c.CompanyNameENG?.Contains(searchCompanyNameENGAsStudentToFindCompany, StringComparison.OrdinalIgnoreCase) == true)) &&
-                                    (string.IsNullOrEmpty(searchCompanyTypeAsStudentToFindCompany) || 
-                                        (c.CompanyType?.Contains(searchCompanyTypeAsStudentToFindCompany, StringComparison.OrdinalIgnoreCase) == true)) &&
-                                    (string.IsNullOrEmpty(searchCompanyTownAsStudentToFindCompany) || 
-                                        (c.CompanyTown?.Contains(searchCompanyTownAsStudentToFindCompany, StringComparison.OrdinalIgnoreCase) == true));
 
-                        if (!basicMatch) return false;
-                    }
-
-                    // Apply area matching (both global and specific searches)
+                    // Apply area matching (more complex than service handles)
                     var normalizedCompanyAreas = NormalizeAreas(c.CompanyAreas ?? "").ToList();
                     var expandedCompanyAreas = ExpandAreasWithSubfields(normalizedCompanyAreas);
 
@@ -289,12 +308,12 @@ namespace QuizManager.Components.Layout.StudentSections
                                 companyArea.Contains(searchArea, StringComparison.OrdinalIgnoreCase) ||
                                 searchArea.Contains(companyArea, StringComparison.OrdinalIgnoreCase)));
 
-                    // Apply activity matching (both global and specific searches)
+                    // Apply activity matching (more complex than service handles)
                     var activityMatch = !selectedCompanyActivitiesAsStudent.Any() ||
                         selectedCompanyActivitiesAsStudent.Any(activity => 
                             c.CompanyActivity != null && c.CompanyActivity.Contains(activity, StringComparison.OrdinalIgnoreCase));
 
-                    // Apply skills matching (both global and specific searches)
+                    // Apply skills matching (more complex than service handles)
                     var skillsMatch = !selectedCompanyDesiredSkillsAsStudent.Any() ||
                         selectedCompanyDesiredSkillsAsStudent.All(skill => 
                             c.CompanyDesiredSkills != null && c.CompanyDesiredSkills.Contains(skill, StringComparison.OrdinalIgnoreCase));

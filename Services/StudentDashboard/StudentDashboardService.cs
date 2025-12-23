@@ -1206,5 +1206,149 @@ namespace QuizManager.Services.StudentDashboard
                     ThesisType = InternshipType.Professor
                 });
         }
+
+        public async Task<IReadOnlyList<Company>> SearchCompaniesAsync(StudentCompanySearchRequest request, CancellationToken cancellationToken = default)
+        {
+            await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+            
+            var query = context.Companies.AsNoTracking();
+
+            if (!string.IsNullOrWhiteSpace(request.Email))
+                query = query.Where(c => c.CompanyEmail.Contains(request.Email));
+
+            if (!string.IsNullOrWhiteSpace(request.Name))
+                query = query.Where(c => c.CompanyNameENG.Contains(request.Name));
+
+            if (!string.IsNullOrWhiteSpace(request.Type))
+                query = query.Where(c => c.CompanyType == request.Type);
+
+            if (!string.IsNullOrWhiteSpace(request.Activity))
+                query = query.Where(c => c.CompanyActivity.Contains(request.Activity));
+
+            if (!string.IsNullOrWhiteSpace(request.Town))
+                query = query.Where(c => c.CompanyTown == request.Town);
+
+            if (request.Areas.Any())
+            {
+                foreach (var area in request.Areas)
+                {
+                    query = query.Where(c => c.CompanyAreas.Contains(area));
+                }
+            }
+
+            if (request.DesiredSkills.Any())
+            {
+                foreach (var skill in request.DesiredSkills)
+                {
+                    query = query.Where(c => c.CompanyDesiredSkills.Contains(skill));
+                }
+            }
+
+            return await query.ToListAsync(cancellationToken);
+        }
+
+        public async Task<IReadOnlyList<string>> GetCompanyTypeSuggestionsAsync(CancellationToken cancellationToken = default)
+        {
+            await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+            return await context.Companies
+                .AsNoTracking()
+                .Where(c => !string.IsNullOrWhiteSpace(c.CompanyType))
+                .Select(c => c.CompanyType)
+                .Distinct()
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task<IReadOnlyList<string>> GetCompanyActivitySuggestionsAsync(string searchTerm, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(searchTerm) || searchTerm.Length < 2)
+                return Array.Empty<string>();
+
+            await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+            
+            var activities = await context.Companies
+                .AsNoTracking()
+                .Where(c => !string.IsNullOrWhiteSpace(c.CompanyActivity))
+                .Select(c => c.CompanyActivity)
+                .ToListAsync(cancellationToken);
+
+            return activities
+                .SelectMany(activities => activities.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                .Select(activity => activity.Trim())
+                .Where(activity => activity.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+                .Distinct()
+                .ToList();
+        }
+
+        public async Task<IReadOnlyList<string>> GetAreaSuggestionsAsync(string searchTerm, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(searchTerm) || searchTerm.Length < 2)
+                return Array.Empty<string>();
+
+            await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+            
+            var areas = await context.Companies
+                .AsNoTracking()
+                .Where(c => !string.IsNullOrWhiteSpace(c.CompanyAreas))
+                .Select(c => c.CompanyAreas)
+                .ToListAsync(cancellationToken);
+
+            return areas
+                .SelectMany(areas => areas.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                .Select(area => area.Trim())
+                .Where(area => area.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+                .Distinct()
+                .ToList();
+        }
+
+        public async Task<IReadOnlyList<string>> GetSkillSuggestionsAsync(string searchTerm, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(searchTerm) || searchTerm.Length < 2)
+                return Array.Empty<string>();
+
+            await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+            
+            var skills = await context.Companies
+                .AsNoTracking()
+                .Where(c => !string.IsNullOrWhiteSpace(c.CompanyDesiredSkills))
+                .Select(c => c.CompanyDesiredSkills)
+                .ToListAsync(cancellationToken);
+
+            return skills
+                .SelectMany(skills => skills.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                .Select(skill => skill.Trim())
+                .Where(skill => skill.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+                .Distinct()
+                .ToList();
+        }
+
+        public async Task<IReadOnlyList<string>> GetRegionSuggestionsAsync(CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        return await dbContext.Companies
+            .Where(c => !string.IsNullOrEmpty(c.CompanyRegions))
+            .Select(c => c.CompanyRegions!)
+            .Distinct()
+            .OrderBy(r => r)
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+    }
+
+        public async Task<Dictionary<string, List<string>>> GetRegionToTownsMapAsync(CancellationToken cancellationToken = default)
+        {
+            await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+            
+            var companies = await context.Companies
+                .AsNoTracking()
+                .Where(c => !string.IsNullOrWhiteSpace(c.CompanyRegions) && !string.IsNullOrWhiteSpace(c.CompanyTown))
+                .Select(c => new { c.CompanyRegions, c.CompanyTown })
+                .ToListAsync(cancellationToken);
+
+            return companies
+                .GroupBy(c => c.CompanyRegions)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.Select(c => c.CompanyTown).Distinct().ToList()
+                );
+        }
     }
 }

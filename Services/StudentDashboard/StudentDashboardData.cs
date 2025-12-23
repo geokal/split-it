@@ -38,5 +38,16 @@ namespace QuizManager.Services.StudentDashboard
         public IReadOnlyList<InterestInCompanyEvent> CompanyEventInterests { get; init; } = new List<InterestInCompanyEvent>();
         public IReadOnlyList<InterestInProfessorEvent> ProfessorEventInterests { get; init; } = new List<InterestInProfessorEvent>();
     }
+
+    public record StudentCompanySearchRequest
+    {
+        public string? Email { get; init; }
+        public string? Name { get; init; }
+        public string? Type { get; init; }
+        public string? Activity { get; init; }
+        public string? Town { get; init; }
+        public IReadOnlyList<string> Areas { get; init; } = Array.Empty<string>();
+        public IReadOnlyList<string> DesiredSkills { get; init; } = Array.Empty<string>();
+    }
 }
 
