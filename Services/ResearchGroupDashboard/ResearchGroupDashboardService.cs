@@ -43,6 +43,45 @@ namespace QuizManager.Services.ResearchGroupDashboard
             throw new NotImplementedException();
         }
 
+        public async Task<IReadOnlyList<CompanyEvent>> GetPublishedCompanyEventsAsync(CancellationToken cancellationToken = default)
+        {
+            await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+            return await context.CompanyEvents
+                .Include(e => e.Company)
+                .AsNoTracking()
+                .Where(e => e.CompanyEventStatus == "Δημοσιευμένη")
+                .OrderByDescending(e => e.CompanyEventActiveDate)
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task<IReadOnlyList<ProfessorEvent>> GetPublishedProfessorEventsAsync(CancellationToken cancellationToken = default)
+        {
+            await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+            return await context.ProfessorEvents
+                .Include(e => e.Professor)
+                .AsNoTracking()
+                .Where(e => e.ProfessorEventStatus == "Δημοσιευμένη")
+                .OrderByDescending(e => e.ProfessorEventActiveDate)
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task<HashSet<long>> GetCompanyEventInterestsForProfessorAsync(string professorEmail, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(professorEmail))
+            {
+                return new HashSet<long>();
+            }
+
+            await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+            var interestRngs = await context.InterestInCompanyEventsAsProfessor
+                .AsNoTracking()
+                .Where(i => i.ProfessorEmailShowInterestForCompanyEvent == professorEmail)
+                .Select(i => i.RNGForCompanyEventInterestAsProfessor)
+                .ToListAsync(cancellationToken);
+
+            return interestRngs.ToHashSet();
+        }
+
         public Task<MutationResult> CreateOrUpdateAnnouncementAsync(ResearchGroupAnnouncementRequest request, CancellationToken cancellationToken = default)
         {
             throw new NotImplementedException();
@@ -97,4 +136,3 @@ namespace QuizManager.Services.ResearchGroupDashboard
         }
     }
 }
-

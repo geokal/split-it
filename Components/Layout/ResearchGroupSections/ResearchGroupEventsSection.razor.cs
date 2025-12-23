@@ -1,8 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.EntityFrameworkCore;
-using QuizManager.Data;
 using QuizManager.Models;
+using QuizManager.Services.ResearchGroupDashboard;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -13,7 +12,7 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
 {
     public partial class ResearchGroupEventsSection : ComponentBase
     {
-        [Inject] private IDbContextFactory<AppDbContext> DbContextFactory { get; set; } = default!;
+        [Inject] private IResearchGroupDashboardService ResearchGroupDashboardService { get; set; } = default!;
         [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
         
         // User Information
@@ -76,8 +75,8 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
 
         private async Task LoadEventsData()
         {
-            CompanyEventsToShowAtFrontPage = await FetchCompanyEventsAsync();
-            ProfessorEventsToShowAtFrontPage = await FetchProfessorEventsAsync();
+            CompanyEventsToShowAtFrontPage = (await ResearchGroupDashboardService.GetPublishedCompanyEventsAsync()).ToList();
+            ProfessorEventsToShowAtFrontPage = (await ResearchGroupDashboardService.GetPublishedProfessorEventsAsync()).ToList();
         }
 
         private async Task LoadCompanyEventInterestsAsync()
@@ -88,25 +87,17 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
                 return;
             }
 
-            await using var context = await DbContextFactory.CreateDbContextAsync();
-            var interestRngs = await context.InterestInCompanyEventsAsProfessor
-                .Where(i => i.ProfessorEmailShowInterestForCompanyEvent == CurrentUserEmail)
-                .Select(i => i.RNGForCompanyEventInterestAsProfessor)
-                .ToListAsync();
-
-            companyEventInterestRngsForProfessor = interestRngs.ToHashSet();
+            companyEventInterestRngsForProfessor = await ResearchGroupDashboardService.GetCompanyEventInterestsForProfessorAsync(CurrentUserEmail);
         }
 
         private async Task<List<CompanyEvent>> FetchCompanyEventsAsync()
         {
-            await using var context = await DbContextFactory.CreateDbContextAsync();
-            return await context.CompanyEvents.AsNoTracking().ToListAsync();
+            return (await ResearchGroupDashboardService.GetPublishedCompanyEventsAsync()).ToList();
         }
 
         private async Task<List<ProfessorEvent>> FetchProfessorEventsAsync()
         {
-            await using var context = await DbContextFactory.CreateDbContextAsync();
-            return await context.ProfessorEvents.AsNoTracking().ToListAsync();
+            return (await ResearchGroupDashboardService.GetPublishedProfessorEventsAsync()).ToList();
         }
 
         private void LoadEventsForCalendar()
@@ -179,18 +170,15 @@ namespace QuizManager.Components.Layout.ResearchGroupSections
             highlightedDay = selectedDay;
             selectedDate = clickedDate;
 
-            await using var context = await DbContextFactory.CreateDbContextAsync();
-            selectedDateEvents = await context.CompanyEvents
-                .Include(e => e.Company)
+            selectedDateEvents = CompanyEventsToShowAtFrontPage
                 .Where(e => e.CompanyEventStatus == "Δημοσιευμένη" &&
                         e.CompanyEventActiveDate.Date == clickedDate.Date)
-                .ToListAsync();
+                .ToList();
 
-            selectedProfessorDateEvents = await context.ProfessorEvents
-                .Include(e => e.Professor)
+            selectedProfessorDateEvents = ProfessorEventsToShowAtFrontPage
                 .Where(e => e.ProfessorEventStatus == "Δημοσιευμένη" &&
                         e.ProfessorEventActiveDate.Date == clickedDate.Date)
-                .ToListAsync();
+                .ToList();
 
             if (selectedDateEvents.Any() || selectedProfessorDateEvents.Any())
             {

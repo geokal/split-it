@@ -11,6 +11,10 @@ namespace QuizManager.Services.ResearchGroupDashboard
         Task RefreshDashboardCacheAsync(CancellationToken cancellationToken = default);
         Task<ResearchGroupDashboardLookups> GetLookupsAsync(CancellationToken cancellationToken = default);
 
+        Task<IReadOnlyList<CompanyEvent>> GetPublishedCompanyEventsAsync(CancellationToken cancellationToken = default);
+        Task<IReadOnlyList<ProfessorEvent>> GetPublishedProfessorEventsAsync(CancellationToken cancellationToken = default);
+        Task<HashSet<long>> GetCompanyEventInterestsForProfessorAsync(string professorEmail, CancellationToken cancellationToken = default);
+
         Task<MutationResult> CreateOrUpdateAnnouncementAsync(ResearchGroupAnnouncementRequest request, CancellationToken cancellationToken = default);
         Task<MutationResult> DeleteAnnouncementAsync(long announcementId, CancellationToken cancellationToken = default);
         Task<AttachmentDownloadResult?> GetAnnouncementAttachmentAsync(long announcementId, CancellationToken cancellationToken = default);
@@ -23,4 +27,3 @@ namespace QuizManager.Services.ResearchGroupDashboard
         Task<IReadOnlyList<Professor>> FilterProfessorsAsync(ResearchGroupProfessorSearchRequest request, CancellationToken cancellationToken = default);
     }
 }
-
