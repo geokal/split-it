@@ -69,12 +69,11 @@ See `docs/ERROR_INVESTIGATION.md` for detailed explanation of error count fluctu
 ### Service/Factory Migration (DbContext → Services/Factory)
 - ✅ Company sections now use `ICompanyDashboardService` (Jobs, Internships, Theses, Events, Announcements, Searches)
 - ✅ Professor sections now use `IProfessorDashboardService` (Events, Internships, Theses, Company/Student/ResearchGroup searches, Announcements)
-- ✅ ResearchGroup company search now uses `IResearchGroupDashboardService` lookups/filter/search (no direct `DbContext`)
+- ✅ ResearchGroup sections now use `IResearchGroupDashboardService` (Announcements, Events, Company/Professor searches, Statistics)
 - ✅ MainLayout/front page already service-driven
 - ✅ QuizViewer pages (1–4) now use `IDbContextFactory` (no injected `AppDbContext`)
-- ✅ Student sections (Events, JobsDisplay, ThesisDisplay, CompanySearch, Internships) now use `IDbContextFactory`
-- ✅ ResearchGroup Announcements/Events already on `IDbContextFactory` (full service migration still pending)
-- ⚠️ Remaining: migrate Student/ResearchGroup logic into services (currently factory-based, not service-backed)
+- ✅ Student sections (Events, JobsDisplay, ThesisDisplay, Internships) now use `IStudentDashboardService`
+- ⚠️ Remaining: StudentAnnouncementsSection and StudentCompanySearchSection still use `IDbContextFactory` directly
 
 ### Extraction Strategy
 1. **Source**: `backups/MainLayout.razor.cs.backup` (33,977 lines - the original monolithic file)
@@ -102,7 +101,7 @@ See `docs/ERROR_INVESTIGATION.md` for detailed explanation of error count fluctu
 - Git: commits currently blocked because `.git` directory is not writable (`index.lock` cannot be created); fix permissions before staging
 
 ## Next Steps
-1. ⚠️ Optional: address high-noise nullable/unused-field warnings
-2. ⚠️ Finish service migration for Professor/ResearchGroup/Student components (remove direct `DbContext` injections)
+1. ⚠️ Complete service migration for remaining Student components (StudentAnnouncementsSection, StudentCompanySearchSection)
+2. ⚠️ Optional: address high-noise nullable/unused-field warnings
 3. ⚠️ Upgrade `<TargetFramework>` to `net8.0` and retest
 4. ⚠️ End-to-end/manual testing after service migration & warnings triage

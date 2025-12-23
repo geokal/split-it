@@ -132,12 +132,12 @@ Pages/
 - Removed old `Shared/` structure
 
 ### Service/Factory Migration Status
-- Company sections use `ICompanyDashboardService`
-- Professor sections use `IProfessorDashboardService`
-- ResearchGroup company search uses `IResearchGroupDashboardService` (lookups/filter/search)
+- ✅ Company sections fully use `ICompanyDashboardService` (all sections service-backed)
+- ✅ Professor sections fully use `IProfessorDashboardService` (all sections service-backed)
+- ✅ ResearchGroup sections fully use `IResearchGroupDashboardService` (all sections service-backed)
+- ✅ Student sections mostly use `IStudentDashboardService` (Events, JobsDisplay, ThesisDisplay, Internships)
+- ⚠️ StudentAnnouncementsSection and StudentCompanySearchSection still use `IDbContextFactory` directly
 - QuizViewer pages (1–4) now create contexts via `IDbContextFactory` instead of injecting `AppDbContext`
-- Student sections (Events, JobsDisplay, ThesisDisplay, CompanySearch, Internships) now use `IDbContextFactory<AppDbContext>` (no direct AppDbContext injection)
-- ResearchGroup Announcements/Events sections already use `IDbContextFactory`; full service migration still pending
 - MainLayout/front page use services
 
 ### Git State
@@ -275,9 +275,12 @@ Services/
 - ✅ Removed all `DbContext` usage from MainLayout
 - ✅ Kept only: auth state (via `IUserContextService`), front page data (via `IFrontPageService`), navigation helpers
 
-**Phase 5: Component Service Migration (in progress)**
+**Phase 5: Component Service Migration (nearly complete)**
 - ✅ Company components now use `ICompanyDashboardService` for CRUD/status, lookups, attachments, and interest flows (Jobs, Internships, Theses, Events, Announcements, Search)
-- ⚠️ Professor/ResearchGroup/Student components still inject `AppDbContext` directly (future refactor pass)
+- ✅ Professor components now use `IProfessorDashboardService` for all operations
+- ✅ ResearchGroup components now use `IResearchGroupDashboardService` for all operations
+- ✅ Student components mostly use `IStudentDashboardService` (Events, JobsDisplay, ThesisDisplay, Internships)
+- ⚠️ StudentAnnouncementsSection and StudentCompanySearchSection still use `IDbContextFactory` directly (remaining 2 components)
 
 See `ARCHITECTURE_ANALYSIS.md` for detailed architecture reference from JobFinder-refactored.
 
@@ -353,5 +356,5 @@ See `docs/COMPONENT_EXTRACTION_PROGRESS.md` for detailed progress.
 4. ✅ **Minimize MainLayout** - Reduced to 127 lines
 5. ✅ **Extract Component Dependencies** - 100% complete (CS0103 cleared)
 6. ⚠️ **Triage warnings** - Nullable and async warnings
-7. ⚠️ **Update Components** - Refactor components to use services instead of direct `DbContext` injection (future task)
+7. ⚠️ **Complete Student Service Migration** - Migrate remaining 2 Student components (StudentAnnouncementsSection, StudentCompanySearchSection) to use `IStudentDashboardService`
 8. Upgrade to .NET 8 (change `<TargetFramework>net8.0</TargetFramework>`)
