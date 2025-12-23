@@ -1,0 +1,111 @@
+# CodeRabbit Configuration for Split-It Project
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+
+language: en-US
+
+reviews:
+  profile: chill  # Use chill profile to avoid nitpicky feedback
+  high_level_summary: true
+  high_level_summary_in_walkthrough: true
+  
+  auto_review:
+    enabled: true
+    drafts: false
+    auto_title_instructions: "use conventional commits structure: <type>[optional scope]: <description>"
+    collapse_walkthrough: true
+    suggested_labels: false
+    poem: false
+  
+  # File patterns - exclude build artifacts, backups, and tool directories
+  file_patterns:
+    # Exclude directories (patterns starting with '!')
+    - "!backups/"
+    - "!bin/"
+    - "!obj/"
+    - "!.git/"
+    - "!.vscode/"
+    - "!.serena/"
+    - "!.zencoder/"
+    - "!.zenflow/"
+    - "!Images/UoALogo/"  # Logo assets
+    
+    # Exclude documentation from code review (optional)
+    - "!docs/"
+    
+    # Exclude migration/temporary analysis files
+    - "!ANALYSIS_ARCHITECTURE_REFACTORING.md"
+    - "!PHASE_1_IMPLEMENTATION_GUIDE.md"
+    
+    # Include source code directories
+    - "Components/"
+    - "Services/"
+    - "Models/"
+    - "Pages/"
+    - "Data/"
+    - "ViewModels/"
+    - "Properties/"
+    - "wwwroot/"
+    
+    # Include configuration files
+    - "Program.cs"
+    - "appsettings*.json"
+    - "QuizManager.csproj"
+    - "split-it.sln"
+    - "_Imports.razor"
+    - ".gitignore"
+
+# Tools configuration
+tools:
+  # Enable markdownlint for documentation files
+  markdownlint:
+    enabled: true
+    config: "default"  # Use default rules
+    
+  # Disable tools that aren't relevant for .NET project
+  eslint:
+    enabled: false
+    
+  phpstan:
+    enabled: false
+    
+  golangci_lint:
+    enabled: false
+    
+  swiftlint:
+    enabled: false
+    
+  shopify_theme_check:
+    enabled: false
+    
+  semgrep:
+    enabled: true  # Keep security scanning enabled
+
+# Knowledge base configuration
+knowledge_base:
+  enabled: true
+  learnings: "auto"  # Use repository learnings for public repos
+  file_patterns:
+    # Include documentation files for learning coding standards
+    - "AGENTS.md"
+    - "PROGRESS.md"
+    - "README.md"
+    - "Components/**/*.razor"
+    - "Services/**/*.cs"
+    
+  opt_out: false
+
+# Integrations
+integrations:
+  jira: "auto"
+  linear: "auto"
+  
+# Labels for PR categorization
+labels:
+  instructions: |
+    Categorize PRs based on the type of changes:
+    - refactor: Code refactoring, architecture improvements
+    - feature: New functionality or features
+    - fix: Bug fixes and error corrections
+    - docs: Documentation changes
+    - chore: Maintenance, build, or configuration changes
+    - test: Test-related changes
