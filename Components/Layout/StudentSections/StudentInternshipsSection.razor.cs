@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components;
 using QuizManager.ViewModels;
 using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.JSInterop;
 using QuizManager.Data;
 using QuizManager.Models;
@@ -15,7 +14,6 @@ namespace QuizManager.Components.Layout.StudentSections
 {
     public partial class StudentInternshipsSection : ComponentBase
     {
-        [Inject] private IDbContextFactory<AppDbContext> DbContextFactory { get; set; } = default!;
         [Inject] private IStudentDashboardService StudentDashboardService { get; set; } = default!;
         [Inject] private IJSRuntime JS { get; set; } = default!;
         [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
@@ -178,8 +176,6 @@ namespace QuizManager.Components.Layout.StudentSections
         private async Task LoadUserInternshipApplications()
         {
             _dashboardData = await StudentDashboardService.LoadDashboardDataAsync();
-            await using var dbContext = await DbContextFactory.CreateDbContextAsync();
-
             internshipApplications = _dashboardData.CompanyInternshipApplications.ToList();
             professorInternshipApplications = _dashboardData.ProfessorInternshipApplications.ToList();
 
@@ -190,26 +186,20 @@ namespace QuizManager.Components.Layout.StudentSections
             var companyIds = internshipApplications.Select(a => a.RNGForInternshipApplied).Distinct().ToList();
             if (companyIds.Count > 0)
             {
-                var companyInternships = await dbContext.CompanyInternships
-                    .Include(i => i.Company)
-                    .Where(i => companyIds.Contains(i.RNGForInternshipUploadedAsCompany))
-                    .ToListAsync();
-                foreach (var internship in companyInternships)
+                var companyInternships = await StudentDashboardService.GetCompanyInternshipsByIdsAsync(companyIds);
+                foreach (var kvp in companyInternships)
                 {
-                    internshipDataCache[internship.RNGForInternshipUploadedAsCompany] = internship;
+                    internshipDataCache[kvp.Key] = kvp.Value;
                 }
             }
 
             var professorIds = professorInternshipApplications.Select(a => a.RNGForProfessorInternshipApplied).Distinct().ToList();
             if (professorIds.Count > 0)
             {
-                var professorInternships = await dbContext.ProfessorInternships
-                    .Include(i => i.Professor)
-                    .Where(i => professorIds.Contains(i.RNGForInternshipUploadedAsProfessor))
-                    .ToListAsync();
-                foreach (var internship in professorInternships)
+                var professorInternships = await StudentDashboardService.GetProfessorInternshipsByIdsAsync(professorIds);
+                foreach (var kvp in professorInternships)
                 {
-                    professorInternshipDataCache[internship.RNGForInternshipUploadedAsProfessor] = internship;
+                    professorInternshipDataCache[kvp.Key] = kvp.Value;
                 }
             }
 
@@ -629,14 +619,6 @@ namespace QuizManager.Components.Layout.StudentSections
         private bool showLoadingModalWhenWithdrawProfessorInternshipApplication = false;
         private int loadingProgressWhenWithdrawProfessorInternshipApplication = 0;
 
-        // Helper Methods
-        private async Task<QuizManager.Models.Student> GetStudentDetails(string email)
-        {
-            await using var dbContext = await DbContextFactory.CreateDbContextAsync();
-            return await dbContext.Students
-                .FirstOrDefaultAsync(s => s.Email == email);
-        }
-
         // Helper method to get internship details from cache
         private CompanyInternship GetCompanyInternshipFromCache(long rng)
         {
@@ -675,8 +657,11 @@ namespace QuizManager.Components.Layout.StudentSections
                 var student = studentDataCache.Values.FirstOrDefault(s => s.Email == studentEmail);
                 if (student == null)
                 {
-                    await using var dbContext = await DbContextFactory.CreateDbContextAsync();
-                    student = await dbContext.Students.FirstOrDefaultAsync(s => s.Email == studentEmail);
+                    student = await StudentDashboardService.GetStudentByEmailAsync(studentEmail);
+                    if (student != null)
+                    {
+                        studentDataCache[studentEmail] = student;
+                    }
                 }
                 if (student?.Attachment == null)
                 {
@@ -693,12 +678,12 @@ namespace QuizManager.Components.Layout.StudentSections
         // Show Details Methods
         private async Task ShowStudentDetailsInNameAsHyperlink(string studentUniqueId, int applicationId, string applicationType)
         {
-            await using var dbContext = await DbContextFactory.CreateDbContextAsync();
             try
             {
-                var student = await dbContext.Students.FirstOrDefaultAsync(s => s.Student_UniqueID == studentUniqueId);
+                var student = await StudentDashboardService.GetStudentByUniqueIdAsync(studentUniqueId);
                 if (student != null)
                 {
+                    studentDataCache[student.Email] = student;
                     StateHasChanged();
                 }
             }
@@ -1041,12 +1026,9 @@ namespace QuizManager.Components.Layout.StudentSections
         // Missing Methods - extracted from MainLayout.razor.cs.backup
         private async Task ShowProfessorDetailsinTitleAsHyperlink_StudentInternshipApplicationsShow(string professorEmail)
         {
-            await using var dbContext = await DbContextFactory.CreateDbContextAsync();
             try
             {
-                var professor = await dbContext.Professors
-                    .Where(p => p.ProfEmail == professorEmail)
-                    .FirstOrDefaultAsync();
+                var professor = await StudentDashboardService.GetProfessorByEmailAsync(professorEmail);
                 
                 if (professor != null)
                 {
@@ -1063,10 +1045,7 @@ namespace QuizManager.Components.Layout.StudentSections
 
         private async Task ShowProfessorInternshipDetailsInInternshipTitleAsHyperlink_StudentInternshipApplicationsShow(long internshipId)
         {
-            await using var dbContext = await DbContextFactory.CreateDbContextAsync();
-            currentProfessorInternship = await dbContext.ProfessorInternships
-                .Include(i => i.Professor)
-                .FirstOrDefaultAsync(i => i.RNGForInternshipUploadedAsProfessor == internshipId);
+            currentProfessorInternship = await StudentDashboardService.GetProfessorInternshipByRngAsync(internshipId);
             
             if (currentProfessorInternship != null)
             {
@@ -1114,8 +1093,7 @@ namespace QuizManager.Components.Layout.StudentSections
         
         private async Task ShowCompanyHyperlinkNameDetailsModalInStudentInternship(string companyEmail)
         {
-            await using var dbContext = await DbContextFactory.CreateDbContextAsync();
-            var company = await dbContext.Companies.FirstOrDefaultAsync(c => c.CompanyEmail == companyEmail);
+            var company = await StudentDashboardService.GetCompanyByEmailAsync(companyEmail);
             if (company != null)
             {
                 selectedCompanyDetailsForHyperlinkNameInInternshipAsStudent = company;
@@ -1126,8 +1104,7 @@ namespace QuizManager.Components.Layout.StudentSections
         
         private async Task ShowProfessorHyperlinkNameDetailsModalInStudentInternship(string professorEmail)
         {
-            await using var dbContext = await DbContextFactory.CreateDbContextAsync();
-            var professor = await dbContext.Professors.FirstOrDefaultAsync(p => p.ProfEmail == professorEmail);
+            var professor = await StudentDashboardService.GetProfessorByEmailAsync(professorEmail);
             if (professor != null)
             {
                 selectedProfessorDetailsFromInternship = professor;
@@ -1138,10 +1115,7 @@ namespace QuizManager.Components.Layout.StudentSections
         
         private async Task ShowCompanyInternshipDetailsAsStudent(long internshipRNG)
         {
-            await using var dbContext = await DbContextFactory.CreateDbContextAsync();
-            var internship = await dbContext.CompanyInternships
-                .Include(i => i.Company)
-                .FirstOrDefaultAsync(i => i.RNGForInternshipUploadedAsCompany == internshipRNG);
+            var internship = await StudentDashboardService.GetCompanyInternshipByRngAsync(internshipRNG);
             
             if (internship != null)
             {
@@ -1153,10 +1127,7 @@ namespace QuizManager.Components.Layout.StudentSections
         
         private async Task ShowProfessorInternshipDetailsAsStudent(long internshipRNG)
         {
-            await using var dbContext = await DbContextFactory.CreateDbContextAsync();
-            currentProfessorInternship = await dbContext.ProfessorInternships
-                .Include(i => i.Professor)
-                .FirstOrDefaultAsync(i => i.RNGForInternshipUploadedAsProfessor == internshipRNG);
+            currentProfessorInternship = await StudentDashboardService.GetProfessorInternshipByRngAsync(internshipRNG);
             
             if (currentProfessorInternship != null)
             {

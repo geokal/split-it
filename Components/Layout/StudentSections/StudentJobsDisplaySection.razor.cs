@@ -1,10 +1,9 @@
 using Microsoft.AspNetCore.Components;
 using QuizManager.ViewModels;
 using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.JSInterop;
-using QuizManager.Data;
 using QuizManager.Models;
+using QuizManager.Services.StudentDashboard;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,7 +13,7 @@ namespace QuizManager.Components.Layout.StudentSections
 {
     public partial class StudentJobsDisplaySection : ComponentBase
     {
-        [Inject] private IDbContextFactory<AppDbContext> DbContextFactory { get; set; } = default!;
+        [Inject] private IStudentDashboardService StudentDashboardService { get; set; } = default!;
         [Inject] private IJSRuntime JS { get; set; } = default!;
         [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
         [Inject] private NavigationManager NavigationManager { get; set; } = default!;
@@ -135,53 +134,18 @@ namespace QuizManager.Components.Layout.StudentSections
             }
         }
 
+        private StudentDashboardData _dashboardData = StudentDashboardData.Empty;
+
         private async Task LoadUserJobApplications()
         {
             try
             {
-                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-                var user = authState.User;
+                _dashboardData = await StudentDashboardService.LoadDashboardDataAsync();
 
-                if (user.Identity.IsAuthenticated)
-                {
-                    var userEmail = user.FindFirst("name")?.Value;
-                    if (!string.IsNullOrEmpty(userEmail))
-                    {
-                        showStudentJobApplications = true;
+                showStudentJobApplications = _dashboardData.IsAuthenticated && _dashboardData.IsRegisteredStudent;
 
-                        await using var context = await DbContextFactory.CreateDbContextAsync();
-
-                        // Get student details
-                        var student = await context.Students
-                            .FirstOrDefaultAsync(s => s.Email == userEmail);
-
-                        if (student != null)
-                        {
-                            // Retrieve job applications using email and unique ID
-                            companyJobApplications = await context.CompanyJobsApplied
-                                .Where(j => j.StudentEmailAppliedForCompanyJob == userEmail && 
-                                        j.StudentUniqueIDAppliedForCompanyJob == student.Student_UniqueID)
-                                .OrderByDescending(j => j.DateTimeStudentAppliedForCompanyJob)
-                                .ToListAsync();
-
-                            // Load all related jobs in one query
-                            var jobRNGs = companyJobApplications
-                                .Select(a => a.RNGForCompanyJobApplied)
-                                .ToList();
-
-                            var jobs = await context.CompanyJobs
-                                .Include(j => j.Company)
-                                .Where(j => jobRNGs.Contains(j.RNGForPositionUploaded))
-                                .ToListAsync();
-
-                            // Populate cache
-                            foreach (var job in jobs)
-                            {
-                                jobDataCache[job.RNGForPositionUploaded] = job;
-                            }
-                        }
-                    }
-                }
+                companyJobApplications = _dashboardData.JobApplications.ToList();
+                jobDataCache = new Dictionary<long, CompanyJob>(_dashboardData.JobCache);
 
                 UpdateTotalJobCount();
                 StateHasChanged();
@@ -312,16 +276,14 @@ namespace QuizManager.Components.Layout.StudentSections
                 loadingProgressWhenWithdrawJobApplication = 0;
                 StateHasChanged();
 
-                // Step 1: Get the related job details
                 await UpdateProgressWhenWithdrawJobApplication(10, 200);
-            
-                await using var context = await DbContextFactory.CreateDbContextAsync();
 
-                var job = await context.CompanyJobs
-                    .Include(j => j.Company)
-                    .FirstOrDefaultAsync(j => j.RNGForPositionUploaded == application.RNGForCompanyJobApplied);
+                var jobDetails = jobDataCache.TryGetValue(application.RNGForCompanyJobApplied, out var cachedJob)
+                    ? cachedJob
+                    : null;
+                var student = _dashboardData.Student;
 
-                if (job == null)
+                if (!await StudentDashboardService.WithdrawJobApplicationAsync(application.RNGForCompanyJobApplied))
                 {
                     showLoadingModalWhenWithdrawJobApplication = false;
                     StateHasChanged();
@@ -329,60 +291,33 @@ namespace QuizManager.Components.Layout.StudentSections
                     return;
                 }
 
-                // Step 2: Update status
-                await UpdateProgressWhenWithdrawJobApplication(30, 200);
-            
-                application.CompanyPositionStatusAppliedAtTheCompanySide = "Αποσύρθηκε από τον φοιτητή";
-                application.CompanyPositionStatusAppliedAtTheStudentSide = "Αποσύρθηκε από τον φοιτητή";
-
-                // Step 3: Add platform action
-                await UpdateProgressWhenWithdrawJobApplication(50, 200);
-            
-                var platformAction = new PlatformActions
-                {
-                    UserRole_PerformedAction = "STUDENT",
-                    ForWhat_PerformedAction = "COMPANY_JOB",
-                    HashedPositionRNG_PerformedAction = HashLong(application.RNGForCompanyJobApplied),
-                    TypeOfAction_PerformedAction = "SELFWITHDRAW",
-                    DateTime_PerformedAction = DateTime.Now
-                };
-
-                context.PlatformActions.Add(platformAction);
-                await context.SaveChangesAsync();
-            
                 await UpdateProgressWhenWithdrawJobApplication(70, 200);
 
-                // Step 4: Get student details
-                await UpdateProgressWhenWithdrawJobApplication(80, 200);
-            
-                var student = await GetStudentDetails(application.StudentEmailAppliedForCompanyJob);
+                // Refresh dashboard caches and reload UI data
+                await StudentDashboardService.RefreshDashboardCacheAsync();
+                await LoadUserJobApplications();
 
-                if (student == null)
+                // Optional notifications if data available
+                if (jobDetails != null && student != null)
                 {
-                    showLoadingModalWhenWithdrawJobApplication = false;
-                    StateHasChanged();
-                    await JS.InvokeVoidAsync("alert", "Δεν βρέθηκαν στοιχεία φοιτητή.");
-                    return;
+                    var companyName = jobDetails.Company?.CompanyName ?? "Άγνωστη Εταιρεία";
+
+                    await InternshipEmailService.SendJobWithdrawalNotificationToCompany_AsStudent(
+                        application.CompanysEmailWhereStudentAppliedForCompanyJob,
+                        companyName,
+                        student.Name,
+                        student.Surname,
+                        jobDetails.PositionTitle,
+                        application.RNGForCompanyJobAppliedAsStudent_HashedAsUniqueID);
+
+                    await InternshipEmailService.SendJobWithdrawalConfirmationToStudent_AsCompany(
+                        application.StudentEmailAppliedForCompanyJob,
+                        student.Name,
+                        student.Surname,
+                        jobDetails.PositionTitle,
+                        application.RNGForCompanyJobAppliedAsStudent_HashedAsUniqueID,
+                        companyName);
                 }
-
-                // Step 5: Send notifications
-                await UpdateProgressWhenWithdrawJobApplication(90, 200);
-            
-                await InternshipEmailService.SendJobWithdrawalNotificationToCompany_AsStudent(
-                    application.CompanysEmailWhereStudentAppliedForCompanyJob,
-                    job.Company?.CompanyName,
-                    student.Name,
-                    student.Surname,
-                    job.PositionTitle,
-                    application.RNGForCompanyJobAppliedAsStudent_HashedAsUniqueID);
-
-                await InternshipEmailService.SendJobWithdrawalConfirmationToStudent_AsCompany(
-                    application.StudentEmailAppliedForCompanyJob,
-                    student.Name,
-                    student.Surname,
-                    job.PositionTitle,
-                    application.RNGForCompanyJobAppliedAsStudent_HashedAsUniqueID,
-                    job.Company?.CompanyName);
 
                 await UpdateProgressWhenWithdrawJobApplication(100, 200);
             
@@ -430,20 +365,14 @@ namespace QuizManager.Components.Layout.StudentSections
         {
             try
             {
-                // First check if we already have the company details in cache
                 if (companyDataCache.TryGetValue(companyEmail, out var cachedCompany))
                 {
                     selectedCompanyDetails_StudentJobApplications = cachedCompany;
                 }
                 else
                 {
-                    await using var context = await DbContextFactory.CreateDbContextAsync();
+                    selectedCompanyDetails_StudentJobApplications = await StudentDashboardService.GetCompanyByEmailAsync(companyEmail);
 
-                    // Fetch the company details from the database using email
-                    selectedCompanyDetails_StudentJobApplications = await context.Companies
-                        .FirstOrDefaultAsync(c => c.CompanyEmail == companyEmail);
-
-                    // Add to cache if found
                     if (selectedCompanyDetails_StudentJobApplications != null)
                     { 
                         companyDataCache[companyEmail] = selectedCompanyDetails_StudentJobApplications;
@@ -481,22 +410,29 @@ namespace QuizManager.Components.Layout.StudentSections
 
         private async Task ShowCompanyJobDetailsModal_StudentJobApplications(long jobRNG)
         {
-            await using var context = await DbContextFactory.CreateDbContextAsync();
+            selectedCompanyJobDetails_StudentJobApplications = jobDataCache.TryGetValue(jobRNG, out var cachedJob)
+                ? cachedJob
+                : null;
 
-            // Fetch the job details asynchronously
-            selectedCompanyJobDetails_StudentJobApplications = await context.CompanyJobs
-                .Include(j => j.Company)
-                .FirstOrDefaultAsync(j => j.RNGForPositionUploaded == jobRNG);
+            if (selectedCompanyJobDetails_StudentJobApplications == null)
+            {
+                // attempt refresh once
+                await StudentDashboardService.RefreshDashboardCacheAsync();
+                _dashboardData = await StudentDashboardService.LoadDashboardDataAsync();
+                jobDataCache = new Dictionary<long, CompanyJob>(_dashboardData.JobCache);
+                companyJobApplications = _dashboardData.JobApplications.ToList();
+                selectedCompanyJobDetails_StudentJobApplications = jobDataCache.TryGetValue(jobRNG, out var refreshedJob)
+                    ? refreshedJob
+                    : null;
+            }
 
             if (selectedCompanyJobDetails_StudentJobApplications != null)
             {
-                // Open the modal if the job details are found
                 showCompanyJobDetailsModal_StudentJobApplications = true;
                 StateHasChanged();
             }
             else
             {
-                // Show an alert if no job details are found
                 await JS.InvokeVoidAsync("confirmActionWithHTML2", "Δεν μπορούν να εμφανιστούν οι λεπτομέρειες της Θέσης. <span style='color:darkred;'>Η Θέση Δεν Είναι Πλέον Διαθέσιμη από τον Φορέα</span>");
             }
         }
@@ -505,15 +441,6 @@ namespace QuizManager.Components.Layout.StudentSections
         {
             showCompanyJobDetailsModal_StudentJobApplications = false;
             StateHasChanged();
-        }
-
-        // Helper Methods
-        private async Task<QuizManager.Models.Student> GetStudentDetails(string email)
-        {
-            await using var context = await DbContextFactory.CreateDbContextAsync();
-
-            return await context.Students
-                .FirstOrDefaultAsync(s => s.Email == email);
         }
 
         // Helper method to get job details from cache
@@ -533,12 +460,6 @@ namespace QuizManager.Components.Layout.StudentSections
                 "Απόσυρση Θέσεως" => "coral",
                 _ => "transparent"
             };
-        }
-
-        // Helper method for hashing
-        private string HashLong(long value)
-        {
-            return HashingHelper.HashLong(value);
         }
 
         // Additional Properties
@@ -577,14 +498,11 @@ namespace QuizManager.Components.Layout.StudentSections
         // Job Details Methods (overloads)
         private async Task ShowJobDetails(CompanyJob job)
         {
-            if (job.Company == null)
+            if (job.Company == null && !string.IsNullOrEmpty(job.EmailUsedToUploadJobs))
             {
-                await using var context = await DbContextFactory.CreateDbContextAsync();
-                await context.Entry(job)
-                    .Reference(j => j.Company)
-                    .LoadAsync();
+                job.Company = await StudentDashboardService.GetCompanyByEmailAsync(job.EmailUsedToUploadJobs);
             }
-        
+
             currentJob = job;
             isModalVisibleForJobs = true;
             StateHasChanged();
@@ -592,11 +510,20 @@ namespace QuizManager.Components.Layout.StudentSections
 
         private async Task ShowJobDetails(CompanyJobApplied jobApplication)
         {
-            await using var context = await DbContextFactory.CreateDbContextAsync();
+            currentJobApplicationMadeAsStudent = jobDataCache.TryGetValue(jobApplication.RNGForCompanyJobApplied, out var cachedJob)
+                ? cachedJob
+                : null;
 
-            currentJobApplicationMadeAsStudent = await context.CompanyJobs
-                .Include(j => j.Company)
-                .FirstOrDefaultAsync(j => j.RNGForPositionUploaded == jobApplication.RNGForCompanyJobApplied);
+            if (currentJobApplicationMadeAsStudent == null)
+            {
+                await StudentDashboardService.RefreshDashboardCacheAsync();
+                _dashboardData = await StudentDashboardService.LoadDashboardDataAsync();
+                jobDataCache = new Dictionary<long, CompanyJob>(_dashboardData.JobCache);
+                companyJobApplications = _dashboardData.JobApplications.ToList();
+                currentJobApplicationMadeAsStudent = jobDataCache.TryGetValue(jobApplication.RNGForCompanyJobApplied, out var refreshedJob)
+                    ? refreshedJob
+                    : null;
+            }
 
             isJobDetailsModalVisibleToSeeJobApplicationsAsStudent = currentJobApplicationMadeAsStudent != null;
             StateHasChanged();
@@ -768,14 +695,8 @@ namespace QuizManager.Components.Layout.StudentSections
             {
                 try
                 {
-                    await using var context = await DbContextFactory.CreateDbContextAsync();
-
-                    jobTitleAutocompleteSuggestionsWhenSearchForCompanyJobsAsStudent = await context.CompanyJobs
-                        .Where(j => j.PositionTitle.Contains(jobSearch) && j.PositionStatus == "Δημοσιευμένη")
-                        .Select(j => j.PositionTitle)
-                        .Distinct()
-                        .Take(10)
-                        .ToListAsync();
+                    var suggestions = await StudentDashboardService.GetJobTitleSuggestionsAsync(jobSearch);
+                    jobTitleAutocompleteSuggestionsWhenSearchForCompanyJobsAsStudent = suggestions.ToList();
                 }
                 catch (Exception ex)
                 {
@@ -794,14 +715,8 @@ namespace QuizManager.Components.Layout.StudentSections
             {
                 try
                 {
-                    await using var context = await DbContextFactory.CreateDbContextAsync();
-
-                    companyNameAutocompleteSuggestionsWhenSearchForCompanyJobsAsStudent = await context.Companies
-                        .Where(c => c.CompanyName.Contains(companyNameSearch))
-                        .Select(c => c.CompanyName)
-                        .Distinct()
-                        .Take(10)
-                        .ToListAsync();
+                    var suggestions = await StudentDashboardService.GetCompanyNameSuggestionsAsync(companyNameSearch);
+                    companyNameAutocompleteSuggestionsWhenSearchForCompanyJobsAsStudent = suggestions.ToList();
                 }
                 catch (Exception ex)
                 {

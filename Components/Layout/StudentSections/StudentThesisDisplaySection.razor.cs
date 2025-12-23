@@ -1,10 +1,9 @@
 using Microsoft.AspNetCore.Components;
 using QuizManager.ViewModels;
 using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.JSInterop;
-using QuizManager.Data;
 using QuizManager.Models;
+using QuizManager.Services.StudentDashboard;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,7 +13,7 @@ namespace QuizManager.Components.Layout.StudentSections
 {
     public partial class StudentThesisDisplaySection : ComponentBase
     {
-        [Inject] private IDbContextFactory<AppDbContext> DbContextFactory { get; set; } = default!;
+        [Inject] private IStudentDashboardService StudentDashboardService { get; set; } = default!;
         [Inject] private IJSRuntime JS { get; set; } = default!;
         [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
         [Inject] private NavigationManager NavigationManager { get; set; } = default!;
@@ -116,86 +115,21 @@ namespace QuizManager.Components.Layout.StudentSections
             }
         }
 
+        private StudentDashboardData _dashboardData = StudentDashboardData.Empty;
+
         private async Task LoadUserThesisApplications()
         {
             try
             {
-                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-                var user = authState.User;
+                _dashboardData = await StudentDashboardService.LoadDashboardDataAsync();
 
-                // Initialize lists and cache
-                companyThesisApplications = new List<CompanyThesisApplied>();
-                professorThesisApplications = new List<ProfessorThesisApplied>();
-                thesisDataCache = new Dictionary<long, CompanyThesis>();
-                professorThesisDataCache = new Dictionary<long, ProfessorThesis>(); 
+                companyThesisApplications = _dashboardData.CompanyThesisApplications.ToList();
+                thesisDataCache = new Dictionary<long, CompanyThesis>(_dashboardData.CompanyThesisCache);
 
-                if (user.Identity.IsAuthenticated)
-                {
-                    var userEmail = user.FindFirst("name")?.Value;
+                professorThesisApplications = _dashboardData.ProfessorThesisApplications.ToList();
+                professorThesisDataCache = new Dictionary<long, ProfessorThesis>(_dashboardData.ProfessorThesisCache);
 
-                    if (!string.IsNullOrEmpty(userEmail))
-                    {
-                        showStudentThesisApplications = true;
-
-                        await using var context = await DbContextFactory.CreateDbContextAsync();
-
-                        // Get student details
-                        var student = await context.Students
-                            .FirstOrDefaultAsync(s => s.Email == userEmail);
-
-                        if (student != null)
-                        {
-                            // Fetch company thesis applications
-                            companyThesisApplications = await context.CompanyThesesApplied
-                                .Include(a => a.StudentDetails)
-                                .Include(a => a.CompanyDetails)
-                                .Where(app => app.StudentEmailAppliedForThesis == userEmail && 
-                                            app.StudentUniqueIDAppliedForThesis == student.Student_UniqueID)
-                                .OrderByDescending(app => app.DateTimeStudentAppliedForThesis)
-                                .ToListAsync();
-
-                            // Load all related theses in one query
-                            var thesisRNGs = companyThesisApplications
-                                .Select(a => a.RNGForCompanyThesisApplied)
-                                .ToList();
-
-                            var theses = await context.CompanyTheses
-                                .Include(t => t.Company) 
-                                .Where(t => thesisRNGs.Contains(t.RNGForThesisUploadedAsCompany))
-                                .ToListAsync();
-
-                            // Populate cache
-                            foreach (var thesis in theses)
-                            {
-                                thesisDataCache[thesis.RNGForThesisUploadedAsCompany] = thesis;
-                            }
-
-                            // Fetch professor thesis applications
-                            professorThesisApplications = await context.ProfessorThesesApplied
-                                .Include(a => a.StudentDetails)
-                                .Include(a => a.ProfessorDetails)
-                                .Where(app => app.StudentEmailAppliedForProfessorThesis == userEmail && 
-                                            app.StudentUniqueIDAppliedForProfessorThesis == student.Student_UniqueID)
-                                .OrderByDescending(app => app.DateTimeStudentAppliedForProfessorThesis)
-                                .ToListAsync();
-
-                            // Load all related professor theses in one query
-                            var professorThesisRNGs = professorThesisApplications
-                                .Select(a => a.RNGForProfessorThesisApplied)
-                                .ToList();
-
-                            var professorTheses = await context.ProfessorTheses
-                                .Where(t => professorThesisRNGs.Contains(t.RNGForThesisUploaded))
-                                .ToListAsync();
-
-                            // Populate professor thesis cache
-                            foreach (var thesis in professorTheses)
-                            {
-                                professorThesisDataCache[thesis.RNGForThesisUploaded] = thesis;
-                            }
-                        }
-                    }
-                }
+                showStudentThesisApplications = _dashboardData.IsAuthenticated && _dashboardData.IsRegisteredStudent;
 
                 UpdateTotalThesisCount();
                 StateHasChanged();
@@ -360,16 +294,15 @@ namespace QuizManager.Components.Layout.StudentSections
                     loadingProgressWhenWithdrawThesisApplication = 0;
                     StateHasChanged();
 
-                    // Step 1: Get thesis details
                     await UpdateProgressWhenWithdrawThesisApplication(10, 200);
-                
-                    await using var context = await DbContextFactory.CreateDbContextAsync();
 
-                    var thesisDetails = await context.CompanyTheses
-                        .Include(t => t.Company)
-                        .FirstOrDefaultAsync(t => t.RNGForThesisUploadedAsCompany == companyThesis.RNGForCompanyThesisApplied);
+                    var thesisDetails = thesisDataCache.TryGetValue(companyThesis.RNGForCompanyThesisApplied, out var cachedThesis)
+                        ? cachedThesis
+                        : null;
 
-                    if (thesisDetails == null)
+                    var student = _dashboardData.Student;
+
+                    if (!await StudentDashboardService.WithdrawCompanyThesisApplicationAsync(companyThesis.RNGForCompanyThesisApplied))
                     {
                         showLoadingModalWhenWithdrawThesisApplication = false;
                         StateHasChanged();
@@ -377,80 +310,52 @@ namespace QuizManager.Components.Layout.StudentSections
                         return;
                     }
 
-                    // Step 2: Update thesis status
-                    await UpdateProgressWhenWithdrawThesisApplication(30, 200);
-                
-                    companyThesis.CompanyThesisStatusAppliedAtStudentSide = "Αποσύρθηκε από τον φοιτητή";
-                    companyThesis.CompanyThesisStatusAppliedAtCompanySide = "Αποσύρθηκε από τον φοιτητή";
-
-                    // Step 3: Add platform action
-                    await UpdateProgressWhenWithdrawThesisApplication(50, 200);
-                
-                    platformAction = new PlatformActions
-                    {
-                        UserRole_PerformedAction = "STUDENT",
-                        ForWhat_PerformedAction = "COMPANY_THESIS",
-                        HashedPositionRNG_PerformedAction = HashingHelper.HashLong(companyThesis.RNGForCompanyThesisApplied),
-                        TypeOfAction_PerformedAction = "SELFWITHDRAW",
-                        DateTime_PerformedAction = DateTime.Now
-                    };
-
-                    context.PlatformActions.Add(platformAction);
-                    await context.SaveChangesAsync();
-                
                     await UpdateProgressWhenWithdrawThesisApplication(70, 200);
 
-                    // Step 4: Get student details
-                    await UpdateProgressWhenWithdrawThesisApplication(80, 200);
-                
-                    var student = await GetStudentDetails(companyThesis.StudentEmailAppliedForThesis);
-                    if (student == null)
+                    // Refresh dashboard caches
+                    await StudentDashboardService.RefreshDashboardCacheAsync();
+                    await LoadUserThesisApplications();
+
+                    // Optional notifications if data available
+                    if (thesisDetails != null && student != null)
                     {
-                        showLoadingModalWhenWithdrawThesisApplication = false;
-                        StateHasChanged();
-                        await JS.InvokeVoidAsync("alert", "Δεν βρέθηκαν στοιχεία φοιτητή.");
-                        return;
+                        var companyName = thesisDetails.Company?.CompanyName ?? "Άγνωστη Εταιρεία";
+
+                        await InternshipEmailService.SendStudentThesisWithdrawalNotificationToCompanyOrProfessor(
+                            companyThesis.CompanyEmailWhereStudentAppliedForThesis,
+                            companyName,
+                            student.Name,
+                            student.Surname,
+                            thesisDetails.CompanyThesisTitle,
+                            companyThesis.RNGForCompanyThesisAppliedAsStudent_HashedAsUniqueID);
+
+                        await InternshipEmailService.SendStudentThesisWithdrawalConfirmationToStudent(
+                            companyThesis.StudentEmailAppliedForThesis,
+                            student.Name,
+                            student.Surname,
+                            thesisDetails.CompanyThesisTitle,
+                            companyThesis.RNGForCompanyThesisAppliedAsStudent_HashedAsUniqueID,
+                            companyName);
                     }
 
-                    var companyName = thesisDetails.Company?.CompanyName ?? "Άγνωστη Εταιρεία";
-
-                    // Step 5: Send emails
-                    await UpdateProgressWhenWithdrawThesisApplication(90, 200);
-                
-                    await InternshipEmailService.SendStudentThesisWithdrawalNotificationToCompanyOrProfessor(
-                        companyThesis.CompanyEmailWhereStudentAppliedForThesis,
-                        companyName,
-                        student.Name,
-                        student.Surname,
-                        thesisDetails.CompanyThesisTitle,
-                        companyThesis.RNGForCompanyThesisAppliedAsStudent_HashedAsUniqueID);
-
-                    await InternshipEmailService.SendStudentThesisWithdrawalConfirmationToStudent(
-                        companyThesis.StudentEmailAppliedForThesis,
-                        student.Name,
-                        student.Surname,
-                        thesisDetails.CompanyThesisTitle,
-                        companyThesis.RNGForCompanyThesisAppliedAsStudent_HashedAsUniqueID,
-                        companyName);
-
                     await UpdateProgressWhenWithdrawThesisApplication(100, 200);
-                
+
                     // Small delay to show completion
                     await Task.Delay(500);
-                
+
                     // Hide loading modal before navigation
                     showLoadingModalWhenWithdrawThesisApplication = false;
                     StateHasChanged();
 
                     // AFTER user clicks OK, show the navigation loader
                     await Task.Delay(100);
-            
+
                     // Show the navigation loader
                     await JS.InvokeVoidAsync("showBlazorNavigationLoader", "Παρακαλώ Περιμένετε...");
-            
+
                     // Give time for loader to render
                     await Task.Delay(300);
-                
+
                     NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
                 }
                 else if (thesis is ProfessorThesisApplied professorThesis)
@@ -464,16 +369,15 @@ namespace QuizManager.Components.Layout.StudentSections
                     loadingProgressWhenWithdrawThesisApplication = 0;
                     StateHasChanged();
 
-                    // Step 1: Get thesis details
                     await UpdateProgressWhenWithdrawThesisApplication(10, 200);
-                
-                    await using var context = await DbContextFactory.CreateDbContextAsync();
 
-                    var thesisDetails = await context.ProfessorTheses
-                        .Include(t => t.Professor)
-                        .FirstOrDefaultAsync(t => t.RNGForThesisUploaded == professorThesis.RNGForProfessorThesisApplied);
+                    var thesisDetails = professorThesisDataCache.TryGetValue(professorThesis.RNGForProfessorThesisApplied, out var cachedThesis)
+                        ? cachedThesis
+                        : null;
 
-                    if (thesisDetails == null)
+                    var student = _dashboardData.Student;
+
+                    if (!await StudentDashboardService.WithdrawProfessorThesisApplicationAsync(professorThesis.RNGForProfessorThesisApplied))
                     {
                         showLoadingModalWhenWithdrawThesisApplication = false;
                         StateHasChanged();
@@ -481,69 +385,39 @@ namespace QuizManager.Components.Layout.StudentSections
                         return;
                     }
 
-                    // Step 2: Update thesis status
-                    await UpdateProgressWhenWithdrawThesisApplication(30, 200);
-                
-                    professorThesis.ProfessorThesisStatusAppliedAtStudentSide = "Αποσύρθηκε από τον φοιτητή";
-                    professorThesis.ProfessorThesisStatusAppliedAtProfessorSide = "Αποσύρθηκε από τον φοιτητή";
-
-                    // Step 3: Add platform action
-                    await UpdateProgressWhenWithdrawThesisApplication(50, 200);
-                
-                    platformAction = new PlatformActions
-                    {
-                        UserRole_PerformedAction = "STUDENT",
-                        ForWhat_PerformedAction = "PROFESSOR_THESIS",
-                        HashedPositionRNG_PerformedAction = HashingHelper.HashLong(professorThesis.RNGForProfessorThesisApplied),
-                        TypeOfAction_PerformedAction = "SELFWITHDRAW",
-                        DateTime_PerformedAction = DateTime.Now
-                    };
-
-                    context.PlatformActions.Add(platformAction);
-                    await context.SaveChangesAsync();
-                
                     await UpdateProgressWhenWithdrawThesisApplication(70, 200);
 
-                    // Step 4: Get student details
-                    await UpdateProgressWhenWithdrawThesisApplication(80, 200);
-                
-                    var student = await GetStudentDetails(professorThesis.StudentEmailAppliedForProfessorThesis);
-                    if (student == null)
+                    await StudentDashboardService.RefreshDashboardCacheAsync();
+                    await LoadUserThesisApplications();
+
+                    if (thesisDetails != null && student != null)
                     {
-                        showLoadingModalWhenWithdrawThesisApplication = false;
-                        StateHasChanged();
-                        await JS.InvokeVoidAsync("alert", "Δεν βρέθηκαν στοιχεία φοιτητή.");
-                        return;
+                        var professorName = thesisDetails.Professor != null 
+                            ? $"{thesisDetails.Professor.ProfName} {thesisDetails.Professor.ProfSurname}" 
+                            : "Άγνωστος Καθηγητής";
+
+                        await InternshipEmailService.SendStudentThesisWithdrawalNotificationToCompanyOrProfessor(
+                            professorThesis.ProfessorEmailWhereStudentAppliedForProfessorThesis,
+                            professorName,
+                            student.Name,
+                            student.Surname,
+                            thesisDetails.ThesisTitle,
+                            professorThesis.RNGForProfessorThesisApplied_HashedAsUniqueID);
+
+                        await InternshipEmailService.SendStudentThesisWithdrawalConfirmationToStudent(
+                            professorThesis.StudentEmailAppliedForProfessorThesis,
+                            student.Name,
+                            student.Surname,
+                            thesisDetails.ThesisTitle,
+                            professorThesis.RNGForProfessorThesisApplied_HashedAsUniqueID,
+                            professorName);
                     }
 
-                    var professorName = thesisDetails.Professor != null 
-                        ? $"{thesisDetails.Professor.ProfName} {thesisDetails.Professor.ProfSurname}" 
-                        : "Άγνωστος Καθηγητής";
-
-                    // Step 5: Send emails
-                    await UpdateProgressWhenWithdrawThesisApplication(90, 200);
-                
-                    await InternshipEmailService.SendStudentThesisWithdrawalNotificationToCompanyOrProfessor(
-                        professorThesis.ProfessorEmailWhereStudentAppliedForProfessorThesis,
-                        professorName,
-                        student.Name,
-                        student.Surname,
-                        thesisDetails.ThesisTitle,
-                        professorThesis.RNGForProfessorThesisApplied_HashedAsUniqueID);
-
-                    await InternshipEmailService.SendStudentThesisWithdrawalConfirmationToStudent(
-                        professorThesis.StudentEmailAppliedForProfessorThesis,
-                        student.Name,
-                        student.Surname,
-                        thesisDetails.ThesisTitle,
-                        professorThesis.RNGForProfessorThesisApplied_HashedAsUniqueID,
-                        professorName);
-
                     await UpdateProgressWhenWithdrawThesisApplication(100, 200);
-                
+
                     // Small delay to show completion
                     await Task.Delay(500);
-                
+
                     // Hide loading modal before navigation
                     showLoadingModalWhenWithdrawThesisApplication = false;
                     StateHasChanged();
@@ -593,11 +467,8 @@ namespace QuizManager.Components.Layout.StudentSections
                 }
                 else
                 {
-                    await using var context = await DbContextFactory.CreateDbContextAsync();
-
                     // Fetch the company details from the database using email
-                    selectedCompanyDetails_ThesisStudentApplicationsToShow = await context.Companies
-                        .FirstOrDefaultAsync(c => c.CompanyEmail == companyEmail);
+                    selectedCompanyDetails_ThesisStudentApplicationsToShow = await StudentDashboardService.GetCompanyByEmailAsync(companyEmail);
 
                     // Add to cache if found
                     if (selectedCompanyDetails_ThesisStudentApplicationsToShow != null)
@@ -641,11 +512,8 @@ namespace QuizManager.Components.Layout.StudentSections
                 }
                 else
                 {
-                    await using var context = await DbContextFactory.CreateDbContextAsync();
-
                     // Fetch the professor details from the database using email
-                    selectedProfessorDetails_ThesisStudentApplicationsToShow = await context.Professors
-                        .FirstOrDefaultAsync(p => p.ProfEmail == professorEmail);
+                    selectedProfessorDetails_ThesisStudentApplicationsToShow = await StudentDashboardService.GetProfessorByEmailAsync(professorEmail);
 
                     // Add to cache if found
                     if (selectedProfessorDetails_ThesisStudentApplicationsToShow != null)
@@ -680,11 +548,7 @@ namespace QuizManager.Components.Layout.StudentSections
         // Thesis Details Modals
         private async Task ShowCompanyThesisDetailsModal_StudentThesisApplications(long thesisRNG)
         {
-            // Fetch the company thesis details asynchronously
-            await using var context = await DbContextFactory.CreateDbContextAsync();
-
-            selectedCompanyThesisDetails_ThesisStudentApplicationsToShow = await context.CompanyTheses
-                .FirstOrDefaultAsync(t => t.RNGForThesisUploadedAsCompany == thesisRNG);
+            selectedCompanyThesisDetails_ThesisStudentApplicationsToShow = GetCompanyThesisFromCache(thesisRNG);
 
             if (selectedCompanyThesisDetails_ThesisStudentApplicationsToShow != null)
             {
@@ -707,11 +571,7 @@ namespace QuizManager.Components.Layout.StudentSections
 
         private async Task ShowProfessorThesisDetailsModal_StudentThesisApplications(long thesisRNG)
         {
-            // Fetch the professor thesis details asynchronously
-            await using var context = await DbContextFactory.CreateDbContextAsync();
-
-            selectedProfessorThesisDetails_ThesisStudentApplicationsToShow = await context.ProfessorTheses
-                .FirstOrDefaultAsync(t => t.RNGForThesisUploaded == thesisRNG);
+            selectedProfessorThesisDetails_ThesisStudentApplicationsToShow = GetProfessorThesisFromCache(thesisRNG);
 
             if (selectedProfessorThesisDetails_ThesisStudentApplicationsToShow != null)
             {
@@ -736,10 +596,7 @@ namespace QuizManager.Components.Layout.StudentSections
         private async Task ShowProfessorHyperlinkNameDetailsModalInStudentThesis(string professorEmail)
         {
             // Fetch professor details based on the professorId
-            await using var context = await DbContextFactory.CreateDbContextAsync();
-
-            selectedProfessorDetailsFromThesis = await context.Professors
-                .FirstOrDefaultAsync(p => p.ProfEmail == professorEmail);
+            selectedProfessorDetailsFromThesis = await StudentDashboardService.GetProfessorByEmailAsync(professorEmail);
 
             // Show the modal after fetching the details
             if (selectedProfessorDetailsFromThesis != null)
@@ -751,25 +608,13 @@ namespace QuizManager.Components.Layout.StudentSections
 
         private async Task ShowCompanyHyperlinkNameDetailsModalInStudentThesis(string companyEmail)
         {
-            await using var context = await DbContextFactory.CreateDbContextAsync();
-
-            selectedCompanyDetailsFromThesis = await context.Companies
-                .FirstOrDefaultAsync(c => c.CompanyEmail == companyEmail);
+            selectedCompanyDetailsFromThesis = await StudentDashboardService.GetCompanyByEmailAsync(companyEmail);
 
             if (selectedCompanyDetailsFromThesis != null)
             {
                 showCompanyDetailsModalFromThesis = true;
                 StateHasChanged();
             }
-        }
-
-        // Helper Methods
-        private async Task<QuizManager.Models.Student> GetStudentDetails(string email)
-        {
-            await using var context = await DbContextFactory.CreateDbContextAsync();
-
-            return await context.Students
-                .FirstOrDefaultAsync(s => s.Email == email);
         }
 
         // Helper method to get thesis details from cache
@@ -921,18 +766,14 @@ namespace QuizManager.Components.Layout.StudentSections
         // Show Thesis Details
         private async Task ShowCompanyThesisDetailsAsStudent(long thesisRng)
         {
-            await using var context = await DbContextFactory.CreateDbContextAsync();
-            selectedCompanyThesisDetails = await context.CompanyTheses
-                .FirstOrDefaultAsync(t => t.RNGForThesisUploadedAsCompany == thesisRng);
+            selectedCompanyThesisDetails = GetCompanyThesisFromCache(thesisRng);
             isModalOpenToSeeCompanyThesisDetails_ThesisStudentApplicationsToShow = selectedCompanyThesisDetails != null;
             StateHasChanged();
         }
 
         private async Task ShowProfessorThesisDetailsAsStudent(long thesisRng)
         {
-            await using var context = await DbContextFactory.CreateDbContextAsync();
-            selectedProfessorThesisDetails = await context.ProfessorTheses
-                .FirstOrDefaultAsync(t => t.RNGForThesisUploaded == thesisRng);
+            selectedProfessorThesisDetails = GetProfessorThesisFromCache(thesisRng);
             isModalOpenToSeeProfessorThesisDetails_ThesisStudentApplicationsToShow = selectedProfessorThesisDetails != null;
             StateHasChanged();
         }
