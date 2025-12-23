@@ -659,6 +659,28 @@ namespace QuizManager.Services.StudentDashboard
                 .FirstOrDefaultAsync(s => s.Student_UniqueID == uniqueId, cancellationToken);
         }
 
+        public async Task<IReadOnlyList<CompanyEvent>> GetPublishedCompanyEventsAsync(CancellationToken cancellationToken = default)
+        {
+            await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+            return await context.CompanyEvents
+                .Include(e => e.Company)
+                .AsNoTracking()
+                .Where(e => e.CompanyEventStatus == "Δημοσιευμένη")
+                .OrderByDescending(e => e.CompanyEventActiveDate)
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task<IReadOnlyList<ProfessorEvent>> GetPublishedProfessorEventsAsync(CancellationToken cancellationToken = default)
+        {
+            await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+            return await context.ProfessorEvents
+                .Include(e => e.Professor)
+                .AsNoTracking()
+                .Where(e => e.ProfessorEventStatus == "Δημοσιευμένη")
+                .OrderByDescending(e => e.ProfessorEventActiveDate)
+                .ToListAsync(cancellationToken);
+        }
+
         public async Task<CompanyEventInterestResult?> ShowInterestInCompanyEventAsync(
             long eventRng,
             bool needsTransport,

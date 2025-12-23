@@ -1,10 +1,9 @@
 using Microsoft.AspNetCore.Components;
 using QuizManager.ViewModels;
 using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.JSInterop;
-using QuizManager.Data;
 using QuizManager.Models;
+using QuizManager.Services.StudentDashboard;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -16,7 +15,7 @@ namespace QuizManager.Components.Layout.StudentSections
 {
     public partial class StudentEventsSection : ComponentBase
     {
-        [Inject] private IDbContextFactory<AppDbContext> DbContextFactory { get; set; } = default!;
+        [Inject] private IStudentDashboardService StudentDashboardService { get; set; } = default!;
         [Inject] private IJSRuntime JS { get; set; } = default!;
         [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
 
@@ -98,6 +97,8 @@ namespace QuizManager.Components.Layout.StudentSections
         private List<CompanyEvent> companyEventsForSelectedDate => filteredCompanyEvents;
         private List<ProfessorEvent> professorEventsForSelectedDate => filteredProfessorEvents;
 
+        private StudentDashboardData _dashboardData = StudentDashboardData.Empty;
+
         protected override async Task OnInitializedAsync()
         {
             await LoadInitialData();
@@ -113,6 +114,10 @@ namespace QuizManager.Components.Layout.StudentSections
                 CurrentUserEmail = user.FindFirst("name")?.Value ?? "";
             }
 
+            _dashboardData = await StudentDashboardService.LoadDashboardDataAsync();
+            alreadyInterestedCompanyEventIds = _dashboardData.CompanyEventInterestIds?.ToHashSet() ?? new HashSet<long>();
+            interestedProfessorEventIds = _dashboardData.ProfessorEventInterestIds?.ToHashSet() ?? new HashSet<long>();
+
             CompanyEventsToShowAtFrontPage = await FetchCompanyEventsAsync();
             ProfessorEventsToShowAtFrontPage = await FetchProfessorEventsAsync();
             LoadEventsForCalendar();
@@ -120,22 +125,14 @@ namespace QuizManager.Components.Layout.StudentSections
 
         private async Task<List<CompanyEvent>> FetchCompanyEventsAsync()
         {
-            await using var context = await DbContextFactory.CreateDbContextAsync();
-            var companyevents = await context.CompanyEvents
-                .Include(e => e.Company)
-                .AsNoTracking()
-                .ToListAsync();
-            return companyevents;
+            var companyevents = await StudentDashboardService.GetPublishedCompanyEventsAsync();
+            return companyevents.ToList();
         }
 
         private async Task<List<ProfessorEvent>> FetchProfessorEventsAsync()
         {
-            await using var context = await DbContextFactory.CreateDbContextAsync();
-            var professorevents = await context.ProfessorEvents
-                .Include(e => e.Professor)
-                .AsNoTracking()
-                .ToListAsync();
-            return professorevents;
+            var professorevents = await StudentDashboardService.GetPublishedProfessorEventsAsync();
+            return professorevents.ToList();
         }
 
         private void LoadEventsForCalendar()
@@ -284,25 +281,61 @@ namespace QuizManager.Components.Layout.StudentSections
 
         private async Task ShowInterestInCompanyEventAsStudent(CompanyEvent companyEvent)
         {
-            // This method would handle showing interest in a company event
-            // Implementation depends on business logic - placeholder for now
-            await Task.CompletedTask;
+            if (companyEvent == null)
+            {
+                return;
+            }
+
+            var needsTransport = needsTransportForCompanyEvent.TryGetValue(companyEvent.RNGForEventUploadedAsCompany, out var transport) && transport;
+            var startingPoint = selectedStartingPoint.TryGetValue(companyEvent.RNGForEventUploadedAsCompany, out var start) ? start : string.Empty;
+
+            var result = await StudentDashboardService.ShowInterestInCompanyEventAsync(
+                companyEvent.RNGForEventUploadedAsCompany,
+                needsTransport,
+                startingPoint);
+
+            if (result != null)
+            {
+                alreadyInterestedCompanyEventIds.Add(companyEvent.RNGForEventUploadedAsCompany);
+                await StudentDashboardService.RefreshDashboardCacheAsync();
+                _dashboardData = await StudentDashboardService.LoadDashboardDataAsync();
+                interestedProfessorEventIds = _dashboardData.ProfessorEventInterestIds?.ToHashSet() ?? new HashSet<long>();
+                alreadyInterestedCompanyEventIds = _dashboardData.CompanyEventInterestIds?.ToHashSet() ?? new HashSet<long>();
+            }
+
             StateHasChanged();
         }
 
         private async Task ShowInterestInProfessorEventAsStudent(ProfessorEvent professorEvent)
         {
-            // This method would handle showing interest in a professor event
-            // Implementation depends on business logic - placeholder for now
-            await Task.CompletedTask;
+            if (professorEvent == null)
+            {
+                return;
+            }
+
+            var needsTransport = needsTransportForProfessorEvent.TryGetValue(professorEvent.RNGForEventUploadedAsProfessor, out var transport) && transport;
+            var startingPoint = selectedStartingPoint.TryGetValue(professorEvent.RNGForEventUploadedAsProfessor, out var start) ? start : string.Empty;
+
+            var result = await StudentDashboardService.ShowInterestInProfessorEventAsync(
+                professorEvent.RNGForEventUploadedAsProfessor,
+                needsTransport,
+                startingPoint);
+
+            if (result != null)
+            {
+                interestedProfessorEventIds.Add(professorEvent.RNGForEventUploadedAsProfessor);
+                await StudentDashboardService.RefreshDashboardCacheAsync();
+                _dashboardData = await StudentDashboardService.LoadDashboardDataAsync();
+                interestedProfessorEventIds = _dashboardData.ProfessorEventInterestIds?.ToHashSet() ?? new HashSet<long>();
+                alreadyInterestedCompanyEventIds = _dashboardData.CompanyEventInterestIds?.ToHashSet() ?? new HashSet<long>();
+            }
+
             StateHasChanged();
         }
 
         private async Task ShowCompanyDetailsOnHyperlinkAsStudentForCompanyEvents(string companyEmail)
         {
-            await using var context = await DbContextFactory.CreateDbContextAsync();
-            currentCompanyDetailsToShowOnHyperlinkAsStudentForCompanyEvents = await context.Companies
-                .FirstOrDefaultAsync(c => c.CompanyEmail == companyEmail);
+            currentCompanyDetailsToShowOnHyperlinkAsStudentForCompanyEvents = await StudentDashboardService.GetCompanyByEmailAsync(companyEmail);
 
             if (currentCompanyDetailsToShowOnHyperlinkAsStudentForCompanyEvents != null)
             {
@@ -367,40 +400,13 @@ namespace QuizManager.Components.Layout.StudentSections
 
                 if (isOpening)
                 {
-                    // Fetch events
-                    await using var context = await DbContextFactory.CreateDbContextAsync();
+                    companyEventsToSeeAsStudent = (await StudentDashboardService.GetPublishedCompanyEventsAsync()).ToList();
+                    professorEventsToSeeAsStudent = (await StudentDashboardService.GetPublishedProfessorEventsAsync()).ToList();
 
-                    companyEventsToSeeAsStudent = await context.CompanyEvents
-                        .Include(e => e.Company)
-                        .Where(e => e.CompanyEventStatus == "Δημοσιευμένη")
-                        .AsNoTracking()
-                        .ToListAsync();
-
-                    professorEventsToSeeAsStudent = await context.ProfessorEvents
-                        .Include(e => e.Professor)
-                        .Where(e => e.ProfessorEventStatus == "Δημοσιευμένη")
-                        .AsNoTracking()
-                        .ToListAsync();
-
-                    // Load interest IDs
-                    if (!string.IsNullOrEmpty(CurrentUserEmail))
-                    {
-                        var student = await context.Students.FirstOrDefaultAsync(s => s.Email == CurrentUserEmail);
-                        if (student != null)
-                        {
-                            alreadyInterestedCompanyEventIds = (await context.InterestInCompanyEvents
-                                    .Where(i => i.StudentEmailShowInterestForEvent == CurrentUserEmail)
-                                    .Select(i => i.RNGForCompanyEventInterest)
-                                    .ToListAsync())
-                                .ToHashSet();
-
-                            interestedProfessorEventIds = (await context.InterestInProfessorEvents
-                                    .Where(i => i.StudentEmailShowInterestForEvent == CurrentUserEmail)
-                                    .Select(i => i.RNGForProfessorEventInterest)
-                                    .ToListAsync())
-                                .ToHashSet();
-                        }
-                    }
+                    // Refresh interest IDs from dashboard cache
+                    _dashboardData = await StudentDashboardService.LoadDashboardDataAsync();
+                    alreadyInterestedCompanyEventIds = _dashboardData.CompanyEventInterestIds?.ToHashSet() ?? new HashSet<long>();
+                    interestedProfessorEventIds = _dashboardData.ProfessorEventInterestIds?.ToHashSet() ?? new HashSet<long>();
                 }
 
                 isCompanyEventsVisibleToSeeAsStudent = !isCompanyEventsVisibleToSeeAsStudent;
@@ -664,12 +670,8 @@ namespace QuizManager.Components.Layout.StudentSections
         {
             if (string.IsNullOrEmpty(email))
                 return null;
-            
-            await using var context = await DbContextFactory.CreateDbContextAsync();
 
-            return await context.Students
-                .AsNoTracking()
-                .FirstOrDefaultAsync(s => s.Email == email);
+            return await StudentDashboardService.GetStudentByEmailAsync(email);
         }
 
         // Progress Update Methods
@@ -699,11 +701,8 @@ namespace QuizManager.Components.Layout.StudentSections
             }
         }
 
-        // Show Interest Methods (simplified - full implementation needs StudentDashboardService)
         private async Task<bool> ShowInterestInCompanyEvent(CompanyEvent companyEvent, bool needsTransport)
         {
-            // This should delegate to StudentDashboardService
-            // For now, placeholder implementation
             showLoadingModalWhenShowInterestForCompanyEventAsStudent = true;
             loadingProgressWhenShowInterestForCompanyEventAsStudent = 0;
             StateHasChanged();
@@ -711,7 +710,24 @@ namespace QuizManager.Components.Layout.StudentSections
             try
             {
                 await UpdateProgressWhenShowInterestForCompanyEventAsStudent(50, 300);
-                // TODO: Call StudentDashboardService.ShowInterestInCompanyEventAsync
+
+                var startingPoint = selectedStartingPoint.TryGetValue(companyEvent.RNGForEventUploadedAsCompany, out var start) ? start : string.Empty;
+                var result = await StudentDashboardService.ShowInterestInCompanyEventAsync(
+                    companyEvent.RNGForEventUploadedAsCompany,
+                    needsTransport,
+                    startingPoint);
+
+                if (result == null)
+                {
+                    return false;
+                }
+
+                alreadyInterestedCompanyEventIds.Add(companyEvent.RNGForEventUploadedAsCompany);
+                await StudentDashboardService.RefreshDashboardCacheAsync();
+                _dashboardData = await StudentDashboardService.LoadDashboardDataAsync();
+                alreadyInterestedCompanyEventIds = _dashboardData.CompanyEventInterestIds?.ToHashSet() ?? new HashSet<long>();
+                interestedProfessorEventIds = _dashboardData.ProfessorEventInterestIds?.ToHashSet() ?? new HashSet<long>();
+
                 await UpdateProgressWhenShowInterestForCompanyEventAsStudent(100, 300);
                 return true;
             }
@@ -729,8 +745,6 @@ namespace QuizManager.Components.Layout.StudentSections
 
         private async Task<bool> ShowInterestInProfessorEvent(ProfessorEvent professorEvent, bool needsTransport)
         {
-            // This should delegate to StudentDashboardService
-            // For now, placeholder implementation
             showLoadingModalWhenShowInterestForProfessorEventAsStudent = true;
             loadingProgressWhenShowInterestForProfessorEventAsStudent = 0;
             StateHasChanged();
@@ -738,7 +752,24 @@ namespace QuizManager.Components.Layout.StudentSections
             try
             {
                 await UpdateProgressWhenShowInterestForProfessorEventAsStudent(50, 300);
-                // TODO: Call StudentDashboardService.ShowInterestInProfessorEventAsync
+
+                var startingPoint = selectedStartingPoint.TryGetValue(professorEvent.RNGForEventUploadedAsProfessor, out var start) ? start : string.Empty;
+                var result = await StudentDashboardService.ShowInterestInProfessorEventAsync(
+                    professorEvent.RNGForEventUploadedAsProfessor,
+                    needsTransport,
+                    startingPoint);
+
+                if (result == null)
+                {
+                    return false;
+                }
+
+                interestedProfessorEventIds.Add(professorEvent.RNGForEventUploadedAsProfessor);
+                await StudentDashboardService.RefreshDashboardCacheAsync();
+                _dashboardData = await StudentDashboardService.LoadDashboardDataAsync();
+                alreadyInterestedCompanyEventIds = _dashboardData.CompanyEventInterestIds?.ToHashSet() ?? new HashSet<long>();
+                interestedProfessorEventIds = _dashboardData.ProfessorEventInterestIds?.ToHashSet() ?? new HashSet<long>();
+
                 await UpdateProgressWhenShowInterestForProfessorEventAsStudent(100, 300);
                 return true;
             }

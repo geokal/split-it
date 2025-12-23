@@ -43,6 +43,10 @@ namespace QuizManager.Services.StudentDashboard
 
         Task<Student?> GetStudentByUniqueIdAsync(string uniqueId, CancellationToken cancellationToken = default);
 
+        Task<IReadOnlyList<CompanyEvent>> GetPublishedCompanyEventsAsync(CancellationToken cancellationToken = default);
+
+        Task<IReadOnlyList<ProfessorEvent>> GetPublishedProfessorEventsAsync(CancellationToken cancellationToken = default);
+
         Task<CompanyEventInterestResult?> ShowInterestInCompanyEventAsync(long eventRng, bool needsTransport, string? chosenLocation, CancellationToken cancellationToken = default);
 
         Task<bool> WithdrawCompanyEventInterestAsync(long eventRng, CancellationToken cancellationToken = default);
