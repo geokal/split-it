@@ -72,8 +72,8 @@ See `docs/ERROR_INVESTIGATION.md` for detailed explanation of error count fluctu
 - ✅ ResearchGroup sections now use `IResearchGroupDashboardService` (Announcements, Events, Company/Professor searches, Statistics)
 - ✅ MainLayout/front page already service-driven
 - ✅ QuizViewer pages (1–4) now use `IDbContextFactory` (no injected `AppDbContext`)
-- ✅ Student sections (Events, JobsDisplay, ThesisDisplay, Internships) now use `IStudentDashboardService`
-- ⚠️ Remaining: StudentAnnouncementsSection and StudentCompanySearchSection still use `IDbContextFactory` directly
+- ✅ Student sections (Events, JobsDisplay, ThesisDisplay, Internships, CompanySearch) now use `IStudentDashboardService`
+- ⚠️ Remaining: StudentAnnouncementsSection still uses `IDbContextFactory` directly
 
 ### Extraction Strategy
 1. **Source**: `backups/MainLayout.razor.cs.backup` (33,977 lines - the original monolithic file)
@@ -101,7 +101,7 @@ See `docs/ERROR_INVESTIGATION.md` for detailed explanation of error count fluctu
 - Git: commits currently blocked because `.git` directory is not writable (`index.lock` cannot be created); fix permissions before staging
 
 ## Next Steps
-1. ⚠️ Complete service migration for remaining Student components (StudentAnnouncementsSection, StudentCompanySearchSection)
+1. ⚠️ Complete service migration for remaining Student component (StudentAnnouncementsSection)
 2. ⚠️ Optional: address high-noise nullable/unused-field warnings
 3. ⚠️ Upgrade `<TargetFramework>` to `net8.0` and retest
 4. ⚠️ End-to-end/manual testing after service migration & warnings triage
