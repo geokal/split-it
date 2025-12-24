@@ -11,9 +11,10 @@
     public bool isInitializedAsProfessorUser { get; set; }
 }
 
-                                                    <div id="professors-tab-table-start"></div>
-                            else if (UserRole == "Professor")
-                            {
+<div id="professors-tab-table-start"></div>
+
+@if (UserRole == "Professor")
+{
                                 @if (!isInitializedAsProfessorUser)
                                 {
                                     <div class="professional-loading">
@@ -91,27 +92,23 @@
                                                     </div>
                                                     <div id="professor-ptyxiakes-dimiourgia-ptyxiakis"></div>
                                                         
-                                                        <div class="tab-pane fade" id="professorthesis" role="tabpanel" aria-labelledby="professorthesis-tab">
+                                                    <div class="tab-pane fade" id="professorthesis" role="tabpanel" aria-labelledby="professorthesis-tab">
                                                         <ProfessorThesesSection />
-                                                        </div>
-                                                        }
+                                                    </div>
 
-                                                                <div class="tab-pane  fade" id="professorinternships" role="tabpanel" aria-labelledby="professorinternships-tab">
+                                                    <div class="tab-pane fade" id="professorinternships" role="tabpanel" aria-labelledby="professorinternships-tab">
                                                         <ProfessorInternshipsSection />
-                                                        </div>
-                                                                                                                             
+                                                    </div>
                                                          
                                                     <div class="tab-pane fade" id="professorevent" role="tabpanel" aria-labelledby="professorevent-tab">  
                                                         <ProfessorEventsSection />
                                                     </div>
-                                                                }
                                                                 
 
 
                                                     <div class="tab-pane fade" id="professorsearchstudent" role="tabpanel" aria-labelledby="professorsearchstudent-tab">
                                                         <ProfessorStudentSearchSection />
                                                     </div>
-                                                    }
 
 
                                                     @*SEARCH COMPANIES AS PROFESSOR*@
@@ -125,5 +122,5 @@
                                               </div>
                                     </div>
                                 </div>
-                                }
-                            }
+    }
+}

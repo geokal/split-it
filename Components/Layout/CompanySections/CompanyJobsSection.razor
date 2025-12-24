@@ -1,4 +1,24 @@
-                                                {
+                                                    <div id="jobs-tab-companies-start"></div>
+                                                    
+                                                    <!-- ΔΗΜΙΟΥΡΓΙΑ ΘΕΣΗΣ ΕΡΓΑΣΙΑΣ ΩΣ COMPANY USER-->
+                                                    <div class="mb-3 row-dark-gray">
+                                                        <div class="d-flex justify-content-between align-items-center" @onclick="ToggleFormVisibilityForUploadCompanyJobs" style="cursor: pointer;">
+                                                            <label class="form-label" style="color: #FFF8DC;">• Δημιουργία Θέσης Εργασίας •</label>
+                                                            <button type="button" class="btn btn-link" @onclick="ToggleFormVisibilityForUploadCompanyJobs" @onclick:preventDefault="true">
+                                                                @if (isUploadCompanyJobsFormVisible)
+                                                                {
+                                                                    <span>&#8722;</span> <!-- Minus sign -->
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span>&#43;</span> <!-- Plus sign -->
+                                                                }
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                   
+                                                    @if (isUploadCompanyJobsFormVisible)
+                                                    {
                                                         <div class="row mb-3">
                                                             <div class="col-md-4">
                                                                 <label for="positionType">
@@ -407,7 +427,7 @@
                                                                 Συμπληρώστε Όλα Τα Υποχρεωτικά Πεδία και Προσπαθήστε Ξανά
                                                             </div>
                                                         }
-                                                }
+                                                    }
                                                     <div id="energes-theseis-ergasias-company"></div>
                                                     <!-- VIEW UPLOADED JOBS AS COMPANY -->
                                                     <div class="mb-3 row-dark-gray">

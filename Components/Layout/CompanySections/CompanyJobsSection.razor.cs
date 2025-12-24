@@ -27,6 +27,9 @@ namespace QuizManager.Components.Layout.CompanySections
         private QuizManager.Models.Company companyData;
         private string companyName = "";
 
+        // Form Visibility
+        private bool isUploadCompanyJobsFormVisible = false;
+
         // Form Model and Validation
         private CompanyJob job = new CompanyJob();
         private bool showErrorMessageforUploadingjobsAsCompany = false;
@@ -112,6 +115,9 @@ namespace QuizManager.Components.Layout.CompanySections
         {
             await LoadInitialData();
         }
+
+        // Bootstrap tabs initialization is handled by the parent CompanySection component
+        // No need to initialize here to avoid conflicts
 
         private async Task LoadInitialData()
         {
@@ -1062,6 +1068,14 @@ namespace QuizManager.Components.Layout.CompanySections
         {
             isModalVisibleForJobs = false;
             selectedJob = null;
+            StateHasChanged();
+        }
+
+        // Form Visibility
+        private void ToggleFormVisibilityForUploadCompanyJobs()
+        {
+            isUploadCompanyJobsFormVisible = !isUploadCompanyJobsFormVisible;
+            Console.WriteLine($"[CompanyJobsSection] ToggleFormVisibilityForUploadCompanyJobs called. isUploadCompanyJobsFormVisible = {isUploadCompanyJobsFormVisible}");
             StateHasChanged();
         }
 
