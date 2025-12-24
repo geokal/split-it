@@ -1,4 +1,5 @@
 using Auth0.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using QuizManager.Data;
@@ -24,7 +25,19 @@ builder.Services.AddAuth0WebAppAuthentication(options =>
 {
     options.Domain = builder.Configuration["Auth0:Domain"];
     options.ClientId = builder.Configuration["Auth0:ClientId"];
+    // Callback path is handled automatically by Auth0 middleware
+    // After callback, it will redirect to the redirectUri set in LoginAuthenticationPropertiesBuilder
 });
+
+// Configure Cookie Authentication to use /login instead of /Account/Login
+builder.Services.Configure<Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationOptions>(
+    Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme, 
+    options =>
+    {
+        options.LoginPath = "/login";
+        options.LogoutPath = "/logout";
+        options.AccessDeniedPath = "/";
+    });
 
 // 4. HTTP CLIENTS
 builder.Services.AddHttpClient(); // General HttpClient factory for services like FrontPageService
@@ -43,6 +56,12 @@ builder.Services.AddHttpClient("Auth0Api", client =>
 builder.Services.AddRazorPages();
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+// Configure authorization to allow anonymous access to root route
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = null; // Don't require authorization by default
+});
 
 builder.Services.AddScoped<InternshipEmailService>(provider =>
 {
@@ -70,11 +89,15 @@ builder.Services.AddScoped<QuizManager.Services.FrontPage.IFrontPageService, Qui
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
+// Auto-apply migrations only in Development
+if (app.Environment.IsDevelopment())
 {
-    var factory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
-    using var db = factory.CreateDbContext();
-    db.Database.Migrate();
+    using (var scope = app.Services.CreateScope())
+    {
+        var factory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
+        using var db = factory.CreateDbContext();
+        db.Database.Migrate();
+    }
 }
 
 // 6. MIDDLEWARE PIPELINE

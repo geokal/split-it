@@ -50,62 +50,56 @@ namespace QuizManager.Services.FrontPage
             await _refreshLock.WaitAsync(cancellationToken);
             try
             {
+                // Start external HTTP calls concurrently (they don't use DbContext)
+                var uoaNewsTask = FetchUoaNewsAsync(cancellationToken);
+                var svseNewsTask = FetchSvseNewsAsync(cancellationToken);
+                var weatherTask = Task.FromResult<WeatherSnapshot?>(null);
+
+                // Execute database queries sequentially to avoid DbContext concurrency issues
                 await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
 
-                var companyEventsTask = context.CompanyEvents
+                var companyEvents = await context.CompanyEvents
                     .AsNoTracking()
                     .Where(e => e.CompanyEventStatus == "Δημοσιευμένη" && e.CompanyEventActiveDate <= DateTime.Now)
                     .OrderByDescending(e => e.CompanyEventUploadedDate)
                     .ToListAsync(cancellationToken);
 
-                var professorEventsTask = context.ProfessorEvents
+                var professorEvents = await context.ProfessorEvents
                     .AsNoTracking()
                     .Where(e => e.ProfessorEventStatus == "Δημοσιευμένη" && e.ProfessorEventActiveDate <= DateTime.Now)
                     .OrderByDescending(e => e.ProfessorEventUploadedDate)
                     .ToListAsync(cancellationToken);
 
-                var companyAnnouncementsTask = context.AnnouncementsAsCompany
+                var companyAnnouncements = await context.AnnouncementsAsCompany
                     .AsNoTracking()
                     .Where(a => a.CompanyAnnouncementStatus == "Δημοσιευμένη" && a.CompanyAnnouncementTimeToBeActive <= DateTime.Now)
                     .OrderByDescending(a => a.CompanyAnnouncementUploadDate)
                     .ToListAsync(cancellationToken);
 
-                var professorAnnouncementsTask = context.AnnouncementsAsProfessor
+                var professorAnnouncements = await context.AnnouncementsAsProfessor
                     .AsNoTracking()
                     .Where(a => a.ProfessorAnnouncementStatus == "Δημοσιευμένη" && a.ProfessorAnnouncementTimeToBeActive <= DateTime.Now)
                     .OrderByDescending(a => a.ProfessorAnnouncementUploadDate)
                     .ToListAsync(cancellationToken);
 
-                var researchGroupAnnouncementsTask = context.AnnouncementAsResearchGroup
+                var researchGroupAnnouncements = await context.AnnouncementAsResearchGroup
                     .AsNoTracking()
                     .Where(a => a.ResearchGroupAnnouncementStatus == "Δημοσιευμένη" && a.ResearchGroupAnnouncementTimeToBeActive <= DateTime.Now)
                     .OrderByDescending(a => a.ResearchGroupAnnouncementUploadDate)
                     .ToListAsync(cancellationToken);
 
-                // Fetch external news (UoA, SVSE)
-                var uoaNewsTask = FetchUoaNewsAsync(cancellationToken);
-                var svseNewsTask = FetchSvseNewsAsync(cancellationToken);
-                var weatherTask = Task.FromResult<WeatherSnapshot?>(null);
-
-                await Task.WhenAll(
-                    companyEventsTask,
-                    professorEventsTask,
-                    companyAnnouncementsTask,
-                    professorAnnouncementsTask,
-                    researchGroupAnnouncementsTask,
-                    uoaNewsTask,
-                    svseNewsTask,
-                    weatherTask);
+                // Wait for external HTTP calls to complete
+                await Task.WhenAll(uoaNewsTask, svseNewsTask, weatherTask);
 
                 _state = new FrontPageDataState(
-                    uoaNewsTask.Result,
-                    svseNewsTask.Result,
-                    companyAnnouncementsTask.Result.AsReadOnly(),
-                    professorAnnouncementsTask.Result.AsReadOnly(),
-                    researchGroupAnnouncementsTask.Result,
-                    companyEventsTask.Result.AsReadOnly(),
-                    professorEventsTask.Result.AsReadOnly(),
-                    weatherTask.Result,
+                    await uoaNewsTask,
+                    await svseNewsTask,
+                    companyAnnouncements.AsReadOnly(),
+                    professorAnnouncements.AsReadOnly(),
+                    researchGroupAnnouncements.AsReadOnly(),
+                    companyEvents.AsReadOnly(),
+                    professorEvents.AsReadOnly(),
+                    await weatherTask,
                     DateTimeOffset.UtcNow);
 
                 StateChanged?.Invoke(_state);

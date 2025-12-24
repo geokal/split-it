@@ -120,6 +120,9 @@ namespace QuizManager.Components.Layout
                 {
                     ShowAdminRegistrationButton = true;
                 }
+                
+                // Notify UI that user state has been loaded
+                StateHasChanged();
             }
             catch (Exception ex)
             {

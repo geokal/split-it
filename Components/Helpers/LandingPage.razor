@@ -1,0 +1,435 @@
+@using QuizManager.Models
+@using QuizManager.Data
+@using System.Collections.Generic
+@using Microsoft.EntityFrameworkCore
+@inject IJSRuntime JS
+@inject HttpClient HttpClient
+@inject NavigationManager Navigation
+@inject IDbContextFactory<AppDbContext> DbContextFactory
+@inject IFrontPageService FrontPageService
+@using QuizManager.Services.FrontPage
+
+<PageTitle>AcadeMyHub</PageTitle>
+
+<style>
+    .dark-red-text {
+        color: darkred;
+    }
+
+    .black-text {
+        color: black;
+    }
+
+    .news-container {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        padding: 15px;
+        border: 1px solid #e0e0e0;
+        border-radius: 10px;
+        background-color: #ffffff;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease;
+    }
+
+    .news-container:hover {
+        transform: translateY(-5px);
+    }
+
+    .news-article {
+        background-color: #fdfdfd;
+        padding: 15px;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        font-size: 14px;
+        transition: transform 0.3s ease;
+    }
+
+    .news-article:hover {
+        transform: translateY(-3px);
+    }
+
+    .news-heading {
+        font-size: 20px;
+        font-weight: bold;
+        color: orange;
+    }
+
+    .useful-links {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        padding: 10px;
+        background-color: #f0f0f0;
+        border-top: 1px solid #ddd;
+        width: 100%;
+        z-index: 100;
+    }
+
+    .useful-links ul {
+        list-style-type: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .useful-links ul li {
+        display: inline;
+        margin-right: 20px;
+    }
+
+    .useful-links a {
+        text-decoration: none;
+        color: #333;
+    }
+
+    .weather-container {
+        position: fixed;
+        top: 10px;
+        right: 20px;
+        padding: 10px;
+        z-index: 10;
+        color: white;
+        font-weight: bold;
+        background-color: rgba(0, 0, 0, 0.3);
+        border-radius: 8px;
+    }
+
+    .main-container {
+        position: absolute;
+        right: 20px;
+        top: 120px;
+        width: 500px;
+        max-height: 80vh;
+        overflow-y: auto;
+        padding-right: 15px;
+        transition: opacity 0.3s ease;
+        opacity: 1;
+        visibility: visible;
+        z-index: 1;
+    }
+
+    .hidden {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+    }
+
+    .toggle-arrow {
+        position: fixed;
+        right: 20px;
+        top: 80px;
+        cursor: pointer;
+        font-size: 24px;
+        display: flex;
+        align-items: center;
+        z-index: 2;
+    }
+
+    .toggle-text {
+        margin-left: 8px;
+        font-size: 18px;
+        color: white;
+    }
+
+    .blue-icon {
+        color: blue;
+    }
+
+    .pagination {
+        display: flex;
+        justify-content: center;
+        margin-top: 20px;
+    }
+
+    .pagination button {
+        margin: 0 5px;
+    }
+
+    .backgroundimage-page {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        object-fit: cover;
+        z-index: -1;
+        margin: 0;
+        padding: 0;
+    }
+
+    /* Login Modal Styles */
+    .login-modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.4);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 999;
+        pointer-events: all;
+    }
+
+    .login-modal {
+        background: #f5f5f5;
+        border-radius: 12px;
+        padding: 40px;
+        width: 90%;
+        max-width: 450px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        position: relative;
+    }
+
+    .login-modal-logo {
+        text-align: center;
+        margin-bottom: 20px;
+        font-size: 48px;
+        font-weight: bold;
+        color: #dc3545;
+    }
+
+    .login-modal-title {
+        text-align: center;
+        font-size: 24px;
+        font-weight: 600;
+        margin-bottom: 30px;
+        color: #333;
+    }
+
+    .login-tabs {
+        display: flex;
+        border-bottom: 2px solid #ddd;
+        margin-bottom: 25px;
+    }
+
+    .login-tab {
+        flex: 1;
+        padding: 12px;
+        text-align: center;
+        cursor: pointer;
+        background: none;
+        border: none;
+        font-size: 16px;
+        color: #666;
+        transition: all 0.3s;
+    }
+
+    .login-tab.active {
+        color: #007bff;
+        border-bottom: 2px solid #007bff;
+        font-weight: 600;
+    }
+
+    .login-tab:hover {
+        color: #007bff;
+    }
+
+    .login-form-group {
+        margin-bottom: 20px;
+        position: relative;
+    }
+
+    .login-form-group i {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #999;
+    }
+
+    .login-form-group input {
+        width: 100%;
+        padding: 12px 12px 12px 45px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 16px;
+        box-sizing: border-box;
+    }
+
+    .login-form-group input:focus {
+        outline: none;
+        border-color: #007bff;
+    }
+
+    .login-forgot-password {
+        text-align: right;
+        margin-bottom: 25px;
+    }
+
+    .login-forgot-password a {
+        color: #007bff;
+        text-decoration: none;
+        font-size: 14px;
+    }
+
+    .login-forgot-password a:hover {
+        text-decoration: underline;
+    }
+
+    .login-button {
+        width: 100%;
+        padding: 14px;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.3s;
+    }
+
+    .login-button:hover {
+        background: #0056b3;
+    }
+</style>
+
+<div>
+    <!-- Background Image -->
+    <img src="/Images/EKPA_BACKGROUND_FP.png" class="backgroundimage-page" />
+
+    <!-- Weather Widget in Header -->
+    <div class="weather-container">
+        @if (frontPageState?.Weather != null)
+        {
+            <span><strong>@frontPageState.Weather.TemperatureCelsius °C</strong></span>
+            <span style="margin-left: 10px;">@(frontPageState.Weather.ConditionText ?? "Clear")</span>
+        }
+        else
+        {
+            <span>Loading...</span>
+        }
+    </div>
+
+    <!-- Login Modal -->
+    <div class="login-modal-overlay">
+        <div class="login-modal">
+            <div class="login-modal-logo">A</div>
+            <div class="login-modal-title">Σύνδεση</div>
+            <div class="login-tabs">
+                <button class="login-tab active" @onclick="SetActiveTabLogin">Log In</button>
+                <button class="login-tab" @onclick="SetActiveTabSignup">Sign Up</button>
+            </div>
+            <div class="login-form-group">
+                <i class="fa fa-envelope"></i>
+                <input type="email" placeholder="Email" />
+            </div>
+            <div class="login-form-group">
+                <i class="fa fa-lock"></i>
+                <input type="password" placeholder="Password" />
+            </div>
+            <div class="login-forgot-password">
+                <a href="#">Don't remember your password?</a>
+            </div>
+            <button class="login-button" @onclick="NavigateToLogin">
+                LOG IN &gt;
+            </button>
+        </div>
+    </div>
+
+    <!-- Toggle Arrow for Announcements -->
+    <div class="toggle-arrow" @onclick="ToggleContainer">
+        <i class="fa @(isHidden ? "fa-arrow-left" : "fa-arrow-right") blue-icon" id="arrow-icon"></i>
+        <span class="toggle-text">
+            @(isHidden ? "Εμφάνιση Ανακοινώσεων" : "Απόκρυψη Ανακοινώσεων")
+        </span>
+    </div>
+
+    <!-- Announcements Sidebar -->
+    <div class="main-container @(isHidden ? "hidden" : "")" id="main-container">
+        <!-- Content will be loaded from FrontPageService -->
+        @if (frontPageState != null)
+        {
+            <!-- University News Section -->
+            @if (frontPageState.UoaNews != null && frontPageState.UoaNews.Any())
+            {
+                <div id="university-news" class="news-container">
+                    <h1 class="news-heading">
+                        <span class="black-text">Πανεπιστήμιο Αθηνών</span>
+                        <span class="dark-red-text"> - </span>Ανακοινώσεις
+                    </h1>
+                    <div id="university-news-content">
+                        @foreach (var article in frontPageState.UoaNews.Take(3))
+                        {
+                            <div class="news-article">
+                                <a href="@article.Url" target="_blank">@article.Title</a>
+                            </div>
+                        }
+                    </div>
+                </div>
+                <br/>
+            }
+
+            <!-- SVSE News Section -->
+            @if (frontPageState.SvseNews != null && frontPageState.SvseNews.Any())
+            {
+                <div id="svse-news" class="news-container">
+                    <h1 class="news-heading">
+                        <span class="black-text">Σύλλογος Βιομηχάνων Στερεάς Ελλάδας</span>
+                        <span class="dark-red-text"> - </span>Ανακοινώσεις
+                    </h1>
+                    <div id="svse-news-content">
+                        @foreach (var article in frontPageState.SvseNews.Take(3))
+                        {
+                            <div class="news-article">
+                                <a href="@article.Url" target="_blank">@article.Title</a>
+                            </div>
+                        }
+                    </div>
+                </div>
+                <br />
+            }
+
+            <!-- Platform Announcements and Events will be added here -->
+        }
+    </div>
+
+    <!-- Footer Links -->
+    <div class="useful-links">
+        <ul>
+            <li><a href="https://www.uoa.gr/">University Of Athens</a></li>
+            <li><a href="https://eclass.uoa.gr/">eClass</a></li>
+            <li><a href="https://fogus.gr/">Support</a></li>
+        </ul>
+    </div>
+</div>
+
+@code {
+    private string activeTab = "login";
+    private bool isHidden = false;
+    private FrontPageDataState? frontPageState;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Ensure front page data is loaded
+        await FrontPageService.EnsureDataLoadedAsync();
+        frontPageState = FrontPageService.CurrentState;
+        
+        await base.OnInitializedAsync();
+    }
+
+    private void NavigateToLogin()
+    {
+        var returnUrl = Uri.EscapeDataString("/");
+        Navigation.NavigateTo($"login?redirectUri={returnUrl}", forceLoad: true);
+    }
+
+    private void SetActiveTabLogin()
+    {
+        activeTab = "login";
+    }
+
+    private void SetActiveTabSignup()
+    {
+        activeTab = "signup";
+    }
+
+    private void ToggleContainer()
+    {
+        isHidden = !isHidden;
+    }
+}
+

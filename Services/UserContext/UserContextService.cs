@@ -37,7 +37,6 @@ namespace QuizManager.Services.UserContext
                 return UserContextState.Anonymous;
             }
 
-            var role = ResolveRole(user);
             var email = ResolveEmail(user);
 
             bool isStudentRegistered = false;
@@ -48,6 +47,7 @@ namespace QuizManager.Services.UserContext
             Company? company = null;
             Professor? professor = null;
             ResearchGroup? researchGroup = null;
+            string role = string.Empty;
 
             try
             {
@@ -73,11 +73,46 @@ namespace QuizManager.Services.UserContext
                         .AsNoTracking()
                         .FirstOrDefaultAsync(r => r.ResearchGroupEmail == email, cancellationToken);
                     isResearchGroupRegistered = researchGroup != null;
+                    
+                    // Determine role from database registration status
+                    // Priority: Admin > ResearchGroup > Professor > Company > Student
+                    if (user.IsInRole("Admin"))
+                    {
+                        role = "Admin";
+                    }
+                    else if (isResearchGroupRegistered)
+                    {
+                        role = "ResearchGroup";
+                    }
+                    else if (isProfessorRegistered)
+                    {
+                        role = "Professor";
+                    }
+                    else if (isCompanyRegistered)
+                    {
+                        role = "Company";
+                    }
+                    else if (isStudentRegistered)
+                    {
+                        role = "Student";
+                    }
+                    else
+                    {
+                        // Fallback to claim-based role if not registered in database
+                        role = ResolveRole(user);
+                    }
+                }
+                else
+                {
+                    // If no email, try to get role from claims
+                    role = ResolveRole(user);
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to resolve user context");
+                // Fallback to claim-based role on error
+                role = ResolveRole(user);
             }
 
             return new UserContextState(
