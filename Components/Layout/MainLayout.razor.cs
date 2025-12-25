@@ -9,9 +9,11 @@ namespace QuizManager.Components.Layout
 {
     public partial class MainLayout : LayoutComponentBase, IDisposable
     {
-        [Inject] private IUserContextService UserContextService { get; set; } = default!;
-        
-        [Inject] private IFrontPageService FrontPageService { get; set; } = default!;
+        [Inject]
+        private IUserContextService UserContextService { get; set; } = default!;
+
+        [Inject]
+        private IFrontPageService FrontPageService { get; set; } = default!;
 
         // Front page data properties
         public List<CompanyEvent> CompanyEventsToShowAtFrontPage { get; set; } = new();
@@ -28,12 +30,12 @@ namespace QuizManager.Components.Layout
         public bool isInitializedAsCompanyUser { get; private set; } = false;
         public bool isInitializedAsProfessorUser { get; private set; } = false;
         public bool isInitializedAsResearchGroupUser { get; private set; } = false;
-        
+
         private Student? userData;
         private Company? companyData;
         private Professor? professorData;
         private ResearchGroup? researchGroupData;
-        
+
         private bool ShowStudentRegistrationButton = false;
         private bool ShowCompanyRegistrationButton = false;
         private bool ShowProfessorRegistrationButton = false;
@@ -43,11 +45,11 @@ namespace QuizManager.Components.Layout
         {
             // Subscribe to front page state changes
             FrontPageService.StateChanged += HandleFrontPageStateChanged;
-            
+
             // Load front page data (will trigger state change event)
             await FrontPageService.EnsureDataLoadedAsync();
             UpdateFrontPageDataFromState();
-            
+
             // Load user authentication state
             await LoadUserAuthenticationState();
         }
@@ -120,7 +122,7 @@ namespace QuizManager.Components.Layout
                 {
                     ShowAdminRegistrationButton = true;
                 }
-                
+
                 // Notify UI that user state has been loaded
                 StateHasChanged();
             }
@@ -152,7 +154,9 @@ namespace QuizManager.Components.Layout
 
         private bool ShouldShowAdminTable()
         {
-            return UserRole == "Admin" && NavigationManager.Uri.Contains("/profile", StringComparison.OrdinalIgnoreCase) == false;
+            return UserRole == "Admin"
+                && NavigationManager.Uri.Contains("/profile", StringComparison.OrdinalIgnoreCase)
+                    == false;
         }
     }
 }
