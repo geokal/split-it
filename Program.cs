@@ -68,6 +68,19 @@ builder.Services.AddAuthorization(options =>
     options.FallbackPolicy = null; // Don't require authorization by default
 });
 
+builder.Services.AddScoped<QuizManager.Services.InternshipEmailService>(provider =>
+{
+    var config = provider.GetRequiredService<IConfiguration>();
+    var emailSettings = config.GetSection("EmailSettings");
+    return new QuizManager.Services.InternshipEmailService(
+        emailSettings["SmtpUsername"],
+        emailSettings["SmtpPassword"],
+        emailSettings["SupportEmail"],
+        emailSettings["NoReplyEmail"]
+    );
+});
+
+// Also register the global namespace version (used by MainLayout and other components)
 builder.Services.AddScoped<InternshipEmailService>(provider =>
 {
     var config = provider.GetRequiredService<IConfiguration>();
