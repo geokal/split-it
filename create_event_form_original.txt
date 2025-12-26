@@ -1,0 +1,491 @@
+                                                             <div class="mb-3 row-dark-gray">
+                                                                <div class="d-flex justify-content-between align-items-center" @onclick="ToggleFormVisibilityForUploadProfessorEvent" style="cursor: pointer;">
+                                                                    <label class="form-label" style="color: #FFF8DC;">ΓÇó ╬ö╬╖╬╝╬╣╬┐╧à╧ü╬│╬»╬▒ ╬ò╬║╬┤╬«╬╗╧ë╧â╬╖╧é ΓÇó</label>
+                                                                    <button class="btn btn-link" @onclick="ToggleFormVisibilityForUploadProfessorEvent" @onclick:stopPropagation="true">
+                                                                        @if (isUploadProfessorEventFormVisible)
+                                                                        {
+                                                                            <span>&#8722;</span> <!-- Minus sign -->
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <span>&#43;</span> <!-- Plus sign -->
+                                                                        }
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                            @if (isUploadProfessorEventFormVisible)
+                                                            {
+
+                                                                
+                                                                    <div class="row mb-3">
+                                                                        <div class="col-md-4">
+                                                                            <label for="ProfessorEventType">
+                                                                                <strong>╬ñ╧ì╧Ç╬┐╧é ╬ò╬║╬┤╬«╬╗╧ë╧â╬╖╧é</strong>
+                                                                                <span style="color: red;"> *</span>
+                                                                            </label>
+                                                                            <div class="input-group">
+                                                                                <select id="ProfessorEventType" class="form-control @(showErrorMessageForUploadingProfessorEvent && string.IsNullOrWhiteSpace(professorEvent.ProfessorEventType) ? "shake error" : "")" @bind="professorEvent.ProfessorEventType">
+                                                                                    <option value="">-- ╬ò╧Ç╬╣╬╗╬¡╬╛╧ä╬╡ ╧ä╧ì╧Ç╬┐ ╬╡╬║╬┤╬«╬╗╧ë╧â╬╖╧é --</option>
+                                                                                    <option value="╬ê╬║╬╕╬╡╧â╬╖">╬ê╬║╬╕╬╡╧â╬╖</option>
+                                                                                    <option value="Hackathon">Hackathon</option>
+                                                                                    <option value="Career Day">Career Day</option>
+                                                                                    <option value="Seminar">Seminar</option>
+                                                                                    <option value="╬ò╧Ç╬»╧â╬║╬╡╧ê╬╖">╬ò╧Ç╬»╧â╬║╬╡╧ê╬╖</option>
+                                                                                    <option value="╬å╬╗╬╗╬┐">╬å╬╗╬╗╬┐</option>
+                                                                                </select>
+                                                                                <div class="input-group-append">
+                                                                                    <span class="input-group-text">
+                                                                                        <i class="fas fa-chevron-down"></i>
+                                                                                    </span>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                        @if (showErrorMessageForUploadingProfessorEvent && string.IsNullOrWhiteSpace(professorEvent.ProfessorEventType))
+                                                                        {
+                                                                            <div class="text-danger mt-1">╬æ╧Ç╬▒╬╣╧ä╬╡╬»╧ä╬▒╬╣ ╬╡╧Ç╬╣╬╗╬┐╬│╬« ╬ñ╧ì╧Ç╬┐╧à ╬ò╬║╬┤╬«╬╗╧ë╧â╬╖╧é.</div>
+                                                                        }
+                                                                    </div>
+
+                                                                    <div class="row mb-3">
+                                                                        <div class="col-md-4">
+                                                                            <label for="ProfessorEventOtherOrganizerToBeVisible"><strong>╬ÿ╬¡╬╗╬╡╧ä╬╡ ╬╜╬▒ ╧Ç╧ü╬┐╧â╬╕╬¡╧â╬╡╧ä╬╡ ╬¼╬╗╬╗╬┐╬╜ ╬┤╬╣╬┐╧ü╬│╬▒╬╜╧ë╧ä╬«;</strong><span style="color: red;"> *</span></label>
+                                                                            <div class="form-check">
+                                                                                <input type="radio" id="true" name="ProfessorEventOtherOrganizerToBeVisible" class="form-check-input" 
+                                                                                       value="true" @onclick="() => UpdateOrganizerVisibilityForProfessorEvents(true)" />
+                                                                                <label class="form-check-label" for="true">╬¥╬▒╬╣</label>
+                                                                            </div>
+                                                                            <div class="form-check">
+                                                                                <input type="radio" id="false" name="ProfessorEventOtherOrganizerToBeVisible" class="form-check-input" 
+                                                                                       value="false" @onclick="() => UpdateOrganizerVisibilityForProfessorEvents(false)" />
+                                                                                <label class="form-check-label" for="false">╬î╧ç╬╣</label>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    @if (professorEvent.ProfessorEventOtherOrganizerToBeVisible)
+                                                                    {
+                                                                        <div class="row mb-3">
+                                                                            <div class="col-md-4">
+                                                                                <label for="ProfessorEventOtherOrganizer"><strong>╬ö╬╣╬┐╧ü╬│╬▒╬╜╧ë╧ä╬«╧é</strong><span style="color: red;"> *</span></label>
+                                                                                <div class="input-group">
+                                                                                    <input type="text" class="form-control @(showErrorMessageForUploadingProfessorEvent && string.IsNullOrWhiteSpace(professorEvent.ProfessorEventOtherOrganizer) ? "shake error" : "")"
+                                                                                           @bind="professorEvent.ProfessorEventOtherOrganizer" placeholder="╬á╬╗╬╖╬║╧ä╧ü╬┐╬╗╬┐╬│╬╡╬»╧â╧ä╬╡ ╧ä╬┐╬╜ ╬ö╬╣╬┐╧ü╬│╬▒╬╜╧ë╧ä╬«" />
+                                                                                    <div class="input-group-append">
+                                                                                        <span class="input-group-text">
+                                                                                            <i class="fas fa-user"></i>
+                                                                                        </span>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    }
+
+                                                                   
+
+                                                                    <!-- Professor Event Areas -->
+                                                                    <div class="row mb-3">
+                                                                        <div class="col-md-4">
+                                                                            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap;">
+                                                                                <label style="margin: 0; display: flex; align-items: center; gap: 4px;">
+                                                                                    <strong>╬á╬╡╧ü╬╣╬┐╧ç╬¡╧é ╬ò╬╜╬┤╬╣╬▒╧å╬¡╧ü╬┐╬╜╧ä╬┐╧é</strong>
+                                                                                    <span style="color: red;">*</span>
+                                                                                </label>
+            
+                                                                                <button type="button" 
+                                                                                        @onclick="ToggleCheckboxesForProfessorEvent"
+                                                                                        class="toggle-all-areas-btn @(showErrorMessageForUploadingProfessorEvent && !HasAnySelectionForProfessorEvent() ? "shake error" : "")"
+                                                                                        style="border: 1px solid #1565c0; background: white; border-radius: 6px; padding: 4px 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; color: #1565c0; font-size: 0.85em; transition: all 0.2s;">
+                                                                                    <span>≡ƒæå</span>
+                                                                                    <span>╬á╧ü╬┐╬▓╬┐╬╗╬« ╧Ç╬╡╧ü╬╣╬┐╧ç╧Ä╬╜</span>
+                                                                                </button>
+                                                                            </div>
+
+                                                                            @if (showCheckboxesForProfessorEvent)
+                                                                            {
+                                                                                <div class="checkbox-container">
+                                                                                    @if (Areas == null || !Areas.Any())
+                                                                                    {
+                                                                                        <p>╬ª╬┐╧ü╧ä╧Ä╬╜╬╡╬╣...</p>
+                                                                                    }
+                                                                                    else
+                                                                                    {
+                                                                                        @foreach (var area in Areas)
+                                                                                        {
+                                                                                            <div class="area-container" style="margin-bottom: 8px; border: 2px solid #1565c0; border-radius: 6px; padding: 8px; background-color: #f8f9fa;">
+                                                                                                <div class="form-check area-header" style="display: flex; align-items: center; gap: 8px;">
+                                                                                                    <input type="checkbox"
+                                                                                                           id="professorevent_area_@area.Id"
+                                                                                                           class="form-check-input"
+                                                                                                           @onchange="(e) => OnAreaCheckedChangedForProfessorEvent(e, area)"
+                                                                                                           checked="@IsAreaSelectedForProfessorEvent(area)" />
+                                                                                                    <label class="form-check-label area-label @(showErrorMessageForUploadingProfessorEvent && !HasAnySelectionForProfessorEvent() ? "shake error" : "")" 
+                                                                                                           for="professorevent_area_@area.Id"
+                                                                                                           style="cursor: pointer; font-weight: bold; flex-grow: 1; color: #1565c0;">
+                                                                                                        @area.AreaName
+                                                                                                    </label>
+                                                                                                    <button type="button"
+                                                                                                            @onclick="@(() => ToggleSubFieldsForProfessorEvent(area))"
+                                                                                                            @onclick:stopPropagation="true"
+                                                                                                            class="expand-btn"
+                                                                                                            style="border: 1px solid #1565c0; background: white; border-radius: 4px; padding: 4px 8px; cursor: pointer; display: flex; align-items: center; gap: 4px; font-size: 0.8em; color: #1565c0; transition: all 0.2s;">
+                                                                                                        <span>╬Ñ╧Ç╬┐╧ä╬┐╬╝╬╡╬»╧é</span>
+                                                                                                        <span class="expand-icon" style="font-size: 10px; transition: transform 0.2s; transform: @(ExpandedAreasForProfessorEvent.Contains(area.Id) ? "rotate(90deg)" : "rotate(0deg)")">Γû╢</span>
+                                                                                                    </button>
+                                                                                                </div>
+                            
+                                                                                                @if (ExpandedAreasForProfessorEvent.Contains(area.Id))
+                                                                                                {
+                                                                                                    <div class="subfields-container" style="margin-top: 12px; margin-left: 28px; padding: 12px; background: white; border: 1px solid #e0e0e0; border-radius: 4px;">
+                                                                                                        <div style="font-size: 0.85em; color: #666; margin-bottom: 8px; font-weight: 500;">
+                                                                                                            ╬ò╧Ç╬╣╬╗╬¡╬╛╧ä╬╡ ╧à╧Ç╬┐╧ä╬┐╬╝╬╡╬»╧é:
+                                                                                                        </div>
+                                                                                                        @if (!string.IsNullOrEmpty(area.AreaSubFields))
+                                                                                                        {
+                                                                                                            var subFields = area.AreaSubFields.Split(',').Select(s => s.Trim()).ToList();
+                                                                                                            @foreach (var subField in subFields)
+                                                                                                            {
+                                                                                                                <div class="form-check subfield-checkbox" style="margin-bottom: 6px;">
+                                                                                                                    <input type="checkbox"
+                                                                                                                           id="professorevent_subfield_@(area.Id)_@(subField)"
+                                                                                                                           class="form-check-input"
+                                                                                                                           @onchange="(e) => OnSubFieldCheckedChangedForProfessorEvent(e, area, subField)"
+                                                                                                                           checked="@IsSubFieldSelectedForProfessorEvent(area, subField)" />
+                                                                                                                    <label class="form-check-label" for="professorevent_subfield_@(area.Id)_@(subField)" style="font-weight: normal; font-size: 0.9em;">
+                                                                                                                        @subField
+                                                                                                                    </label>
+                                                                                                                </div>
+                                                                                                            }
+                                                                                                        }
+                                                                                                    </div>
+                                                                                                }
+                                                                                            </div>
+                                                                                        }
+                                                                                    }
+                                                                                </div>
+                                                                            }
+                                                                        </div>
+                                                                        @if (showErrorMessageForUploadingProfessorEvent && !HasAnySelectionForProfessorEvent())
+                                                                        {
+                                                                            <div class="text-danger mt-1">╬á╧ü╬¡╧Ç╬╡╬╣ ╬╜╬▒ ╬╡╧Ç╬╣╬╗╬¡╬╛╬╡╧ä╬╡ ╧ä╬┐╧à╬╗╬¼╧ç╬╣╧â╧ä╬┐╬╜ 1 ╬á╬╡╧ü╬╣╬┐╧ç╬« ╬ò╬╜╬┤╬╣╬▒╧å╬¡╧ü╬┐╬╜╧ä╬┐╧é ╬« ╬Ñ╧Ç╬┐╧ä╬┐╬╝╬¡╬▒.</div>
+                                                                        }
+                                                                    </div>
+
+
+
+                                                                    <div class="row mb-3">
+                                                                        <div class="col-md-4">
+                                                                            <label for="ProfessorEventTitle"><strong>╬ñ╬»╧ä╬╗╬┐╧é ╬ò╬║╬┤╬«╬╗╧ë╧â╬╖╧é</strong><span style="color: red;"> *</span></label>
+                                                                            <input type="text" id="ProfessorEventTitle" class="form-control @(showErrorMessageForUploadingProfessorEvent && string.IsNullOrWhiteSpace(professorEvent.ProfessorEventTitle) ? "shake error" : "")" @bind="professorEvent.ProfessorEventTitle" @oninput="CheckCharacterLimitInEventTitleField" maxlength="120" placeholder="╬á╬╗╬╖╬║╧ä╧ü╬┐╬╗╬┐╬│╬╡╬»╧â╧ä╬╡ ╧ä╬┐╬╜ ╧ä╬»╧ä╬╗╬┐ ╧ä╬╖╧é ╬╡╬║╬┤╬«╬╗╧ë╧â╬╖╧é" />
+                                                                            <small class="character-limit light-cadetblue-text">@remainingCharactersInEventTitleField/120</small>
+                                                                        </div>
+                                                                        @if (showErrorMessageForUploadingProfessorEvent && string.IsNullOrWhiteSpace(professorEvent.ProfessorEventTitle))
+                                                                        {
+                                                                            <div class="text-danger mt-1">╬æ╧Ç╬▒╬╣╧ä╬╡╬»╧ä╬▒╬╣ ╬┐ ╬ñ╬»╧ä╬╗╬┐╧é ╧ä╬╖╧é ╬ò╬║╬┤╬«╬╗╧ë╧â╬╖╧é</div>
+                                                                        }
+                                                                    </div>
+
+                                                                    <div class="row mb-3">
+                                                                        <div class="col-md-4">
+                                                                            <label for="ProfessorEventDescription"><strong>╬á╬╡╧ü╬╣╬│╧ü╬▒╧å╬« ╬ò╬║╬┤╬«╬╗╧ë╧â╬╖╧é</strong> <span style="color: red;"> *</span></label>
+                                                                            <textarea id="ProfessorEventDescription" class="form-control @(showErrorMessageForUploadingProfessorEvent && string.IsNullOrWhiteSpace(professorEvent.ProfessorEventDescription) ? "shake error" : "")" @bind="professorEvent.ProfessorEventDescription" @oninput="CheckCharacterLimitInProfessorEventDescription" maxlength="1000" placeholder="╬á╬╗╬╖╬║╧ä╧ü╬┐╬╗╬┐╬│╬╡╬»╧â╧ä╬╡ ╧ä╬╖╬╜ ╬á╬╡╧ü╬╣╬│╧ü╬▒╧å╬« ╧ä╬╖╧é ╬ò╬║╬┤╬«╬╗╧ë╧â╬«╧é ╧â╬▒╧é"></textarea>
+                                                                            <small class="character-limit light-cadetblue-text">@remainingCharactersInProfessorEventDescription/1000</small>
+                                                                        </div>
+                                                                        @if (showErrorMessageForUploadingProfessorEvent && string.IsNullOrWhiteSpace(professorEvent.ProfessorEventDescription))
+                                                                        {
+                                                                            <div class="text-danger mt-1">╬æ╧Ç╬▒╬╣╧ä╬╡╬»╧ä╬▒╬╣ ╬╖ ╬á╬╡╧ü╬╣╬│╧ü╬▒╧å╬« ╧ä╬╖╧é ╬ò╬║╬┤╬«╬╗╧ë╧â╬╖╧é</div>
+                                                                        }
+                                                                    </div>
+
+                                                                    <div class="row mb-3">
+                                                                        <div class="col-md-4">
+                                                                            <label for="ProfessorEventResponsiblePerson">╬Ñ╧Ç╬╡╧ì╬╕╧à╬╜╬┐╧é ╬ò╬║╬┤╬«╬╗╧ë╧â╬╖╧é (╬ƒ╬╜╬┐╬╝╬▒╧ä╬╡╧Ç╧Ä╬╜╧à╬╝╬┐)<span style="font-style: italic; color: gray;"> (╬á╧ü╬┐╬▒╬╣╧ü╬╡╧ä╬╣╬║╧î)</span></label>
+                                                                            <input type="text" id="ProfessorEventResponsiblePerson" class="form-control" @bind="professorEvent.ProfessorEventResponsiblePerson" />
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div class="row mb-3">
+                                                                        <div class="col-md-4">
+                                                                            <label for="ProfessorEventResponsiblePersonEmail">
+                                                                                Email ╬Ñ╧Ç╬╡╧ì╬╕╧à╬╜╬┐╧à
+                                                                                <span style="font-style: italic; color: gray;"> (╬á╧ü╬┐╬▒╬╣╧ü╬╡╧ä╬╣╬║╧î)</span>
+                                                                            </label>
+                                                                            <input type="email" id="ProfessorEventResponsiblePersonEmail" class="form-control" 
+                                                                                   @bind="professorEvent.ProfessorEventResponsiblePersonEmail" 
+                                                                                   placeholder="example@mail.com" />
+                                                                        </div>
+                                                                    </div>
+
+
+                                                                    <div class="row mb-3">
+                                                                        <div class="col-md-4">
+                                                                            <label for="ProfessorEventResponsiblePersonTelephone">╬ñ╬╖╬╗╬¡╧å╧ë╬╜╬┐ ╬Ñ╧Ç╬╡╧ì╬╕╧à╬╜╬┐╧à<span style="font-style: italic; color: gray;"> (╬á╧ü╬┐╬▒╬╣╧ü╬╡╧ä╬╣╬║╧î)</span></label>
+                                                                            <div class="input-group">
+                                                                                <div class="input-group-prepend">
+                                                                                    <span class="input-group-textfortelephone">+30</span>
+                                                                                </div>
+                                                                                <input type="tel" id="ProfessorEventResponsiblePersonTelephone" class="form-control" 
+                                                                                       @bind="professorEvent.ProfessorEventResponsiblePersonTelephone" placeholder="╬ñ╬╖╬╗╬¡╧å╧ë╬╜╬┐ ╬Ñ╧Ç╬╡╧à╬╕╧ì╬╜╬┐╧à" />
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+
+
+                                                                    <div class="row mb-3">
+                                                                        <div class="col-md-4">
+                                                                            <label for="ProfessorEventUniversity">╬á╬▒╬╜╬╡╧Ç╬╣╧â╧ä╬«╬╝╬╣╬┐<span style="font-style: italic; color: gray;"> (╬á╧ü╬┐╬▒╬╣╧ü╬╡╧ä╬╣╬║╧î)</span></label>
+                                                                            <input type="text" id="ProfessorEventUniversity" class="form-control" @bind="professorEvent.Professor.ProfUniversity" />
+                                                                        </div>
+                                                                    </div>
+
+
+                                                                    <div class="row mb-3">
+                                                                        <div class="col-md-4">
+                                                                            <label for="ProfessorEventUniversityDepartment">╬ñ╬╝╬«╬╝╬▒ ╬á╬▒╬╜╬╡╧Ç╬╣╧â╧ä╬╖╬╝╬»╬┐╧à<span style="font-style: italic; color: gray;"> (╬á╧ü╬┐╬▒╬╣╧ü╬╡╧ä╬╣╬║╧î)</span></label>
+                                                                            <input type="text" id="ProfessorEventUniversityDepartment" class="form-control" @bind="professorEvent.ProfessorEventUniversityDepartment" />
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div class="row mb-3">
+                                                                        <div class="col-md-4">
+                                                                            <label for="ProfessorEventDate">
+                                                                                <strong>╬ù╬╝╬╡╧ü╬┐╬╝╬╖╬╜╬»╬▒ ╬ò╬║╬┤╬«╬╗╧ë╧â╬╖╧é</strong>
+                                                                                <span style="color: red;">*</span>
+                                                                            </label>
+                                                                            <input type="date" id="ProfessorEventDate"
+                                                                                   class="form-control @(showErrorMessageForUploadingProfessorEvent && professorEvent.ProfessorEventActiveDate.Date < DateTime.Today ? "shake error" : "")" 
+                                                                                   value="@professorEvent.ProfessorEventActiveDate.ToString("yyyy-MM-dd")"
+                                                                                   @onchange="HandleProfessorDateChange" />
+        
+                                                                            @if (showErrorMessageForUploadingProfessorEvent && professorEvent.ProfessorEventActiveDate.Date < DateTime.Today)
+                                                                            {
+                                                                                <div class="text-danger mt-1">╬ù ╬╖╬╝╬╡╧ü╬┐╬╝╬╖╬╜╬»╬▒ ╧Ç╧ü╬¡╧Ç╬╡╬╣ ╬╜╬▒ ╬╡╬»╬╜╬▒╬╣ ╬╝╬╡╧ä╬▒╬│╬╡╬╜╬¡╧â╧ä╬╡╧ü╬╖ ╬« ╬»╧â╬╖ ╬╝╬╡ ╧ä╬╖ ╧â╬╖╬╝╬╡╧ü╬╣╬╜╬« ╬╖╬╝╬╡╧ü╬┐╬╝╬╖╬╜╬»╬▒.</div>
+                                                                            }
+        
+                                                                            @if (hasExistingEventsOnSelectedDateForProfessor)
+                                                                            {
+                                                                                <div class="text-info mt-1">
+                                                                                    <i class="fas fa-info-circle"></i> ╬ò╬╜╬╖╬╝╬¡╧ü╧ë╧â╬╖: "╬Ñ╧Ç╬¼╧ü╧ç╬┐╧à╬╜ ╬«╬┤╬╖ <strong>@existingEventsCountToCheckAsProfessor</strong> ╬╡╬║╬┤╬╖╬╗╧Ä╧â╬╡╬╣╧é ╬│╬╣╬▒ ╬▒╧à╧ä╬« ╧ä╬╖╬╜ ╬╖╬╝╬╡╧ü╬┐╬╝╬╖╬╜╬»╬▒."
+                                                                                </div>
+                                                                            }
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <!-- Region Dropdown -->
+                                                                    <div class="row mb-3">
+                                                                        <div class="col-md-4">
+                                                                            <label for="ProfessorEventPerifereiaLocation">
+                                                                                <strong>╬á╬╡╧ü╬╣╧å╬¡╧ü╬╡╬╣╬▒</strong>
+                                                                                <span style="color: red;">*</span>
+                                                                            </label>
+                                                                            <div class="input-group">
+                                                                                <select id="ProfessorEventPerifereiaLocation" class="form-control @(showErrorMessageForUploadingProfessorEvent && string.IsNullOrWhiteSpace(professorEvent.ProfessorEventPerifereiaLocation) ? "shake error" : "")" @bind="professorEvent.ProfessorEventPerifereiaLocation">
+                                                                                    <option value="">-- ╬ò╧Ç╬╣╬╗╬¡╬╛╧ä╬╡ ╬á╬╡╧ü╬╣╧å╬¡╧ü╬╡╬╣╬▒ --</option>
+                                                                                    @foreach (var region in Regions)
+                                                                                    {
+                                                                                        <option value="@region">@region</option>
+                                                                                    }
+                                                                                </select>
+                                                                                <div class="input-group-append">
+                                                                                    <span class="input-group-text">
+                                                                                        <i class="fas fa-chevron-down"></i>
+                                                                                    </span>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                        @if (showErrorMessageForUploadingProfessorEvent && string.IsNullOrWhiteSpace(professorEvent.ProfessorEventPerifereiaLocation))
+                                                                        {
+                                                                            <div class="text-danger mt-1">╬æ╧Ç╬▒╬╣╧ä╬╡╬»╧ä╬▒╬╣ ╬╖ ╬á╬╡╧ü╬╣╧å╬¡╧ü╬╡╬╣╬▒ ╧â╧ä╬╖╬╜ ╬┐╧Ç╬┐╬»╬▒ ╬╕╬▒ ╧Ç╧ü╬▒╬│╬╝╬▒╧ä╬┐╧Ç╬┐╬╣╬╖╬╕╬╡╬» ╬╖ ╬ò╬║╬┤╬«╬╗╧ë╧â╬╖</div>
+                                                                        }
+                                                                    </div>
+
+                                                                    <!-- Town Dropdown -->
+                                                                    <div class="row mb-3">
+                                                                        <div class="col-md-4">
+                                                                            <label for="ProfessorEventDimosLocation">
+                                                                                <strong>╬ö╬«╬╝╬┐╧é</strong>
+                                                                                <span style="color: red;">*</span>
+                                                                            </label>
+                                                                            <div class="input-group">
+                                                                                <select id="ProfessorEventDimosLocation" class="form-control @(showErrorMessageForUploadingProfessorEvent && string.IsNullOrWhiteSpace(professorEvent.ProfessorEventDimosLocation) ? "shake error" : "")" @bind="professorEvent.ProfessorEventDimosLocation">
+                                                                                    <option value="">-- ╬ò╧Ç╬╣╬╗╬¡╬╛╧ä╬╡ ╬ö╬«╬╝╬┐ --</option>
+                                                                                    @foreach (var town in GetTownsForRegion(professorEvent.ProfessorEventPerifereiaLocation))
+                                                                                    {
+                                                                                        <option value="@town">@town</option>
+                                                                                    }
+                                                                                </select>
+                                                                                <div class="input-group-append">
+                                                                                    <span class="input-group-text">
+                                                                                        <i class="fas fa-chevron-down"></i>
+                                                                                    </span>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                        @if (showErrorMessageForUploadingProfessorEvent && string.IsNullOrWhiteSpace(professorEvent.ProfessorEventDimosLocation))
+                                                                        {
+                                                                            <div class="text-danger mt-1">╬æ╧Ç╬▒╬╣╧ä╬╡╬»╧ä╬▒╬╣ o ╬ö╬«╬╝╬┐╧é ╧â╧ä╬┐╬╜ ╬┐╧Ç╬┐╬»╬┐ ╬╕╬▒ ╧Ç╧ü╬▒╬│╬╝╬▒╧ä╬┐╧Ç╬┐╬╣╬╖╬╕╬╡╬» ╬╖ ╬ò╬║╬┤╬«╬╗╧ë╧â╬╖</div>
+                                                                        }
+                                                                    </div>
+
+
+                                                                    <div class="row mb-3">
+                                                                        <div class="col-md-4">
+                                                                            <label for="ProfessorEventPlaceLocation"><strong>╬ñ╬┐╧Ç╬┐╬╕╬╡╧â╬»╬▒ ╬ò╬║╬┤╬«╬╗╧ë╧â╬╖╧é</strong><span style="color: red;"> *</span></label>
+                                                                            <input type="text" id="autocomplete" class="form-control @(showErrorMessageForUploadingProfessorEvent && string.IsNullOrWhiteSpace(professorEvent.ProfessorEventPlaceLocation) ? "shake error" : "")" @bind="professorEvent.ProfessorEventPlaceLocation" placeholder="╬æ╬╜╬▒╬╢╬«╧ä╬╖╧â╬╖ ╧ç╧Ä╧ü╬┐╧à ╬╡╬║╬┤╬«╬╗╧ë╧â╬╖╧é " />
+                                                                        </div>
+                                                                        @if (showErrorMessageForUploadingProfessorEvent && string.IsNullOrWhiteSpace(professorEvent.ProfessorEventPlaceLocation))
+                                                                        {
+                                                                            <div class="text-danger mt-1">╬æ╧Ç╬▒╬╣╧ä╬╡╬»╧ä╬▒╬╣ ╬ñ╬┐╧Ç╬┐╬╕╬╡╧â╬»╬▒/╬ö╬╣╬╡╧ì╬╕╧à╬╜╧â╬╖ ╧ä╬┐╧à ╧ç╧Ä╧ü╬┐╧à ╬ò╬║╬┤╬«╬╗╧ë╧â╬╖╧é</div>
+                                                                        }
+                                                                    </div>
+
+                                                                    <div class="row mb-3">
+                                                                        <div class="col-md-4">
+                                                                            <label for="ProfessorEventTime">
+                                                                                <strong>╬Å╧ü╬▒ ╬ò╬║╬┤╬«╬╗╧ë╧â╬╖╧é</strong>
+                                                                                <span style="color: red;">*</span>
+                                                                            </label>
+                                                                            <input type="time" 
+                                                                                   id="ProfessorEventTime" 
+                                                                                   class="form-control @(showErrorMessageForUploadingProfessorEvent && (professorEvent.ProfessorEventTimeOnly == TimeOnly.MinValue || IsTimeInRestrictedRangeWhenUploadEventAsProfessor(professorEvent.ProfessorEventTimeOnly)) ? "shake error" : "")" 
+                                                                                   @bind="professorEvent.ProfessorEventTimeOnly" 
+                                                                                   min="06:00" 
+                                                                                   max="22:00" />
+                                                                        </div>
+                                                                        @if (showErrorMessageForUploadingProfessorEvent && professorEvent.ProfessorEventTimeOnly == TimeOnly.MinValue)
+                                                                        {
+                                                                            <div class="text-danger mt-1">╬ù ╧Ä╧ü╬▒ ╬╡╬║╬┤╬«╬╗╧ë╧â╬╖╧é ╬╡╬»╬╜╬▒╬╣ ╧à╧Ç╬┐╧ç╧ü╬╡╧ë╧ä╬╣╬║╬«.</div>
+                                                                        }
+                                                                        @if (showErrorMessageForUploadingProfessorEvent && IsTimeInRestrictedRangeWhenUploadEventAsProfessor(professorEvent.ProfessorEventTimeOnly))
+                                                                        {
+                                                                            <div class="text-danger mt-1">╬ù ╧Ä╧ü╬▒ ╧Ç╧ü╬¡╧Ç╬╡╬╣ ╬╜╬▒ ╬╡╬»╬╜╬▒╬╣ ╬╝╬╡╧ä╬▒╬╛╧ì 06:00 ╬║╬▒╬╣ 22:00.</div>
+                                                                        }
+                                                                    </div>
+                                               
+                                                                    <div class="row mb-3">
+                                                                        <div class="col-md-4">
+                                                                            <label for="ProfessorEventPostalCodeLocation"><strong>╬ñ╬▒╧ç╧à╬┤╧ü╬┐╬╝╬╣╬║╧î╧é ╬Ü╧Ä╬┤╬╣╬║╬▒╧é</strong><span style="color: red;"> *</span></label>
+                                                                            <input type="text" id="ProfessorEventPostalCodeLocation" class="form-control @(showErrorMessageForUploadingProfessorEvent && string.IsNullOrWhiteSpace(professorEvent.ProfessorEventPostalCodeLocation) ? "shake error" : "")" @bind="professorEvent.ProfessorEventPostalCodeLocation" placeholder="╬á╬╗╬╖╬║╧ä╧ü╬┐╬╗╬┐╬│╬╡╬»╧â╧ä╬╡ ╧ä╬┐╬╜ ╧ä╬▒╧ç╧à╬┤╧ü╬┐╬╝╬╣╬║╧î ╬║╧Ä╬┤╬╣╬║╬▒" />
+                                                                        </div>
+                                                                        @if (showErrorMessageForUploadingProfessorEvent && string.IsNullOrWhiteSpace(professorEvent.ProfessorEventPostalCodeLocation))
+                                                                        {
+                                                                            <div class="text-danger mt-1">╬æ╧Ç╬▒╬╣╧ä╬╡╬»╧ä╬▒╬╣ ╬ñ╬▒╧ç╧à╬┤╧ü╬┐╬╝╬╣╬║╧î╧é ╬Ü╧Ä╬┤╬╣╬║╬▒╧é.</div>
+                                                                        }
+                                                                    </div>
+
+                                                                    <div class="row mb-3">
+                                                                        <div class="col-md-4">
+                                                                            <label for="ProfessorEventOfferingTransportToEventLocation">
+                                                                                <strong>╬á╬▒╧ü╬┐╧ç╬« ╬£╬╡╧ä╬▒╧å╬┐╧ü╬¼╧é ╧Ç╧ü╬┐╧é ╬º╧Ä╧ü╬┐ ╬ò╬║╬┤╬«╬╗╧ë╧â╬╖╧é;</strong>
+                                                                                <span style="color: red;"> *</span>
+                                                                            </label>
+                                                                            <select id="ProfessorEventOfferingTransportToEventLocation" 
+                                                                                    class="form-control @(showErrorMessageForUploadingProfessorEvent && professorEvent.ProfessorEventOfferingTransportToEventLocation == null ? "shake error" : "")"
+                                                                                    @onchange="OnTransportOptionChangeForProfessorEvent">
+                                                                                <option value="">-- ╬ò╧Ç╬╣╬╗╬¡╬╛╧ä╬╡ --</option>
+                                                                                <option value="true">╬¥╬▒╬╣</option>
+                                                                                <option value="false">╬î╧ç╬╣</option>
+                                                                            </select>
+                                                                        </div>
+                                                                        @if (showErrorMessageForUploadingProfessorEvent && professorEvent.ProfessorEventOfferingTransportToEventLocation == null)
+                                                                        {
+                                                                            <div class="text-danger mt-1">╬æ╧Ç╬▒╬╣╧ä╬╡╬»╧ä╬▒╬╣ ╬ò╧Ç╬╣╬╗╬┐╬│╬« ╬á╬▒╧ü╬┐╧ç╬«╧é ╬£╬╡╧ä╬▒╧å╬┐╧ü╬¼╧é ╧Ç╧ü╬┐╧é ╧ä╬┐╬╜ ╧ç╧Ä╧ü╬┐ ╧ä╬╖╧é ╬ò╬║╬┤╬«╬╗╧ë╧â╬╖╧é.</div>
+                                                                        }
+                                                                    </div>
+
+
+                                                                    @if (professorEvent.ProfessorEventOfferingTransportToEventLocation == true)
+                                                                    {
+                                                                        <div class="row mb-3">
+                                                                            <div class="col-md-4">
+                                                                                <label for="ProfessorEventStartingPointLocationToTransportPeopleToEvent1">
+                                                                                    <strong>╬ú╬╖╬╝╬╡╬»╬┐ ╬ò╬║╬║╬»╬╜╬╖╧â╬╖╧é 1 ╬│╬╣╬▒ ╬╝╬╡╧ä╬▒╧å╬┐╧ü╬¼ ╧Ç╧ü╬┐╧é ╬ò╬║╬┤╬«╬╗╧ë╧â╬╖</strong> 
+                                                                                    <span style="color: red;"> *</span>
+                                                                                </label>
+                                                                                <input type="text" id="autocomplete2" 
+                                                                                       class="form-control @(showErrorMessageForUploadingProfessorEvent && string.IsNullOrWhiteSpace(professorEvent.ProfessorEventStartingPointLocationToTransportPeopleToEvent1) ? "shake error" : "")" 
+                                                                                       @bind="professorEvent.ProfessorEventStartingPointLocationToTransportPeopleToEvent1" 
+                                                                                       placeholder="╬æ╬╜╬▒╬╢╬«╧ä╬╖╧â╬╖ 1╬┐╧à ╧â╬╖╬╝╬╡╬»╬┐╧à ╬╡╬║╬║╬»╬╜╬╖╧â╬╖╧é" />
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="row mb-3">
+                                                                            <div class="col-md-4">
+                                                                                <label for="ProfessorEventStartingPointLocationToTransportPeopleToEvent2">
+                                                                                    <strong>╬ú╬╖╬╝╬╡╬»╬┐ ╬ò╬║╬║╬»╬╜╬╖╧â╬╖╧é 2 ╬│╬╣╬▒ ╬╝╬╡╧ä╬▒╧å╬┐╧ü╬¼ ╧Ç╧ü╬┐╧é ╬ò╬║╬┤╬«╬╗╧ë╧â╬╖</strong> 
+                                                                                    <span style="color: red;"> *</span>
+                                                                                </label>
+                                                                                <input type="text" id="autocomplete3" 
+                                                                                       class="form-control @(showErrorMessageForUploadingProfessorEvent && string.IsNullOrWhiteSpace(professorEvent.ProfessorEventStartingPointLocationToTransportPeopleToEvent2) ? "shake error" : "")" 
+                                                                                       @bind="professorEvent.ProfessorEventStartingPointLocationToTransportPeopleToEvent2" 
+                                                                                       placeholder="╬æ╬╜╬▒╬╢╬«╧ä╬╖╧â╬╖ 2╬┐╧à ╧â╬╖╬╝╬╡╬»╬┐╧à ╬╡╬║╬║╬»╬╜╬╖╧â╬╖╧é" />
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="row mb-3">
+                                                                            <div class="col-md-4">
+                                                                                <label for="ProfessorEventStartingPointLocationToTransportPeopleToEvent3">
+                                                                                    <strong>╬ú╬╖╬╝╬╡╬»╬┐ ╬ò╬║╬║╬»╬╜╬╖╧â╬╖╧é 3 ╬│╬╣╬▒ ╬╝╬╡╧ä╬▒╧å╬┐╧ü╬¼ ╧Ç╧ü╬┐╧é ╬ò╬║╬┤╬«╬╗╧ë╧â╬╖</strong> 
+                                                                                    <span style="color: red;"> *</span>
+                                                                                </label>
+                                                                                <input type="text" id="autocomplete4" 
+                                                                                       class="form-control @(showErrorMessageForUploadingProfessorEvent && string.IsNullOrWhiteSpace(professorEvent.ProfessorEventStartingPointLocationToTransportPeopleToEvent3) ? "shake error" : "")" 
+                                                                                       @bind="professorEvent.ProfessorEventStartingPointLocationToTransportPeopleToEvent3" 
+                                                                                       placeholder="╬æ╬╜╬▒╬╢╬«╧ä╬╖╧â╬╖ 3╬┐╧à ╧â╬╖╬╝╬╡╬»╬┐╧à ╬╡╬║╬║╬»╬╜╬╖╧â╬╖╧é" />
+                                                                            </div>
+                                                                        </div>
+                                                                    }
+
+                                                                    <div class="row mb-3">
+                                                                        <div class="col-md-4">
+                                                                            <label for="ProfessorEventAttachmentFile">╬ò╧Ç╬╣╧â╧ì╬╜╬▒╧ê╬╖ ╬æ╧ü╧ç╬╡╬»╬┐╧à<span style="font-style: italic; color: gray;"> (╬á╧ü╬┐╬▒╬╣╧ü╬╡╧ä╬╣╬║╧î)</span></label>
+                                                                            <InputFile id="ProfessorEventAttachmentFile" class="form-control" OnChange="UploadProfessorEventAttachmentFile" />
+                                                                            <small class="form-text text-muted">╬î╧ü╬╣╬┐ 10MB</small>
+                                                                            @if (!string.IsNullOrEmpty(ProfessorEventAttachmentErrorMessage))
+                                                                            {
+                                                                                <div class="text-danger mt-2">@ProfessorEventAttachmentErrorMessage</div>
+                                                                            }
+                                                                        </div>
+                                                                    </div>
+
+
+                                                                    <!-- Buttons to save the event -->
+                                                                    <div class="mb-3">
+                                                                        <button class="modern-button"
+                                                                                style="background-color: #818589; color: white; display: inline-flex; align-items: center;"
+                                                                                @onclick="HandleTemporarySaveProfessorEvent">
+                                                                            <i class="fa-regular fa-floppy-disk" style="margin-right: 8px;"></i>
+                                                                            ╬á╧ü╬┐╧â╧ë╧ü╬╣╬╜╬« ╬æ╧Ç╬┐╬╕╬«╬║╬╡╧à╧â╬╖ ╬ò╬║╬┤╬«╬╗╧ë╧â╬╖╧é
+                                                                        </button>
+                                                                        <button class="modern-button"
+                                                                                style="background-color: #2d3748; color: white; display: inline-flex; align-items: center;"
+                                                                                @onclick="HandlePublishSaveProfessorEvent">
+                                                                            <i class="fa-solid fa-floppy-disk" style="margin-right: 8px;"></i>
+                                                                            ╬ö╬╖╬╝╬┐╧â╬»╬╡╧à╧â╬╖ ╬ò╬║╬┤╬«╬╗╧ë╧â╬╖╧é
+                                                                        </button>
+                                                                    </div>
+                                                                    <!-- Loading Modal for Professor Event -->
+                                                                    @if (showLoadingModalForProfessorEvent)
+                                                                    {
+                                                                        <div class="loading-modal">
+                                                                            <div class="loading-modal-content">
+                                                                                <div class="loading-spinner"></div>
+                                                                                <p>╬æ╧Ç╬┐╬╕╬«╬║╬╡╧à╧â╬╖ ╬ò╬║╬┤╬«╬╗╧ë╧â╬╖╧é...</p>
+                                                                                <div class="progress-bar">
+                                                                                    <div class="progress-bar-fill" style="width: @loadingProgress%"></div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    }
+                                                                    @if (!isFormValidToSaveEventAsProfessor)
+                                                                    {
+                                                                            <div class="alert alert-danger" role="alert">
+                                                                                ╬ú╧à╬╝╧Ç╬╗╬╖╧ü╧Ä╧â╧ä╬╡ ╬î╬╗╬▒ ╬ñ╬▒ ╬Ñ╧Ç╬┐╧ç╧ü╬╡╧ë╧ä╬╣╬║╬¼ ╬á╬╡╬┤╬»╬▒ ╬║╬▒╬╣ ╬á╧ü╬┐╧â╧Ç╬▒╬╕╬«╧â╧ä╬╡ ╬₧╬▒╬╜╬¼
+                                                                            </div>
+                                                                    }
+                                                                    <br />
+                                                                    @if (!string.IsNullOrEmpty(saveEventAsProfessorMessage))
+                                                                    {
+                                                                            <div class="alert @(isSaveAnnouncementAsProfessorSuccessful ? "alert-success" : "alert-danger")" role="alert">
+                                                                                    @saveEventAsProfessorMessage
+                                                                            </div>
+                                                                    }
+                                                                    <br />
+                                                            }
