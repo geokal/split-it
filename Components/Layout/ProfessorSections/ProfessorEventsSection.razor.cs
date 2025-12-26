@@ -385,6 +385,11 @@ namespace QuizManager.Components.Layout.ProfessorSections
             dashboardData = await ProfessorDashboardService.LoadDashboardDataAsync();
             CompanyEventsToShowAtFrontPage = dashboardData.CompanyEvents.ToList();
             ProfessorEventsToShowAtFrontPage = dashboardData.Events.ToList();
+
+            // Initialize professorEvents for the table component
+            professorEvents = dashboardData.Events.ToList();
+            FilteredProfessorEvents = professorEvents;
+
             LoadEventsForCalendar();
         }
 
