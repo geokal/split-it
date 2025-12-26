@@ -1,38 +1,49 @@
-using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Forms;
-using QuizManager.ViewModels;
-using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.JSInterop;
-using QuizManager.Models;
-using QuizManager.Services;
-using QuizManager.Services.ProfessorDashboard;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Components.Forms;
+using Microsoft.JSInterop;
+using QuizManager.Models;
+using QuizManager.Services;
+using QuizManager.Services.ProfessorDashboard;
+using QuizManager.ViewModels;
 
 namespace QuizManager.Components.Layout.ProfessorSections
 {
     public partial class ProfessorEventsSection : ComponentBase
     {
-        [Inject] private IProfessorDashboardService ProfessorDashboardService { get; set; } = default!;
-        [Inject] private IJSRuntime JS { get; set; } = default!;
-        [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
-        [Inject] private InternshipEmailService InternshipEmailService { get; set; } = default!;
+        [Inject]
+        private IProfessorDashboardService ProfessorDashboardService { get; set; } = default!;
+
+        [Inject]
+        private IJSRuntime JS { get; set; } = default!;
+
+        [Inject]
+        private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
+
+        [Inject]
+        private InternshipEmailService InternshipEmailService { get; set; } = default!;
         private ProfessorDashboardData dashboardData = ProfessorDashboardData.Empty;
 
         // Events Calendar
         private DateTime currentMonth = DateTime.Today;
-        private int firstDayOfMonth => (int)new DateTime(currentMonth.Year, currentMonth.Month, 1).DayOfWeek;
-        private int daysInCurrentMonth => DateTime.DaysInMonth(currentMonth.Year, currentMonth.Month);
+        private int firstDayOfMonth =>
+            (int)new DateTime(currentMonth.Year, currentMonth.Month, 1).DayOfWeek;
+        private int daysInCurrentMonth =>
+            DateTime.DaysInMonth(currentMonth.Year, currentMonth.Month);
         private int adjustedFirstDayOfMonth => (firstDayOfMonth == 0) ? 6 : firstDayOfMonth - 1; // Adjust Sunday (0) to Saturday (6) and Monday (1) to 0
         private int selectedDay = 0;
         private int highlightedDay = 0;
 
         // Events Data
-        private Dictionary<int, List<CompanyEvent>> eventsForDate = new Dictionary<int, List<CompanyEvent>>();
-        private Dictionary<int, List<ProfessorEvent>> eventsForDateForProfessors = new Dictionary<int, List<ProfessorEvent>>();
+        private Dictionary<int, List<CompanyEvent>> eventsForDate =
+            new Dictionary<int, List<CompanyEvent>>();
+        private Dictionary<int, List<ProfessorEvent>> eventsForDateForProfessors =
+            new Dictionary<int, List<ProfessorEvent>>();
         private List<CompanyEvent> CompanyEventsToShowAtFrontPage = new List<CompanyEvent>();
         private List<ProfessorEvent> ProfessorEventsToShowAtFrontPage = new List<ProfessorEvent>();
 
@@ -61,11 +72,13 @@ namespace QuizManager.Components.Layout.ProfessorSections
         private List<Area> Areas = new();
         private List<Area> SelectedAreasWhenUploadEventAsProfessor = new();
         private bool showCheckboxesForProfessorEvent = false;
-        private Dictionary<string, List<string>> SelectedSubFieldsForProfessorEvent = new Dictionary<string, List<string>>();
+        private Dictionary<string, List<string>> SelectedSubFieldsForProfessorEvent =
+            new Dictionary<string, List<string>>();
         private HashSet<int> ExpandedAreasForProfessorEvent = new HashSet<int>();
 
         // Filtered Events
-        private List<ProfessorEvent> FilteredProfessorEvents { get; set; } = new List<ProfessorEvent>();
+        private List<ProfessorEvent> FilteredProfessorEvents { get; set; } =
+            new List<ProfessorEvent>();
 
         // Details for Expanded Interest Modals
         private Company selectedCompanyToSeeDetailsOnExpandedInterestAsProfessor;
@@ -76,7 +89,10 @@ namespace QuizManager.Components.Layout.ProfessorSections
         private int currentPage_ProfessorEvents = 1;
         private int itemsPerPage_ProfessorEvents = 10;
         private int totalPages_ProfessorEvents =>
-            (int)Math.Ceiling((double)(FilteredProfessorEvents?.Count ?? 0) / itemsPerPage_ProfessorEvents);
+            (int)
+                Math.Ceiling(
+                    (double)(FilteredProfessorEvents?.Count ?? 0) / itemsPerPage_ProfessorEvents
+                );
 
         // Bulk Edit for Professor Events
         private bool isBulkEditModeForProfessorEvents = false;
@@ -107,7 +123,8 @@ namespace QuizManager.Components.Layout.ProfessorSections
 
         // Interest Data
         private List<InterestInProfessorEvent> InterestedStudentsForProfessorEvent = new();
-        private List<InterestInProfessorEventAsCompany> filteredCompanyInterestForProfessorEvents = new();
+        private List<InterestInProfessorEventAsCompany> filteredCompanyInterestForProfessorEvents =
+            new();
 
         // Data Caches
         private Dictionary<string, Student> studentDataCache = new Dictionary<string, Student>();
@@ -132,7 +149,7 @@ namespace QuizManager.Components.Layout.ProfessorSections
             "Πελοπόννησος",
             "Βόρειο Αιγαίο",
             "Νότιο Αιγαίο",
-            "Κρήτη"
+            "Κρήτη",
         };
 
         // Edit Modal
@@ -172,21 +189,163 @@ namespace QuizManager.Components.Layout.ProfessorSections
         private int? activeProfessorEventMenuId = null;
 
         // Region to Towns Map
-        private Dictionary<string, List<string>> RegionToTownsMap = new Dictionary<string, List<string>>
+        private Dictionary<string, List<string>> RegionToTownsMap = new Dictionary<
+            string,
+            List<string>
+        >
         {
-            {"Ανατολική Μακεδονία και Θράκη", new List<string> {"Κομοτηνή", "Αλεξανδρούπολη", "Καβάλα", "Ξάνθη", "Δράμα", "Ορεστιάδα", "Διδυμότειχο", "Ίασμος", "Νέα Βύσσα", "Φέρες"}},
-            {"Κεντρική Μακεδονία", new List<string> {"Θεσσαλονίκη", "Κατερίνη", "Σέρρες", "Κιλκίς", "Πολύγυρος", "Ναούσα", "Έδεσσα", "Γιαννιτσά", "Καβάλα", "Άμφισσα"}},
-            {"Δυτική Μακεδονία", new List<string> {"Κοζάνη", "Φλώρινα", "Καστοριά", "Γρεβενά"}},
-            {"Ήπειρος", new List<string> {"Ιωάννινα", "Άρτα", "Πρέβεζα", "Ηγουμενίτσα"}},
-            {"Θεσσαλία", new List<string> {"Λάρισα", "Βόλος", "Τρίκαλα", "Καρδίτσα"}},
-            {"Ιόνια Νησιά", new List<string> {"Κέρκυρα", "Λευκάδα", "Κεφαλονιά", "Ζάκυνθος", "Ιθάκη", "Παξοί", "Κυθήρα"}},
-            {"Δυτική Ελλάδα", new List<string> {"Πάτρα", "Μεσολόγγι", "Αμφιλοχία", "Πύργος", "Αιγίο", "Ναύπακτος"}},
-            {"Κεντρική Ελλάδα", new List<string> {"Λαμία", "Χαλκίδα", "Λιβαδειά", "Θήβα", "Αλιάρτος", "Αμφίκλεια"}},
-            {"Αττική", new List<string> {"Αθήνα", "Πειραιάς", "Κηφισιά", "Παλλήνη", "Αγία Παρασκευή", "Χαλάνδρι", "Καλλιθέα", "Γλυφάδα", "Περιστέρι", "Αιγάλεω"}},
-            {"Πελοπόννησος", new List<string> {"Πάτρα", "Τρίπολη", "Καλαμάτα", "Κορίνθος", "Άργος", "Ναύπλιο", "Σπάρτη", "Κυπαρισσία", "Πύργος", "Μεσσήνη"}},
-            {"Βόρειο Αιγαίο", new List<string> {"Μυτιλήνη", "Χίος", "Λήμνος", "Σάμος", "Ίκαρος", "Λέσβος", "Θάσος", "Σκύρος", "Ψαρά"}},
-            {"Νότιο Αιγαίο", new List<string> {"Ρόδος", "Κως", "Κρήτη", "Κάρπαθος", "Σαντορίνη", "Μύκονος", "Νάξος", "Πάρος", "Σύρος", "Άνδρος"}},
-            {"Κρήτη", new List<string> {"Ηράκλειο", "Χανιά", "Ρέθυμνο", "Αγία Νικόλαος", "Ιεράπετρα", "Σητεία", "Κίσαμος", "Παλαιόχωρα", "Αρχάνες", "Ανώγεια"}},
+            {
+                "Ανατολική Μακεδονία και Θράκη",
+                new List<string>
+                {
+                    "Κομοτηνή",
+                    "Αλεξανδρούπολη",
+                    "Καβάλα",
+                    "Ξάνθη",
+                    "Δράμα",
+                    "Ορεστιάδα",
+                    "Διδυμότειχο",
+                    "Ίασμος",
+                    "Νέα Βύσσα",
+                    "Φέρες",
+                }
+            },
+            {
+                "Κεντρική Μακεδονία",
+                new List<string>
+                {
+                    "Θεσσαλονίκη",
+                    "Κατερίνη",
+                    "Σέρρες",
+                    "Κιλκίς",
+                    "Πολύγυρος",
+                    "Ναούσα",
+                    "Έδεσσα",
+                    "Γιαννιτσά",
+                    "Καβάλα",
+                    "Άμφισσα",
+                }
+            },
+            {
+                "Δυτική Μακεδονία",
+                new List<string> { "Κοζάνη", "Φλώρινα", "Καστοριά", "Γρεβενά" }
+            },
+            {
+                "Ήπειρος",
+                new List<string> { "Ιωάννινα", "Άρτα", "Πρέβεζα", "Ηγουμενίτσα" }
+            },
+            {
+                "Θεσσαλία",
+                new List<string> { "Λάρισα", "Βόλος", "Τρίκαλα", "Καρδίτσα" }
+            },
+            {
+                "Ιόνια Νησιά",
+                new List<string>
+                {
+                    "Κέρκυρα",
+                    "Λευκάδα",
+                    "Κεφαλονιά",
+                    "Ζάκυνθος",
+                    "Ιθάκη",
+                    "Παξοί",
+                    "Κυθήρα",
+                }
+            },
+            {
+                "Δυτική Ελλάδα",
+                new List<string>
+                {
+                    "Πάτρα",
+                    "Μεσολόγγι",
+                    "Αμφιλοχία",
+                    "Πύργος",
+                    "Αιγίο",
+                    "Ναύπακτος",
+                }
+            },
+            {
+                "Κεντρική Ελλάδα",
+                new List<string> { "Λαμία", "Χαλκίδα", "Λιβαδειά", "Θήβα", "Αλιάρτος", "Αμφίκλεια" }
+            },
+            {
+                "Αττική",
+                new List<string>
+                {
+                    "Αθήνα",
+                    "Πειραιάς",
+                    "Κηφισιά",
+                    "Παλλήνη",
+                    "Αγία Παρασκευή",
+                    "Χαλάνδρι",
+                    "Καλλιθέα",
+                    "Γλυφάδα",
+                    "Περιστέρι",
+                    "Αιγάλεω",
+                }
+            },
+            {
+                "Πελοπόννησος",
+                new List<string>
+                {
+                    "Πάτρα",
+                    "Τρίπολη",
+                    "Καλαμάτα",
+                    "Κορίνθος",
+                    "Άργος",
+                    "Ναύπλιο",
+                    "Σπάρτη",
+                    "Κυπαρισσία",
+                    "Πύργος",
+                    "Μεσσήνη",
+                }
+            },
+            {
+                "Βόρειο Αιγαίο",
+                new List<string>
+                {
+                    "Μυτιλήνη",
+                    "Χίος",
+                    "Λήμνος",
+                    "Σάμος",
+                    "Ίκαρος",
+                    "Λέσβος",
+                    "Θάσος",
+                    "Σκύρος",
+                    "Ψαρά",
+                }
+            },
+            {
+                "Νότιο Αιγαίο",
+                new List<string>
+                {
+                    "Ρόδος",
+                    "Κως",
+                    "Κρήτη",
+                    "Κάρπαθος",
+                    "Σαντορίνη",
+                    "Μύκονος",
+                    "Νάξος",
+                    "Πάρος",
+                    "Σύρος",
+                    "Άνδρος",
+                }
+            },
+            {
+                "Κρήτη",
+                new List<string>
+                {
+                    "Ηράκλειο",
+                    "Χανιά",
+                    "Ρέθυμνο",
+                    "Αγία Νικόλαος",
+                    "Ιεράπετρα",
+                    "Σητεία",
+                    "Κίσαμος",
+                    "Παλαιόχωρα",
+                    "Αρχάνες",
+                    "Ανώγεια",
+                }
+            },
         };
 
         // Computed Properties
@@ -205,6 +364,10 @@ namespace QuizManager.Components.Layout.ProfessorSections
 
         protected override async Task OnInitializedAsync()
         {
+            if (professorEvent == null)
+            {
+                professorEvent = new ProfessorEvent();
+            }
             await LoadInitialData();
             await LoadAreasAsync();
         }
@@ -235,8 +398,10 @@ namespace QuizManager.Components.Layout.ProfessorSections
             // Loop through the events for the current month
             foreach (var eventItem in CompanyEventsToShowAtFrontPage)
             {
-                if (eventItem.CompanyEventActiveDate.Year == currentYear &&
-                    eventItem.CompanyEventActiveDate.Month == currentMonthNumber)
+                if (
+                    eventItem.CompanyEventActiveDate.Year == currentYear
+                    && eventItem.CompanyEventActiveDate.Month == currentMonthNumber
+                )
                 {
                     int eventDay = eventItem.CompanyEventActiveDate.Day;
                     if (!eventsForDate.ContainsKey(eventDay))
@@ -250,8 +415,10 @@ namespace QuizManager.Components.Layout.ProfessorSections
             // Loop through professor events
             foreach (var eventProfessorItem in ProfessorEventsToShowAtFrontPage)
             {
-                if (eventProfessorItem.ProfessorEventActiveDate.Year == currentYear &&
-                    eventProfessorItem.ProfessorEventActiveDate.Month == currentMonthNumber)
+                if (
+                    eventProfessorItem.ProfessorEventActiveDate.Year == currentYear
+                    && eventProfessorItem.ProfessorEventActiveDate.Month == currentMonthNumber
+                )
                 {
                     int eventDay = eventProfessorItem.ProfessorEventActiveDate.Day;
                     if (!eventsForDateForProfessors.ContainsKey(eventDay))
@@ -263,13 +430,23 @@ namespace QuizManager.Components.Layout.ProfessorSections
             }
 
             // If highlighted day is not valid for this month, reset it
-            if (highlightedDay != 0 && !eventsForDate.ContainsKey(highlightedDay) && !eventsForDateForProfessors.ContainsKey(highlightedDay))
+            if (
+                highlightedDay != 0
+                && !eventsForDate.ContainsKey(highlightedDay)
+                && !eventsForDateForProfessors.ContainsKey(highlightedDay)
+            )
             {
                 highlightedDay = 0;
             }
 
             // After loading events, ensure the selected and highlighted day is respected
-            if (selectedDay != 0 && (eventsForDate.ContainsKey(selectedDay) || eventsForDateForProfessors.ContainsKey(selectedDay)))
+            if (
+                selectedDay != 0
+                && (
+                    eventsForDate.ContainsKey(selectedDay)
+                    || eventsForDateForProfessors.ContainsKey(selectedDay)
+                )
+            )
             {
                 highlightedDay = selectedDay;
             }
@@ -299,14 +476,18 @@ namespace QuizManager.Components.Layout.ProfessorSections
 
             // Filter company events by status "Δημοσιευμένη" AND the specific date
             selectedDateEvents = CompanyEventsToShowAtFrontPage
-                .Where(e => e.CompanyEventStatus == "Δημοσιευμένη" &&
-                        e.CompanyEventActiveDate.Date == clickedDate.Date)
+                .Where(e =>
+                    e.CompanyEventStatus == "Δημοσιευμένη"
+                    && e.CompanyEventActiveDate.Date == clickedDate.Date
+                )
                 .ToList();
 
             // Filter professor events by status "Δημοσιευμένη" AND the specific date
             selectedProfessorDateEvents = ProfessorEventsToShowAtFrontPage
-                .Where(e => e.ProfessorEventStatus == "Δημοσιευμένη" &&
-                        e.ProfessorEventActiveDate.Date == clickedDate.Date)
+                .Where(e =>
+                    e.ProfessorEventStatus == "Δημοσιευμένη"
+                    && e.ProfessorEventActiveDate.Date == clickedDate.Date
+                )
                 .ToList();
 
             // Only show modal if there are published events for this specific date
@@ -321,16 +502,25 @@ namespace QuizManager.Components.Layout.ProfessorSections
         private string GetDayCellClass(DateTime dayDate)
         {
             string dayCellClass = "day-cell";
-            if (dayDate.Date == DateTime.Today.Date) dayCellClass += " today";
-            if (dayDate.Day == highlightedDay) dayCellClass += " highlighted";
-            
-            bool hasPublishedEvent = (eventsForDate.ContainsKey(dayDate.Day) && 
-                                     eventsForDate[dayDate.Day].Any(e => e.CompanyEventStatus == "Δημοσιευμένη")) ||
-                                    (eventsForDateForProfessors.ContainsKey(dayDate.Day) && 
-                                     eventsForDateForProfessors[dayDate.Day].Any(e => e.ProfessorEventStatus == "Δημοσιευμένη"));
-            
-            if (hasPublishedEvent) dayCellClass += " event-day";
-            
+            if (dayDate.Date == DateTime.Today.Date)
+                dayCellClass += " today";
+            if (dayDate.Day == highlightedDay)
+                dayCellClass += " highlighted";
+
+            bool hasPublishedEvent =
+                (
+                    eventsForDate.ContainsKey(dayDate.Day)
+                    && eventsForDate[dayDate.Day].Any(e => e.CompanyEventStatus == "Δημοσιευμένη")
+                )
+                || (
+                    eventsForDateForProfessors.ContainsKey(dayDate.Day)
+                    && eventsForDateForProfessors[dayDate.Day]
+                        .Any(e => e.ProfessorEventStatus == "Δημοσιευμένη")
+                );
+
+            if (hasPublishedEvent)
+                dayCellClass += " event-day";
+
             return dayCellClass;
         }
 
@@ -372,37 +562,58 @@ namespace QuizManager.Components.Layout.ProfessorSections
         private async Task<bool> ShowInterestInCompanyEventAsProfessor(CompanyEvent companyEvent)
         {
             // First ask for confirmation
-            var confirmed = await JS.InvokeAsync<bool>("confirmActionWithHTML", 
-                $"Πρόκεται να δείξετε Ενδιαφέρον για την Εκδήλωση: {companyEvent.CompanyEventTitle} της εταιρείας {companyEvent.Company?.CompanyName}. Είστε σίγουρος/η;");
-            if (!confirmed) return false;
+            var confirmed = await JS.InvokeAsync<bool>(
+                "confirmActionWithHTML",
+                $"Πρόκεται να δείξετε Ενδιαφέρον για την Εκδήλωση: {companyEvent.CompanyEventTitle} της εταιρείας {companyEvent.Company?.CompanyName}. Είστε σίγουρος/η;"
+            );
+            if (!confirmed)
+                return false;
 
-            var latest = dashboardData.CompanyEvents.FirstOrDefault(e => e.RNGForEventUploadedAsCompany == companyEvent.RNGForEventUploadedAsCompany);
+            var latest = dashboardData.CompanyEvents.FirstOrDefault(e =>
+                e.RNGForEventUploadedAsCompany == companyEvent.RNGForEventUploadedAsCompany
+            );
             if (latest == null || latest.CompanyEventStatus != "Δημοσιευμένη")
             {
-                await JS.InvokeVoidAsync("confirmActionWithHTML2", "Η Εκδήλωση έχει Αποδημοσιευτεί. Παρακαλώ δοκιμάστε αργότερα.");
+                await JS.InvokeVoidAsync(
+                    "confirmActionWithHTML2",
+                    "Η Εκδήλωση έχει Αποδημοσιευτεί. Παρακαλώ δοκιμάστε αργότερα."
+                );
                 return false;
             }
 
             var professor = await GetProfessorDetails(CurrentUserEmail);
             if (professor == null)
             {
-                await JS.InvokeVoidAsync("confirmActionWithHTML2", "Δεν βρέθηκαν στοιχεία καθηγητή.");
+                await JS.InvokeVoidAsync(
+                    "confirmActionWithHTML2",
+                    "Δεν βρέθηκαν στοιχεία καθηγητή."
+                );
                 return false;
             }
 
             var company = await GetCompanyDetails(companyEvent.CompanyEmailUsedToUploadEvent);
             if (company == null)
             {
-                await JS.InvokeVoidAsync("confirmActionWithHTML2", "Δεν βρέθηκαν στοιχεία εταιρείας.");
+                await JS.InvokeVoidAsync(
+                    "confirmActionWithHTML2",
+                    "Δεν βρέθηκαν στοιχεία εταιρείας."
+                );
                 return false;
             }
 
             try
             {
-                var result = await ProfessorDashboardService.ShowInterestInCompanyEventAsProfessorAsync(companyEvent.RNGForEventUploadedAsCompany, CurrentUserEmail);
+                var result =
+                    await ProfessorDashboardService.ShowInterestInCompanyEventAsProfessorAsync(
+                        companyEvent.RNGForEventUploadedAsCompany,
+                        CurrentUserEmail
+                    );
                 if (!result.Success)
                 {
-                    await JS.InvokeVoidAsync("confirmActionWithHTML2", result.Error ?? "Αποτυχία καταγραφής ενδιαφέροντος.");
+                    await JS.InvokeVoidAsync(
+                        "confirmActionWithHTML2",
+                        result.Error ?? "Αποτυχία καταγραφής ενδιαφέροντος."
+                    );
                     return false;
                 }
 
@@ -415,7 +626,8 @@ namespace QuizManager.Components.Layout.ProfessorSections
                         professor.ProfSurname,
                         companyEvent.CompanyEventTitle,
                         company.CompanyName,
-                        companyEvent.RNGForEventUploadedAsCompany_HashedAsUniqueID ?? "");
+                        companyEvent.RNGForEventUploadedAsCompany_HashedAsUniqueID ?? ""
+                    );
 
                     await InternshipEmailService.SendNotificationToCompanyForProfessorInterestInEvent(
                         companyEvent.CompanyEmailUsedToUploadEvent,
@@ -425,21 +637,28 @@ namespace QuizManager.Components.Layout.ProfessorSections
                         professor.ProfEmail ?? "",
                         professor.ProfWorkTelephone ?? "",
                         companyEvent.CompanyEventTitle ?? "",
-                        companyEvent.RNGForEventUploadedAsCompany_HashedAsUniqueID ?? "");
+                        companyEvent.RNGForEventUploadedAsCompany_HashedAsUniqueID ?? ""
+                    );
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine($"Error sending emails: {ex.Message}");
                 }
 
-                await JS.InvokeVoidAsync("confirmActionWithHTML2", $"Επιτυχής ένδειξη ενδιαφέροντος για: {companyEvent.CompanyEventTitle}!");
+                await JS.InvokeVoidAsync(
+                    "confirmActionWithHTML2",
+                    $"Επιτυχής ένδειξη ενδιαφέροντος για: {companyEvent.CompanyEventTitle}!"
+                );
                 StateHasChanged();
                 return true;
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error showing interest in company event: {ex.Message}");
-                await JS.InvokeVoidAsync("confirmActionWithHTML2", "Σφάλμα κατά την ένδειξη ενδιαφέροντος. Παρακαλώ δοκιμάστε ξανά.");
+                await JS.InvokeVoidAsync(
+                    "confirmActionWithHTML2",
+                    "Σφάλμα κατά την ένδειξη ενδιαφέροντος. Παρακαλώ δοκιμάστε ξανά."
+                );
                 return false;
             }
         }
@@ -488,7 +707,7 @@ namespace QuizManager.Components.Layout.ProfessorSections
         private void OnAreaCheckedChangedForProfessorEvent(ChangeEventArgs e, Area area)
         {
             var isChecked = (bool)e.Value!;
-        
+
             if (isChecked)
             {
                 if (!SelectedAreasWhenUploadEventAsProfessor.Contains(area))
@@ -499,7 +718,7 @@ namespace QuizManager.Components.Layout.ProfessorSections
             else
             {
                 SelectedAreasWhenUploadEventAsProfessor.Remove(area);
-            
+
                 // Remove all subfields for this area when area is deselected
                 if (SelectedSubFieldsForProfessorEvent.ContainsKey(area.AreaName))
                 {
@@ -527,10 +746,14 @@ namespace QuizManager.Components.Layout.ProfessorSections
             StateHasChanged();
         }
 
-        private void OnSubFieldCheckedChangedForProfessorEvent(ChangeEventArgs e, Area area, string subField)
+        private void OnSubFieldCheckedChangedForProfessorEvent(
+            ChangeEventArgs e,
+            Area area,
+            string subField
+        )
         {
             var isChecked = (bool)e.Value!;
-        
+
             if (!SelectedSubFieldsForProfessorEvent.ContainsKey(area.AreaName))
             {
                 SelectedSubFieldsForProfessorEvent[area.AreaName] = new List<string>();
@@ -546,7 +769,7 @@ namespace QuizManager.Components.Layout.ProfessorSections
             else
             {
                 SelectedSubFieldsForProfessorEvent[area.AreaName].Remove(subField);
-            
+
                 // Remove the area from subfields dictionary if no subfields are selected
                 if (!SelectedSubFieldsForProfessorEvent[area.AreaName].Any())
                 {
@@ -558,21 +781,22 @@ namespace QuizManager.Components.Layout.ProfessorSections
 
         private bool IsSubFieldSelectedForProfessorEvent(Area area, string subField)
         {
-            return SelectedSubFieldsForProfessorEvent.ContainsKey(area.AreaName) && 
-                SelectedSubFieldsForProfessorEvent[area.AreaName].Contains(subField);
+            return SelectedSubFieldsForProfessorEvent.ContainsKey(area.AreaName)
+                && SelectedSubFieldsForProfessorEvent[area.AreaName].Contains(subField);
         }
 
         private bool HasAnySelectionForProfessorEvent()
         {
-            return SelectedAreasWhenUploadEventAsProfessor.Any() || SelectedSubFieldsForProfessorEvent.Any();
+            return SelectedAreasWhenUploadEventAsProfessor.Any()
+                || SelectedSubFieldsForProfessorEvent.Any();
         }
 
         // Pagination Methods
         private IEnumerable<ProfessorEvent> GetPaginatedProfessorEvents()
         {
-            return FilteredProfessorEvents?
-                .Skip((currentPage_ProfessorEvents - 1) * itemsPerPage_ProfessorEvents)
-                .Take(itemsPerPage_ProfessorEvents) ?? Enumerable.Empty<ProfessorEvent>();
+            return FilteredProfessorEvents
+                    ?.Skip((currentPage_ProfessorEvents - 1) * itemsPerPage_ProfessorEvents)
+                    .Take(itemsPerPage_ProfessorEvents) ?? Enumerable.Empty<ProfessorEvent>();
         }
 
         private List<int> GetVisiblePages_ProfessorEvents()
@@ -581,32 +805,44 @@ namespace QuizManager.Components.Layout.ProfessorSections
             int current = currentPage_ProfessorEvents;
             int total = totalPages_ProfessorEvents;
 
-            if (total == 0) return pages;
+            if (total == 0)
+                return pages;
 
             pages.Add(1);
-            if (current > 3) pages.Add(-1);
+            if (current > 3)
+                pages.Add(-1);
 
             int start = Math.Max(2, current - 1);
             int end = Math.Min(total - 1, current + 1);
 
-            for (int i = start; i <= end; i++) pages.Add(i);
+            for (int i = start; i <= end; i++)
+                pages.Add(i);
 
-            if (current < total - 2) pages.Add(-1);
-            if (total > 1) pages.Add(total);
+            if (current < total - 2)
+                pages.Add(-1);
+            if (total > 1)
+                pages.Add(total);
 
             return pages;
         }
 
         private void GoToFirstPage_ProfessorEvents() => currentPage_ProfessorEvents = 1;
-        private void GoToLastPage_ProfessorEvents() => currentPage_ProfessorEvents = totalPages_ProfessorEvents;
+
+        private void GoToLastPage_ProfessorEvents() =>
+            currentPage_ProfessorEvents = totalPages_ProfessorEvents;
+
         private void PreviousPage_ProfessorEvents()
         {
-            if (currentPage_ProfessorEvents > 1) currentPage_ProfessorEvents--;
+            if (currentPage_ProfessorEvents > 1)
+                currentPage_ProfessorEvents--;
         }
+
         private void NextPage_ProfessorEvents()
         {
-            if (currentPage_ProfessorEvents < totalPages_ProfessorEvents) currentPage_ProfessorEvents++;
+            if (currentPage_ProfessorEvents < totalPages_ProfessorEvents)
+                currentPage_ProfessorEvents++;
         }
+
         private void GoToPage_ProfessorEvents(int page)
         {
             if (page >= 1 && page <= totalPages_ProfessorEvents)
@@ -684,7 +920,8 @@ namespace QuizManager.Components.Layout.ProfessorSections
 
         private async Task ExecuteBulkStatusChangeForProfessorEvents(string newStatus)
         {
-            if (selectedProfessorEventIds.Count == 0) return;
+            if (selectedProfessorEventIds.Count == 0)
+                return;
             bulkActionForProfessorEvents = "status";
             selectedProfessorEventsForAction = FilteredProfessorEvents
                 .Where(ev => selectedProfessorEventIds.Contains(ev.Id))
@@ -694,7 +931,8 @@ namespace QuizManager.Components.Layout.ProfessorSections
 
         private async Task ExecuteBulkCopyForProfessorEvents()
         {
-            if (selectedProfessorEventIds.Count == 0) return;
+            if (selectedProfessorEventIds.Count == 0)
+                return;
             bulkActionForProfessorEvents = "copy";
             selectedProfessorEventsForAction = FilteredProfessorEvents
                 .Where(ev => selectedProfessorEventIds.Contains(ev.Id))
@@ -705,9 +943,11 @@ namespace QuizManager.Components.Layout.ProfessorSections
         // Event Management Methods
         private async Task DeleteProfessorEvent(int professoreventId)
         {
-            var isConfirmed = await JS.InvokeAsync<bool>("confirmActionWithHTML",
-                "Πρόκειται να διαγράψετε οριστικά αυτή την Εκδήλωση.<br><br>" + 
-                "<strong style='color: red;'>Είστε σίγουρος/η;</strong>");
+            var isConfirmed = await JS.InvokeAsync<bool>(
+                "confirmActionWithHTML",
+                "Πρόκειται να διαγράψετε οριστικά αυτή την Εκδήλωση.<br><br>"
+                    + "<strong style='color: red;'>Είστε σίγουρος/η;</strong>"
+            );
 
             if (isConfirmed)
             {
@@ -724,14 +964,20 @@ namespace QuizManager.Components.Layout.ProfessorSections
 
         private async Task ChangeProfessorEventStatus(int professoreventId, string newStatus)
         {
-            var isConfirmed = await JS.InvokeAsync<bool>("confirmActionWithHTML", new object[] 
-            { 
-                $"Πρόκειται να αλλάξετε την κατάσταση αυτής της Εκδήλωσης σε '{newStatus}'. Είστε σίγουρος/η;" 
-            });
+            var isConfirmed = await JS.InvokeAsync<bool>(
+                "confirmActionWithHTML",
+                new object[]
+                {
+                    $"Πρόκειται να αλλάξετε την κατάσταση αυτής της Εκδήλωσης σε '{newStatus}'. Είστε σίγουρος/η;",
+                }
+            );
 
             if (isConfirmed)
             {
-                var result = await ProfessorDashboardService.UpdateEventStatusAsync(professoreventId, newStatus);
+                var result = await ProfessorDashboardService.UpdateEventStatusAsync(
+                    professoreventId,
+                    newStatus
+                );
                 if (result.Success)
                 {
                     dashboardData = await ProfessorDashboardService.LoadDashboardDataAsync();
@@ -750,16 +996,41 @@ namespace QuizManager.Components.Layout.ProfessorSections
 
         // Placeholder methods for remaining functionality
         private void CheckCharacterLimitInEventTitleField() { }
+
         private void CheckCharacterLimitInProfessorEventDescription() { }
+
         private void HandleProfessorDateChange(ChangeEventArgs e) { }
-        private async Task HandlePublishSaveProfessorEvent() { await Task.CompletedTask; }
-        private async Task HandleTemporarySaveProfessorEvent() { await Task.CompletedTask; }
+
+        private async Task HandlePublishSaveProfessorEvent()
+        {
+            await Task.CompletedTask;
+        }
+
+        private async Task HandleTemporarySaveProfessorEvent()
+        {
+            await Task.CompletedTask;
+        }
+
         private bool IsTimeInRestrictedRangeWhenUploadEventAsProfessor(TimeSpan time) => true;
+
         private void HandleStatusFilterChangeForProfessorEvents(ChangeEventArgs e) { }
+
         private void OnPageSizeChange_SeeMyUploadedEventsAsProfessor(ChangeEventArgs e) { }
-        private async Task DownloadStudentListForInterestInProfessorEventAsProfessor(long eventRNG) { await Task.CompletedTask; }
-        private async Task DownloadCompanyListForInterestInProfessorEventAsProfessor(long eventRNG) { await Task.CompletedTask; }
-        private async Task DownloadStudentCVForProfessorThesis(string studentEmail) { await Task.CompletedTask; }
+
+        private async Task DownloadStudentListForInterestInProfessorEventAsProfessor(long eventRNG)
+        {
+            await Task.CompletedTask;
+        }
+
+        private async Task DownloadCompanyListForInterestInProfessorEventAsProfessor(long eventRNG)
+        {
+            await Task.CompletedTask;
+        }
+
+        private async Task DownloadStudentCVForProfessorThesis(string studentEmail)
+        {
+            await Task.CompletedTask;
+        }
 
         // Additional Methods
         private async Task ToggleUploadedProfessorEventsVisibility()
@@ -770,8 +1041,8 @@ namespace QuizManager.Components.Layout.ProfessorSections
                 isLoadingUploadedEventsAsProfessor = true;
                 StateHasChanged();
                 dashboardData = await ProfessorDashboardService.LoadDashboardDataAsync();
-                FilteredProfessorEvents = dashboardData.Events
-                    .Where(e => e.ProfessorEmailUsedToUploadEvent == CurrentUserEmail)
+                FilteredProfessorEvents = dashboardData
+                    .Events.Where(e => e.ProfessorEmailUsedToUploadEvent == CurrentUserEmail)
                     .ToList();
                 ProfessorEventsToShowAtFrontPage = FilteredProfessorEvents.ToList();
                 isLoadingUploadedEventsAsProfessor = false;
@@ -788,7 +1059,9 @@ namespace QuizManager.Components.Layout.ProfessorSections
 
         private async Task UpdateProfessorEvent(ProfessorEvent updatedProfessorEvent)
         {
-            var result = await ProfessorDashboardService.CreateOrUpdateEventAsync(updatedProfessorEvent);
+            var result = await ProfessorDashboardService.CreateOrUpdateEventAsync(
+                updatedProfessorEvent
+            );
             if (result.Success)
             {
                 isEditModalVisibleForEventsAsProfessor = false;
