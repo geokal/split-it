@@ -126,7 +126,7 @@ builder.Services.AddScoped<
 
 var app = builder.Build();
 
-// Auto-apply migrations only in Development
+// Auto-apply migrations only in Production
 if (!app.Environment.IsDevelopment())
 {
     using (var scope = app.Services.CreateScope())
