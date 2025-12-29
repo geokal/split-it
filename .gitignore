@@ -330,3 +330,5 @@ ASALocalRun/
 .mfractor/
 .aider*
 .DS_Store
+.devcontainer/mssql_data/
+split-it.sln.backup
