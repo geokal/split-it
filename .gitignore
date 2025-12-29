@@ -330,5 +330,10 @@ ASALocalRun/
 .mfractor/
 .aider*
 .DS_Store
+
+# Devcontainer database files and workflow image (local only)
+.devcontainer/mssql_data/
+.devcontainer/devcontainers_workflow.png
+split-it.sln.backup
 .devcontainer/mssql_data/
 split-it.sln.backup
