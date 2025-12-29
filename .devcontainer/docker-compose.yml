@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  app:
+    image: mcr.microsoft.com/devcontainers/dotnet:8.0
+    security_opt:
+      - seccomp:unconfined
+    network_mode: host
+
+    volumes:
+      - ../..:/workspaces:cached
+    
+    # Overrides default command so things don't shut down after the process ends
+    command: sleep infinity
+    
+    # Environment variables for the app
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - DOTNET_CLI_TELEMETRY_OPTOUT=1
+      # Connection string pointing to localhost (shared network with db)
+      - ConnectionStrings__DbConnectionString=Server=localhost,1433;Database=JobFinder;User Id=SA;Password=Root1234!;TrustServerCertificate=True;MultipleActiveResultSets=true;
+
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    restart: unless-stopped
+    
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: "Root1234!"
+      MSSQL_PID: "Developer"
+    
+    ports:
+      - "1433:1433"
+    
+    volumes:
+      # Persist database data
+      - mssql_data:/var/opt/mssql
+    
+    healthcheck:
+      test: /opt/mssql-tools/bin/sqlcmd -S localhost -U SA -P 'Root1234!' -Q 'SELECT 1' || exit 1
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  mssql_data:
+    external: true

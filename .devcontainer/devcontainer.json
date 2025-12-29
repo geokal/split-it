@@ -1,0 +1,63 @@
+{
+	"name": "JobFinder .NET 8 + SQL Server",
+	
+	// Use docker-compose to run app + SQL Server
+	"dockerComposeFile": "docker-compose.yml",
+	"service": "app",
+	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+	
+	// Forward ports for Blazor app and SQL Server
+	"forwardPorts": [5168, 7290, 1433],
+	"portsAttributes": {
+		"5168": {
+			"label": "HTTP",
+			"onAutoForward": "notify"
+		},
+		"7290": {
+			"label": "HTTPS",
+			"onAutoForward": "openBrowser"
+		},
+		"1433": {
+			"label": "SQL Server",
+			"onAutoForward": "silent"
+		}
+	},
+	
+	// VS Code customizations
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-dotnettools.csharp",
+				"ms-dotnettools.csdevkit",
+				"ms-dotnettools.vscode-dotnet-runtime",
+				"ms-azuretools.vscode-docker",
+				"editorconfig.editorconfig",
+				"formulahendry.dotnet-test-explorer",
+				"ms-mssql.mssql"
+			],
+			"settings": {
+				"omnisharp.useModernNet": true,
+				"dotnet.defaultSolution": "JobFinder-refactored.sln"
+			}
+		}
+	},
+	
+	// Environment variables
+	"remoteEnv": {
+		"ASPNETCORE_ENVIRONMENT": "Development",
+		"DOTNET_CLI_TELEMETRY_OPTOUT": "1"
+	},
+	
+	// Commands to run after container is created
+	"postCreateCommand": "dotnet restore && dotnet tool restore",
+	
+	// Keep container running
+	"overrideCommand": false,
+	
+	// Use 'forwardPorts' to make a list of ports inside the container available locally
+	"features": {
+		"ghcr.io/devcontainers/features/node:1": {
+			"version": "20"
+		}
+	}
+}
