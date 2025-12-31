@@ -1,0 +1,288 @@
+@using QuizManager.Models
+
+@if (IsVisible && ResearchGroup != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0, 0, 0, 0.5);">
+        <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+            <div class="modal-content" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);">
+                <div class="modal-header" style="border-bottom: 1px solid #e9ecef; border-radius: 12px 12px 0 0; background-color: #f8f9fa;">
+                    <h5 class="modal-title" style="color: #4682B4; font-weight: 600; font-size: 1.25rem;">
+                        @ResearchGroup.ResearchGroupName
+                    </h5>
+                    <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" 
+                        @onclick="OnClose"
+                        onmouseover="this.style.backgroundColor='#4a5568'" 
+                        onmouseout="this.style.backgroundColor='#2d3748'">
+                        <span style="font-size: 1.2rem; line-height: 1;">×</span>
+                    </button>
+                </div>
+                <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                    <!-- Research Group Logo -->
+                    <div class="text-center mb-4">
+                        @if (ResearchGroup.ResearchGroupImage != null && ResearchGroup.ResearchGroupImage.Length > 0)
+                        {
+                            var base64Image = Convert.ToBase64String(ResearchGroup.ResearchGroupImage);
+                            <img src="data:image/jpeg;base64,@base64Image" 
+                                 alt="Λογότυπο Ερευνητικής Ομάδας"
+                                 style="max-width: 150px; max-height: 150px; border-radius: 50%; object-fit: cover; border: 3px solid #ddd;" />
+                        }
+                        else
+                        {
+                            <div style="width: 150px; height: 150px; border-radius: 50%; background-color: #f8f9fa; display: flex; align-items: center; justify-content: center; margin: 0 auto; border: 3px solid #ddd;">
+                                <i class="fas fa-users" style="font-size: 3rem; color: #6c757d;"></i>
+                            </div>
+                            <p style="color: #6c757d; margin-top: 8px;">Δεν υπάρχει λογότυπο Ομάδας</p>
+                        }
+                    </div>
+
+                    <!-- Research Group Name -->
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Όνομα Ομάδας</label>
+                        <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                            <i class="fas fa-users mr-2 text-primary"></i>
+                            <span>@ResearchGroup.ResearchGroupName</span>
+                        </div>
+                    </div>
+
+                    <!-- Research Group School -->
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Σχολή</label>
+                        <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                            <i class="fas fa-university mr-2 text-primary"></i>
+                            <span>@ResearchGroup.ResearchGroupSchool</span>
+                        </div>
+                    </div>
+
+                    <!-- Research Group University Department -->
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Τμήμα Πανεπιστημίου</label>
+                        <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                            <i class="fas fa-building mr-2"></i>
+                            <span>@ResearchGroup.ResearchGroupUniversityDepartment</span>
+                        </div>
+                    </div>
+
+                    <!-- Research Group Email -->
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Email</label>
+                        <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                            <i class="fas fa-envelope mr-2 text-primary"></i>
+                            <span>@ResearchGroup.ResearchGroupEmail</span>
+                        </div>
+                    </div>
+
+                    <!-- Research Group Contact Email -->
+                    @if (!string.IsNullOrEmpty(ResearchGroup.ResearchGroupContactEmail))
+                    {
+                        <div class="form-group">
+                            <label style="font-weight: bold;">Email Επικοινωνίας</label>
+                            <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                <i class="fas fa-envelope mr-2"></i>
+                                <span>@ResearchGroup.ResearchGroupContactEmail</span>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Research Group Telephone -->
+                    @if (!string.IsNullOrEmpty(ResearchGroup.ResearchGroupTelephoneNumber))
+                    {
+                        <div class="form-group">
+                            <label style="font-weight: bold;">Τηλέφωνο</label>
+                            <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                <i class="fas fa-phone mr-2 text-success"></i>
+                                <span>@ResearchGroup.ResearchGroupTelephoneNumber</span>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Research Group Areas -->
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Περιοχές Έρευνας</label>
+                        <textarea class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" readonly rows="3">@ResearchGroup.ResearchGroupAreas</textarea>
+                    </div>
+
+                    <!-- Research Group Skills -->
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Δεξιότητες</label>
+                        <textarea class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" readonly rows="3">@ResearchGroup.ResearchGroupSkills</textarea>
+                    </div>
+
+                    <!-- Research Group Keywords -->
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Λέξεις Κλειδιά</label>
+                        <textarea class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" readonly rows="3">@ResearchGroup.ResearchGroupKeywords</textarea>
+                    </div>
+
+                    <!-- Faculty Members -->
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Ακαδημαϊκό Προσωπικό</label>
+                        <div class="form-control" style="border-radius: 8px; background-color: #f8f9fa; min-height: 60px; padding: 12px;">
+                            @if (FacultyMembers.Any())
+                            {
+                                @foreach (var member in FacultyMembers)
+                                {
+                                    <span class="badge bg-info me-1 mb-1" style="font-size: 0.875rem;">@($"{member.ProfName} {member.ProfSurname}".Trim())</span>
+                                }
+                            }
+                            else
+                            {
+                                <span style="color: #6c757d;">Δεν υπάρχουν ακαδημαϊκοί μέλη</span>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Non-Faculty Members -->
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Μη Ακαδημαϊκό Προσωπικό</label>
+                        <div class="form-control" style="border-radius: 8px; background-color: #f8f9fa; min-height: 60px; padding: 12px;">
+                            @if (NonFacultyMembers.Any())
+                            {
+                                @foreach (var member in NonFacultyMembers)
+                                {
+                                    <span class="badge bg-warning text-dark me-1 mb-1" style="font-size: 0.875rem;">@($"{member.Name} {member.Surname}".Trim())</span>
+                                }
+                            }
+                            else
+                            {
+                                <span style="color: #6c757d;">Δεν υπάρχουν μη ακαδημαϊκά μέλη</span>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Patents Count -->
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Αριθμός Πατεντών</label>
+                        <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                            <i class="fas fa-certificate mr-2" style="color: #ffc107;"></i>
+                            <span>@PatentsCount</span>
+                        </div>
+                    </div>
+
+                    <!-- Active Research Actions Count -->
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Ενεργές Ερευνητικές Δράσεις</label>
+                        <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                            <i class="fas fa-flask mr-2" style="color: #28a745;"></i>
+                            <span>@ActiveResearchActionsCount</span>
+                        </div>
+                    </div>
+
+                    <!-- Spin-off Companies -->
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Spin-off Εταιρεία</label>
+                        <div class="form-control" style="border-radius: 8px; background-color: #f8f9fa; min-height: 60px; padding: 12px;">
+                            @if (SpinOffCompanies.Any())
+                            {
+                                @foreach (var spinoff in SpinOffCompanies)
+                                {
+                                    <div class="mb-2">
+                                        <span style="font-weight: 500;">@spinoff.CompanyName</span>
+                                        <span style="color: #6c757d;">(ΑΦΜ: @spinoff.CompanyTaxID)</span>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <span style="color: #6c757d;">Δεν υπάρχουν spin-off εταιρείες</span>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Website -->
+                    @if (!string.IsNullOrEmpty(ResearchGroup.ResearchGroup_Website))
+                    {
+                        <div class="form-group">
+                            <label style="font-weight: bold;">Ιστοσελίδα</label>
+                            <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                <i class="fas fa-globe mr-2 text-info"></i>
+                                <a href="@ResearchGroup.ResearchGroup_Website" target="_blank" 
+                                   class="text-primary text-decoration-underline">
+                                    @ResearchGroup.ResearchGroup_Website
+                                </a>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Facebook -->
+                    @if (!string.IsNullOrEmpty(ResearchGroup.ResearchGroup_Facebook))
+                    {
+                        <div class="form-group">
+                            <label style="font-weight: bold;">Facebook</label>
+                            <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                <i class="fab fa-facebook mr-2" style="color: #3b5998;"></i>
+                                <a href="@ResearchGroup.ResearchGroup_Facebook" target="_blank" 
+                                   class="text-primary text-decoration-underline">
+                                    @ResearchGroup.ResearchGroup_Facebook
+                                </a>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Twitter -->
+                    @if (!string.IsNullOrEmpty(ResearchGroup.ResearchGroup_Twitter))
+                    {
+                        <div class="form-group">
+                            <label style="font-weight: bold;">Twitter</label>
+                            <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                <i class="fab fa-twitter mr-2" style="color: #1da1f2;"></i>
+                                <a href="@ResearchGroup.ResearchGroup_Twitter" target="_blank" 
+                                   class="text-primary text-decoration-underline">
+                                    @ResearchGroup.ResearchGroup_Twitter
+                                </a>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- LinkedIn -->
+                    @if (!string.IsNullOrEmpty(ResearchGroup.ResearchGroup_LinkedIn))
+                    {
+                        <div class="form-group">
+                            <label style="font-weight: bold;">LinkedIn</label>
+                            <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                <i class="fab fa-linkedin mr-2" style="color: #0077b5;"></i>
+                                <a href="@ResearchGroup.ResearchGroup_LinkedIn" target="_blank" 
+                                   class="text-primary text-decoration-underline">
+                                    @ResearchGroup.ResearchGroup_LinkedIn
+                                </a>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- YouTube -->
+                    @if (!string.IsNullOrEmpty(ResearchGroup.ResearchGroup_YouTubeChannel))
+                    {
+                        <div class="form-group">
+                            <label style="font-weight: bold;">YouTube</label>
+                            <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                <i class="fab fa-youtube mr-2" style="color: #ff0000;"></i>
+                                <a href="@ResearchGroup.ResearchGroup_YouTubeChannel" target="_blank" 
+                                   class="text-primary text-decoration-underline">
+                                    @ResearchGroup.ResearchGroup_YouTubeChannel
+                                </a>
+                            </div>
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; padding: 8px 20px; transition: all 0.2s;" 
+                        @onclick="OnClose"
+                        onmouseover="this.style.backgroundColor='#4a5568'" 
+                        onmouseout="this.style.backgroundColor='#2d3748'">
+                        <i class="fas fa-arrow-left me-2"></i> Κλείσιμο
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public ResearchGroup? ResearchGroup { get; set; }
+    [Parameter] public List<Professor> FacultyMembers { get; set; } = new();
+    [Parameter] public List<Student> NonFacultyMembers { get; set; } = new();
+    [Parameter] public List<Company> SpinOffCompanies { get; set; } = new();
+    [Parameter] public int PatentsCount { get; set; }
+    [Parameter] public int ActiveResearchActionsCount { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+}
