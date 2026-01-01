@@ -31,13 +31,11 @@
 				"ms-dotnettools.csdevkit",
 				"ms-dotnettools.vscode-dotnet-runtime",
 				"ms-azuretools.vscode-docker",
-				"editorconfig.editorconfig",
-				"formulahendry.dotnet-test-explorer",
-				"ms-mssql.mssql"
+				"editorconfig.editorconfig"
 			],
 			"settings": {
 				"omnisharp.useModernNet": true,
-				"dotnet.defaultSolution": "JobFinder-refactored.sln"
+				"dotnet.defaultSolution": "split-it.sln"
 			}
 		}
 	},
@@ -49,7 +47,7 @@
 	},
 	
 	// Commands to run after container is created
-	"postCreateCommand": "dotnet restore && dotnet tool restore",
+	"postCreateCommand": "dotnet restore && dotnet tool restore && dotnet tool install -g dotnet-ef",
 	
 	// Keep container running
 	"overrideCommand": false,
