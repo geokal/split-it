@@ -1,0 +1,235 @@
+@using QuizManager.Models
+
+@if (IsVisible && Internship != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0, 0, 0, 0.5);">
+        <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+            <div class="modal-content" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);">
+                <div class="modal-header" style="border-bottom: 1px solid #e9ecef; border-radius: 12px 12px 0 0; background-color: #f8f9fa;">
+                    <h5 class="modal-title" style="color: #4682B4; font-weight: 600; font-size: 1.25rem;">
+                        @Internship.ProfessorInternshipTitle
+                    </h5>
+                    <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" 
+                            @onclick="OnClose"
+                            onmouseover="this.style.backgroundColor='#4a5568'" 
+                            onmouseout="this.style.backgroundColor='#2d3748'">
+                        <span style="font-size: 1.2rem; line-height: 1;">×</span>
+                    </button>
+                </div>
+                <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                    <!-- Internship Description -->
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Περιγραφή</label>
+                        <div class="form-control" style="border-radius: 8px; background-color: #f8f9fa; min-height: 100px; padding: 12px;">
+                            @Internship.ProfessorInternshipDescription
+                        </div>
+                    </div>
+
+                    <!-- Internship Type -->
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Τύπος</label>
+                        <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                            <i class="fas fa-tag mr-2"></i>
+                            <span>
+                                @if (Internship.ProfessorInternshipType == "Full-Time")
+                                {
+                                    @:Πλήρους Απασχόλησης
+                                }
+                                else if (Internship.ProfessorInternshipType == "Part-Time")
+                                {
+                                    @:Μερικής Απασχόλησης
+                                }
+                                else if (Internship.ProfessorInternshipType == "Part-Time_Full-Time")
+                                {
+                                    @:Πλήρους ή Μερικής Απασχόλησης
+                                }
+                                else
+                                {
+                                    @:—
+                                }
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Organization -->
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Φορέας</label>
+                        <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                            <i class="fas fa-building mr-2"></i>
+                            <span>
+                                @(string.IsNullOrEmpty(Internship?.ProfessorInternshipForeas) 
+                                  ? "Δεν έχει Καθοριστεί" 
+                                  : Internship.ProfessorInternshipForeas)
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Contact Email -->
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Email Επικοινωνίας</label>
+                        <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                            <i class="fas fa-envelope mr-2 text-primary"></i>
+                            <span>@Internship.ProfessorEmailUsedToUploadInternship</span>
+                        </div>
+                    </div>
+
+                    <!-- Telephone -->
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Τηλέφωνο Επικοινωνίας</label>
+                        <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                            <i class="fas fa-phone mr-2 text-success"></i>
+                            <span>@Internship.Professor.ProfTelephone</span>
+                        </div>
+                    </div>
+
+                    <!-- Region Location -->
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Περιφέρεια Τοποθεσίας</label>
+                        <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                            <i class="fas fa-map mr-2"></i>
+                            <span>@Internship.ProfessorInternshipRegionLocation</span>
+                        </div>
+                    </div>
+
+                    <!-- Dimos Location -->
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Δήμος Τοποθεσίας</label>
+                        <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                            <i class="fas fa-city mr-2"></i>
+                            <span>@Internship.ProfessorInternshipDimosLocation</span>
+                        </div>
+                    </div>
+
+                    <!-- Address Location -->
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Διεύθυνση</label>
+                        <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                            <i class="fas fa-map-marker-alt mr-2 text-danger"></i>
+                            <span>@Internship.ProfessorInternshipAddressLocation</span>
+                        </div>
+                    </div>
+
+                    <!-- Postal Code -->
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Τ.Κ.</label>
+                        <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                            <i class="fas fa-mail-bulk mr-2"></i>
+                            <span>@Internship.ProfessorInternshipPostalCodeLocation</span>
+                        </div>
+                    </div>
+
+                    <!-- Transport Offer -->
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Προσφορά Μεταφορικού Μέσου</label>
+                        <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                            <i class="fas fa-car mr-2" style="color: @(Internship.ProfessorInternshipTransportOffer ? "#28a745" : "#dc3545");"></i>
+                            <span style="color: @(Internship.ProfessorInternshipTransportOffer ? "#28a745" : "#dc3545"); font-weight: 500;">
+                                @(Internship.ProfessorInternshipTransportOffer ? "Ναι" : "Όχι")
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Areas -->
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Τομείς</label>
+                        <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                            <i class="fas fa-th-large mr-2"></i>
+                            <span>@Internship.ProfessorInternshipAreas</span>
+                        </div>
+                    </div>
+
+                    <!-- Start Date -->
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Ξεκινάει Από</label>
+                        <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                            <i class="fas fa-calendar mr-2 text-primary"></i>
+                            <span>@Internship.ProfessorInternshipActivePeriod.ToString("dd/MM/yyyy")</span>
+                        </div>
+                    </div>
+
+                    <!-- Finish Estimation -->
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Εκτιμώμενη Ημερομηνία Ολοκλήρωσης</label>
+                        <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                            <i class="fas fa-calendar-check mr-2 text-primary"></i>
+                            <span>@Internship.ProfessorInternshipFinishEstimation.ToString("dd/MM/yyyy")</span>
+                        </div>
+                    </div>
+
+                    <!-- Cooperation Company -->
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Εταιρεία Συνεργασίας</label>
+                        <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                            <i class="fas fa-handshake mr-2 text-primary"></i>
+                            <span>@Internship.ProfessorInternshipEKPASupervisor</span>
+                        </div>
+                    </div>
+
+                    <!-- University -->
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Πανεπιστήμιο</label>
+                        <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                            <i class="fas fa-university mr-2 text-primary"></i>
+                            <span>@Internship.Professor.ProfUniversity</span>
+                        </div>
+                    </div>
+
+                    <!-- Department -->
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Τμήμα Πανεπιστημίου</label>
+                        <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                            <i class="fas fa-building mr-2"></i>
+                            <span>@Internship.Professor.ProfDepartment</span>
+                        </div>
+                    </div>
+
+                    <!-- Upload Date -->
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Ημερομηνία Καταχώρησης</label>
+                        <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                            <i class="fas fa-calendar-plus mr-2"></i>
+                            <span>@Internship.ProfessorInternshipUploadDate.ToString("dd/MM/yyyy")</span>
+                        </div>
+                    </div>
+
+                    <!-- Open Slots -->
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Διαθέσιμες Θέσεις</label>
+                        <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa; color: #007BFF;">
+                            <i class="fas fa-users" style="margin-right: 8px;"></i>
+                            <span>@Internship.OpenSlots_ProfessorInternship θέσεις</span>
+                        </div>
+                        <small class="form-text text-muted">Αριθμός ανοιχτών θέσεων για αυτή τη πρακτική άσκηση</small>
+                    </div>
+
+                    <!-- Status -->
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Κατάσταση</label>
+                        <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                            <i class="fas fa-info-circle mr-2" style="color: @(Internship.ProfessorUploadedInternshipStatus == "Δημοσιευμένη" ? "#28a745" : 
+                               Internship.ProfessorUploadedInternshipStatus == "Αποσυρμένη" ? "#dc3545" : "#6c757d");"></i>
+                            <span style="color: @(Internship.ProfessorUploadedInternshipStatus == "Δημοσιευμένη" ? "#28a745" : 
+                                  Internship.ProfessorUploadedInternshipStatus == "Αποσυρμένη" ? "#dc3545" : "#6c757d"); font-weight: 500;">
+                                @Internship.ProfessorUploadedInternshipStatus
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; padding: 8px 20px; transition: all 0.2s;" 
+                            @onclick="OnClose"
+                            onmouseover="this.style.backgroundColor='#4a5568'" 
+                            onmouseout="this.style.backgroundColor='#2d3748'">
+                        <i class="fas fa-arrow-left me-2"></i> Κλείσιμο
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public ProfessorInternship? Internship { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+}
