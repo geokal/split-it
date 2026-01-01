@@ -73,25 +73,20 @@ namespace QuizManager.Services.Authentication
                 return UserContextState.Anonymous;
             }
 
-            // Get profile objects from UserProfileService (with caching)
-            var student = await _userProfileService.GetStudentProfileAsync(email, cancellationToken);
-            var company = await _userProfileService.GetCompanyProfileAsync(email, cancellationToken);
-            var professor = await _userProfileService.GetProfessorProfileAsync(email, cancellationToken);
-            var researchGroup = await _userProfileService.GetResearchGroupProfileAsync(email, cancellationToken);
-
-            // Build user context state
+            // Build user context state using role info from UserRoleService
+            // Note: UserRoleService already fetches all role info in parallel, so we don't need to fetch profiles again
             var userContextState = new UserContextState(
                 IsAuthenticated: true,
                 Role: roleInfo.Role,
                 Email: email,
-                IsStudentRegistered: student != null,
-                IsCompanyRegistered: company != null,
-                IsProfessorRegistered: professor != null,
-                IsResearchGroupRegistered: researchGroup != null,
-                Student: student,
-                Company: company,
-                Professor: professor,
-                ResearchGroup: researchGroup,
+                IsStudentRegistered: roleInfo.StudentId.HasValue,
+                IsCompanyRegistered: roleInfo.CompanyId.HasValue,
+                IsProfessorRegistered: roleInfo.ProfessorId.HasValue,
+                IsResearchGroupRegistered: roleInfo.ResearchGroupId.HasValue,
+                Student: null, // Profile objects will be loaded by UserContextService if needed
+                Company: null,
+                Professor: null,
+                ResearchGroup: null,
                 RetrievedAt: DateTimeOffset.UtcNow
             );
 
