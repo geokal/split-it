@@ -1,14 +1,14 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace QuizManager.Migrations
 {
-    public partial class FixCompanyJobAppliedRelationshipsFinal : Migration
+    public partial class FixCompanyJobAppliedRelationshipsWithExplicitFKs : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // 1. First drop ALL dependent foreign keys
+            // Drop existing foreign keys
             migrationBuilder.DropForeignKey(
                 name: "FK_CompanyJobApplied_CompanyDetails_CompanyJobsApplied_CompanysEmailWhereStudentAppliedForCompanyJob",
                 table: "CompanyJobApplied_CompanyDetails");
@@ -17,7 +17,7 @@ namespace QuizManager.Migrations
                 name: "FK_CompanyJobApplied_StudentDetails_CompanyJobsApplied_StudentEmailAppliedForCompanyJob",
                 table: "CompanyJobApplied_StudentDetails");
 
-            // 2. Drop ALL problematic constraints
+            // Drop existing unique constraints
             migrationBuilder.DropUniqueConstraint(
                 name: "AK_CompanyJobsApplied_CompanysEmailWhereStudentAppliedForCompanyJob",
                 table: "CompanyJobsApplied");
@@ -26,24 +26,39 @@ namespace QuizManager.Migrations
                 name: "AK_CompanyJobsApplied_StudentEmailAppliedForCompanyJob",
                 table: "CompanyJobsApplied");
 
-            // 3. Recreate the relationships using proper keys
-            migrationBuilder.AddForeignKey(
-                name: "FK_CompanyJobApplied_CompanyDetails_CompanyJobsApplied_Id",
+            // Add explicit foreign key columns to detail tables
+            migrationBuilder.AddColumn<int>(
+                name: "CompanyJobAppliedId",
                 table: "CompanyJobApplied_CompanyDetails",
-                column: "Id",
+                type: "int",
+                nullable: false,
+                defaultValue: 0);
+
+            migrationBuilder.AddColumn<int>(
+                name: "CompanyJobAppliedId",
+                table: "CompanyJobApplied_StudentDetails",
+                type: "int",
+                nullable: false,
+                defaultValue: 0);
+
+            // Create foreign keys with explicit FK columns (not identity columns)
+            migrationBuilder.AddForeignKey(
+                name: "FK_CompanyJobApplied_CompanyDetails_CompanyJobAppliedId",
+                table: "CompanyJobApplied_CompanyDetails",
+                column: "CompanyJobAppliedId",
                 principalTable: "CompanyJobsApplied",
                 principalColumn: "Id",
                 onDelete: ReferentialAction.Cascade);
 
             migrationBuilder.AddForeignKey(
-                name: "FK_CompanyJobApplied_StudentDetails_CompanyJobsApplied_Id",
+                name: "FK_CompanyJobApplied_StudentDetails_CompanyJobAppliedId",
                 table: "CompanyJobApplied_StudentDetails",
-                column: "Id",
+                column: "CompanyJobAppliedId",
                 principalTable: "CompanyJobsApplied",
                 principalColumn: "Id",
                 onDelete: ReferentialAction.Cascade);
 
-            // 4. Add ONLY the composite unique constraint we actually want
+            // Add composite unique constraint
             migrationBuilder.CreateIndex(
                 name: "IX_CompanyJobsApplied_StudentEmail_RNG",
                 table: "CompanyJobsApplied",
@@ -59,11 +74,19 @@ namespace QuizManager.Migrations
                 table: "CompanyJobsApplied");
 
             migrationBuilder.DropForeignKey(
-                name: "FK_CompanyJobApplied_CompanyDetails_CompanyJobsApplied_Id",
+                name: "FK_CompanyJobApplied_CompanyDetails_CompanyJobAppliedId",
                 table: "CompanyJobApplied_CompanyDetails");
 
             migrationBuilder.DropForeignKey(
-                name: "FK_CompanyJobApplied_StudentDetails_CompanyJobsApplied_Id",
+                name: "FK_CompanyJobApplied_StudentDetails_CompanyJobAppliedId",
+                table: "CompanyJobApplied_StudentDetails");
+
+            migrationBuilder.DropColumn(
+                name: "CompanyJobAppliedId",
+                table: "CompanyJobApplied_CompanyDetails");
+
+            migrationBuilder.DropColumn(
+                name: "CompanyJobAppliedId",
                 table: "CompanyJobApplied_StudentDetails");
 
             migrationBuilder.AddUniqueConstraint(

@@ -117,42 +117,42 @@ namespace QuizManager.Data
 
 			//COMPANY JOBS APPLIED AS STUDENT
 			modelBuilder.Entity<CompanyJobApplied>(entity =>
-            {
-                entity.HasKey(e => e.Id);
+			         {
+			             entity.HasKey(e => e.Id);
 
-                // Configure relationships
-                entity.HasOne(e => e.StudentDetails)
-                      .WithOne(s => s.Application)
-                      .HasForeignKey<CompanyJobApplied_StudentDetails>(s => s.Id)
-                      .OnDelete(DeleteBehavior.Cascade);
+			             // Configure relationships using explicit foreign keys
+			             entity.HasOne(e => e.StudentDetails)
+			                   .WithOne(s => s.Application)
+			                   .HasForeignKey<CompanyJobApplied_StudentDetails>(s => s.CompanyJobAppliedId)
+			                   .OnDelete(DeleteBehavior.Cascade);
 
-                entity.HasOne(e => e.CompanyDetails)
-                      .WithOne(c => c.Application)
-                      .HasForeignKey<CompanyJobApplied_CompanyDetails>(c => c.Id)
-                      .OnDelete(DeleteBehavior.Cascade);
+			             entity.HasOne(e => e.CompanyDetails)
+			                   .WithOne(c => c.Application)
+			                   .HasForeignKey<CompanyJobApplied_CompanyDetails>(c => c.CompanyJobAppliedId)
+			                   .OnDelete(DeleteBehavior.Cascade);
 
-                // Composite unique constraint to prevent duplicate applications
-                entity.HasIndex(e => new { e.StudentEmailAppliedForCompanyJob, e.RNGForCompanyJobApplied })
-                      .IsUnique();
-            });
+			             // Composite unique constraint to prevent duplicate applications
+			             entity.HasIndex(e => new { e.StudentEmailAppliedForCompanyJob, e.RNGForCompanyJobApplied })
+			                   .IsUnique();
+			         });
 
-            modelBuilder.Entity<CompanyJobApplied_CompanyDetails>(entity =>
-            {
-                entity.HasKey(e => e.Id);
+			         modelBuilder.Entity<CompanyJobApplied_CompanyDetails>(entity =>
+			         {
+			             entity.HasKey(e => e.Id);
 
-                // Non-unique index for company email
-                entity.HasIndex(e => e.CompanysEmailWhereStudentAppliedForCompanyJob)
-                      .IsUnique(false);
-            });
+			             // Non-unique index for company email
+			             entity.HasIndex(e => e.CompanysEmailWhereStudentAppliedForCompanyJob)
+			                   .IsUnique(false);
+			         });
 
-            modelBuilder.Entity<CompanyJobApplied_StudentDetails>(entity =>
-            {
-                entity.HasKey(e => e.Id);
+			         modelBuilder.Entity<CompanyJobApplied_StudentDetails>(entity =>
+			         {
+			             entity.HasKey(e => e.Id);
 
-                // Add non-unique index for student email to match InternshipApplied pattern
-                entity.HasIndex(e => e.StudentEmailAppliedForCompanyJob)
-                      .IsUnique(false);
-            });
+			             // Add non-unique index for student email to match InternshipApplied pattern
+			             entity.HasIndex(e => e.StudentEmailAppliedForCompanyJob)
+			                   .IsUnique(false);
+			         });
 
 			//COMPANY INTERNSHIPS APPLIED AS STUDENT
 			modelBuilder.Entity<InternshipApplied>(entity =>

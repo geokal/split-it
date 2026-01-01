@@ -6,6 +6,10 @@ namespace QuizManager.Models
     {
         [Key]
         public int Id { get; set; }
+        
+        // Explicit foreign key to CompanyJobApplied
+        public int CompanyJobAppliedId { get; set; }
+        
         public string CompanysUniqueIDWhereStudentAppliedForCompanyJob { get; set; }
         public string CompanysEmailWhereStudentAppliedForCompanyJob { get; set; }
         public CompanyJobApplied Application { get; set; }
