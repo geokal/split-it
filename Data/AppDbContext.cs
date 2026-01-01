@@ -100,7 +100,9 @@ namespace QuizManager.Data
 
 		public DbSet<PlatformActions> PlatformActions { get; set; }
 
-        // Helper methods
+		      public DbSet<AuditLog> AuditLogs { get; set; }
+
+		      // Helper methods
         public async Task<List<CompanyJobApplied>> GetJobApplicationsAsync()
         {
             return await CompanyJobsApplied.ToListAsync();
