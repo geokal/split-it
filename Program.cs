@@ -101,24 +101,18 @@ builder.Services.AddMemoryCache();
 // Register Dashboard Services
 builder.Services.AddScoped<
     QuizManager.Services.UserContext.IUserContextService,
-    QuizManager.Services.UserContext.UserContextService
->();
+    QuizManager.Services.UserContext.UserContextService>();
+
+// Register Phase 3: Split UserContextService into focused services
 builder.Services.AddScoped<
-    QuizManager.Services.UserContext.IUserRoleService,
-    QuizManager.Services.UserContext.UserRoleService
->();
+    QuizManager.Services.Authentication.IAuthenticationService,
+    QuizManager.Services.Authentication.AuthenticationService>();
 builder.Services.AddScoped<
-    QuizManager.Services.Authentication.ICacheService,
-    QuizManager.Services.Authentication.CacheService
->();
+    QuizManager.Services.Authentication.IUserProfileService,
+    QuizManager.Services.Authentication.UserProfileService>();
 builder.Services.AddScoped<
-    QuizManager.Services.Authentication.IRoleValidator,
-    QuizManager.Services.Authentication.RoleValidator
->();
-builder.Services.AddScoped<
-    QuizManager.Services.Authentication.IAuditLogRepository,
-    QuizManager.Services.Authentication.AuditLogRepository
->();
+    QuizManager.Services.Authentication.IAuthenticationFlow,
+    QuizManager.Services.Authentication.AuthenticationFlow>();
 builder.Services.AddScoped<
     QuizManager.Services.StudentDashboard.IStudentDashboardService,
     QuizManager.Services.StudentDashboard.StudentDashboardService
