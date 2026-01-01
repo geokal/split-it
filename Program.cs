@@ -104,6 +104,22 @@ builder.Services.AddScoped<
     QuizManager.Services.UserContext.UserContextService
 >();
 builder.Services.AddScoped<
+    QuizManager.Services.UserContext.IUserRoleService,
+    QuizManager.Services.UserContext.UserRoleService
+>();
+builder.Services.AddScoped<
+    QuizManager.Services.Authentication.ICacheService,
+    QuizManager.Services.Authentication.CacheService
+>();
+builder.Services.AddScoped<
+    QuizManager.Services.Authentication.IRoleValidator,
+    QuizManager.Services.Authentication.RoleValidator
+>();
+builder.Services.AddScoped<
+    QuizManager.Services.Authentication.IAuditLogRepository,
+    QuizManager.Services.Authentication.AuditLogRepository
+>();
+builder.Services.AddScoped<
     QuizManager.Services.StudentDashboard.IStudentDashboardService,
     QuizManager.Services.StudentDashboard.StudentDashboardService
 >();
@@ -138,6 +154,8 @@ if (!app.Environment.IsDevelopment())
 }
 
 // 6. MIDDLEWARE PIPELINE
+// Add Auth0 token refresh middleware before authentication
+app.UseMiddleware<QuizManager.Middleware.AuthTokenRefreshMiddleware>();
 app.UseForwardedHeaders(
     new ForwardedHeadersOptions
     {

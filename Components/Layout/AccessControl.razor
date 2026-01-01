@@ -1,11 +1,9 @@
 ﻿@page "/accessControl"
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
-@inject IDbContextFactory<AppDbContext> DbContextFactory
+@inject QuizManager.Services.UserContext.IUserContextService UserContextService
 @using System.Security.Claims
 @using System.Linq
-@using Microsoft.EntityFrameworkCore
-@using QuizManager.Data
 
 <style>
     .user-role1 {
@@ -369,91 +367,59 @@
         {
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             var user = authState.User;
-
+ 
             userEmail = user.FindFirst("name")?.Value;
             if (!string.IsNullOrEmpty(userEmail))
             {
-                using var dbContext = await DbContextFactory.CreateDbContextAsync();
-
-                // Reset picture to default at start
+                // Use cached UserContextService instead of direct database queries
+                var userContext = await UserContextService.GetStateAsync();
+                
+                // Set properties from cached user context
+                StudentId = userContext.Student?.Id ?? 0;
+                CompanyId = userContext.Company?.Id ?? 0;
+                ProfessorId = userContext.Professor?.Id ?? 0;
+                ResearchGroupId = userContext.ResearchGroup?.Id ?? 0;
+                
+                // Set display names
+                Username = userContext.Student?.Name ??
+                          userContext.Company?.CompanyName ??
+                          userContext.Professor?.ProfName ??
+                          userContext.ResearchGroup?.ResearchGroupName ??
+                          userEmail;
+                
+                realName = Username;
+                CompanyName = userContext.Company?.CompanyName ?? "";
+                ResearchGroupName = userContext.ResearchGroup?.ResearchGroupName ?? "";
+                
+                // Set profile picture from cached entity
                 Picture = "/Images/noImage.png";
-                realName = userEmail;
-                CompanyName = userEmail;
-                Username = userEmail;
-
-                // Check roles in priority order (Admin is handled separately)
-                var student = await dbContext.Students.FirstOrDefaultAsync(s => s.Email == userEmail);
-                var company = await dbContext.Companies.FirstOrDefaultAsync(c => c.CompanyEmail == userEmail);
-                var professor = await dbContext.Professors.FirstOrDefaultAsync(p => p.ProfEmail == userEmail);
-                var researchGroup = await dbContext.ResearchGroups.FirstOrDefaultAsync(r => r.ResearchGroupEmail == userEmail);
-
-                // Determine which role record exists and set properties accordingly
-                if (student != null)
+                if (userContext.Student?.Image != null && userContext.Student.Image.Length > 0)
                 {
-                    StudentId = student.Id;
-                    realName = $"{student.Name} {student.Surname}".Trim();
-                    if (student.Image != null && student.Image.Length > 0)
-                    {
-                        Picture = $"data:image/png;base64,{Convert.ToBase64String(student.Image)}";
-                    }
+                    Picture = $"data:image/png;base64,{Convert.ToBase64String(userContext.Student.Image)}";
                 }
-                else if (company != null)
+                else if (userContext.Company?.CompanyLogo != null && userContext.Company.CompanyLogo.Length > 0)
                 {
-                    CompanyId = company.Id;
-                    realCompanyName = company.CompanyName;
-                    if (company.CompanyLogo != null && company.CompanyLogo.Length > 0)
-                    {
-                        Picture = $"data:image/png;base64,{Convert.ToBase64String(company.CompanyLogo)}";
-                    }
+                    Picture = $"data:image/png;base64,{Convert.ToBase64String(userContext.Company.CompanyLogo)}";
                 }
-                else if (professor != null)
+                else if (userContext.Professor?.ProfImage != null && userContext.Professor.ProfImage.Length > 0)
                 {
-                    ProfessorId = professor.Id;
-                    realName = $"{professor.ProfName} {professor.ProfSurname}".Trim();
-                    if (professor.ProfImage != null && professor.ProfImage.Length > 0)
-                    {
-                        Picture = $"data:image/png;base64,{Convert.ToBase64String(professor.ProfImage)}";
-                    }
+                    Picture = $"data:image/png;base64,{Convert.ToBase64String(userContext.Professor.ProfImage)}";
                 }
-                else if (researchGroup != null)
+                else if (userContext.ResearchGroup?.ResearchGroupImage != null && userContext.ResearchGroup.ResearchGroupImage.Length > 0)
                 {
-                    ResearchGroupId = researchGroup.Id;
-                    ResearchGroupName = researchGroup.ResearchGroupName;
-                    if (researchGroup.ResearchGroupImage != null && researchGroup.ResearchGroupImage.Length > 0)
-                    {
-                        Picture = $"data:image/png;base64,{Convert.ToBase64String(researchGroup.ResearchGroupImage)}";
-                    }
+                    Picture = $"data:image/png;base64,{Convert.ToBase64String(userContext.ResearchGroup.ResearchGroupImage)}";
+                }
+                
+                // Set role from claims
+                UserRole = user.FindFirst(ClaimTypes.Role)?.Value ?? "Unknown";
+                
+                // Handle Admin special case
+                if (UserRole == "Admin")
+                {
+                    Username = "Διαχειριστής Πλατφόρμας";
+                    Picture = "/Images/admin-avatar.png";
                 }
             }
-
-            // Set role-specific display properties
-            UserRole = user.FindFirst(ClaimTypes.Role)?.Value ?? "Unknown";
-
-            if (UserRole == "Company")
-            {
-                Username = realCompanyName;
-                CompanyName = realCompanyName;
-            }
-            else if (UserRole == "Professor")
-            {
-                Username = realName;
-            }
-            else if (UserRole == "Research Group")
-            {
-                Username = ResearchGroupName;
-            }
-            else if (UserRole == "Admin")
-            {
-                Username = "Διαχειριστής Πλατφόρμας";
-                Picture = "/Images/admin-avatar.png";
-            }
-            else
-            {
-                Username = realName;
-            }
-
-            // Debug output
-            Console.WriteLine($"Initialization complete - Role: {UserRole}, Name: {Username}, Picture: {(string.IsNullOrEmpty(Picture) ? "Empty" : "Exists")}");
         }
         await base.OnInitializedAsync();
     }
