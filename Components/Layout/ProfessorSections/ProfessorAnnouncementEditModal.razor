@@ -1,0 +1,79 @@
+@using QuizManager.Models
+@using Microsoft.AspNetCore.Components.Forms
+
+@if (IsVisible && Announcement != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0, 0, 0, 0.5);">
+        <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+            <div class="modal-content" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);">
+                <div class="modal-header" style="border-bottom: 1px solid #e9ecef; border-radius: 12px 12px 0 0; background-color: #f8f9fa;">
+                    <h5 class="modal-title" style="color: #007BFF; font-weight: 600; font-size: 1.25rem;">
+                        Επεξεργασία Ανακοίνωσης: @Announcement?.ProfessorAnnouncementTitle
+                    </h5>
+                    <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" 
+                            @onclick="OnClose"
+                            onmouseover="this.style.backgroundColor='#4a5568'" 
+                            onmouseout="this.style.backgroundColor='#2d3748'">
+                        <span style="font-size: 1.2rem; line-height: 1;">×</span>
+                    </button>
+                </div>
+                <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                    <!-- Title -->
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Τίτλος</label>
+                        <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" @bind="Announcement.ProfessorAnnouncementTitle" />
+                    </div>
+
+                    <!-- Description -->
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Περιγραφή</label>
+                        <textarea class="form-control" style="border-radius: 8px; background-color: #f8f9fa; min-height: 120px;" @bind="Announcement.ProfessorAnnouncementDescription"></textarea>
+                    </div>
+
+                    <!-- File Upload -->
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Αντικατάσταση Συνημμένου</label>
+                        <div class="d-flex align-items-center" style="padding: 8px; border-radius: 8px; background-color: #f8f9fa;">
+                            <InputFile OnChange="HandleFileUpload" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="modern-button" style="background-color: #6c757d; color: white; border: none; border-radius: 6px; padding: 8px 20px; transition: all 0.2s; margin-right: 8px;" 
+                            @onclick="OnClose"
+                            onmouseover="this.style.backgroundColor='#5a6268'" 
+                            onmouseout="this.style.backgroundColor='#6c757d'">
+                        <i class="fas fa-times me-2"></i> Ακύρωση
+                    </button>
+                    <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; padding: 8px 20px; transition: all 0.2s;" 
+                            @onclick="HandleSave"
+                            onmouseover="this.style.backgroundColor='#4a5568'" 
+                            onmouseout="this.style.backgroundColor='#2d3748'">
+                        <i class="fas fa-save me-2"></i> Αποθήκευση
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public AnnouncementAsProfessor? Announcement { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback<AnnouncementAsProfessor> OnSave { get; set; }
+    [Parameter] public EventCallback<InputFileChangeEventArgs> OnFileUpload { get; set; }
+
+    private async Task HandleSave()
+    {
+        if (Announcement != null)
+        {
+            await OnSave.InvokeAsync(Announcement);
+        }
+    }
+
+    private async Task HandleFileUpload(InputFileChangeEventArgs e)
+    {
+        await OnFileUpload.InvokeAsync(e);
+    }
+}
