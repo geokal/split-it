@@ -5,16 +5,14 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.JSInterop;
-using QuizManager.Data;
-using QuizManager.Models;
+using QuizManager.Services.AdminDashboard;
 
 namespace QuizManager.Components.Layout.AdminSections
 {
     public partial class AdminSection : ComponentBase
     {
-        [Inject] private IDbContextFactory<AppDbContext> DbFactory { get; set; } = default!;
+        [Inject] private IAdminDashboardService AdminDashboardService { get; set; } = default!;
         [Inject] private IJSRuntime JS { get; set; } = default!;
         [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
         [Inject] private NavigationManager NavigationManager { get; set; } = default!;
@@ -86,48 +84,9 @@ namespace QuizManager.Components.Layout.AdminSections
         {
             try
             {
-                using var context = DbFactory.CreateDbContext();
-
-                var rawData = await context.Students
-                    .AsNoTracking()
-                    .Where(s => s.AreasOfExpertise != null || s.Keywords != null)
-                    .Select(s => new { s.AreasOfExpertise, s.Keywords })
-                    .ToListAsync();
-
-                var tempAreaDist = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-                var tempSkillDist = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-
-                foreach (var item in rawData)
-                {
-                    if (!string.IsNullOrWhiteSpace(item.AreasOfExpertise))
-                    {
-                        var areas = item.AreasOfExpertise.Split(',', StringSplitOptions.RemoveEmptyEntries);
-                        foreach (var area in areas)
-                        {
-                            var trimmed = area.Trim();
-                            if (tempAreaDist.ContainsKey(trimmed))
-                                tempAreaDist[trimmed]++;
-                            else
-                                tempAreaDist[trimmed] = 1;
-                        }
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(item.Keywords))
-                    {
-                        var skills = item.Keywords.Split(',', StringSplitOptions.RemoveEmptyEntries);
-                        foreach (var skill in skills)
-                        {
-                            var trimmed = skill.Trim();
-                            if (tempSkillDist.ContainsKey(trimmed))
-                                tempSkillDist[trimmed]++;
-                            else
-                                tempSkillDist[trimmed] = 1;
-                        }
-                    }
-                }
-
-                areaDistribution = tempAreaDist;
-                skillDistributionforadmin = tempSkillDist;
+                var analyticsData = await AdminDashboardService.GetAnalyticsDataAsync();
+                areaDistribution = analyticsData.AreaDistribution;
+                skillDistributionforadmin = analyticsData.SkillDistribution;
             }
             catch (Exception ex)
             {
@@ -139,27 +98,18 @@ namespace QuizManager.Components.Layout.AdminSections
         {
             try
             {
-                using var context = DbFactory.CreateDbContext();
-
-                var students = await context.Students.AsNoTracking().ToListAsync();
-
-                if (!students.Any())
-                {
-                    StudentsWithAuth0Details = new List<StudentWithAuth0Details>();
-                    return;
-                }
-
-                // Map students to StudentWithAuth0Details
-                StudentsWithAuth0Details = students.Select(s => new StudentWithAuth0Details
-                {
-                    Name = s.Name,
-                    Surname = s.Surname,
-                    Email = s.Email,
-                    Department = s.Department,
-                    School = s.School,
-                    AreasOfExpertise = s.AreasOfExpertise,
-                    Keywords = s.Keywords
-                }).ToList();
+                StudentsWithAuth0Details = (await AdminDashboardService.GetStudentsWithAuth0DetailsAsync())
+                    .Select(s => new StudentWithAuth0Details
+                    {
+                        Name = s.Name,
+                        Surname = s.Surname,
+                        Email = s.Email,
+                        Department = s.Department,
+                        School = s.School,
+                        AreasOfExpertise = s.AreasOfExpertise,
+                        Keywords = s.Keywords
+                    })
+                    .ToList();
             }
             catch (Exception ex)
             {

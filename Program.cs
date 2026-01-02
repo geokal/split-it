@@ -130,9 +130,19 @@ builder.Services.AddScoped<
     QuizManager.Services.ResearchGroupDashboard.ResearchGroupDashboardService
 >();
 builder.Services.AddScoped<
+    QuizManager.Services.AdminDashboard.IAdminDashboardService,
+    QuizManager.Services.AdminDashboard.AdminDashboardService
+>();
+builder.Services.AddScoped<
     QuizManager.Services.FrontPage.IFrontPageService,
     QuizManager.Services.FrontPage.FrontPageService
 >();
+
+// Register generic repository pattern
+builder.Services.AddScoped(
+    typeof(QuizManager.Services.Data.IRepository<>),
+    typeof(QuizManager.Services.Data.Repository<>)
+);
 
 var app = builder.Build();
 
