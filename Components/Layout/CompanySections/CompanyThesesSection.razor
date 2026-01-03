@@ -1221,96 +1221,13 @@
                                                 <!-- Email Confirmation Modal for Thesis Applicants -->
                                                 @if (showEmailConfirmationModalForThesisApplicants)
                                                 {
-                                                    <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0, 0, 0, 0.5);">
-                                                        <div class="modal-dialog modal-dialog-centered" role="document">
-                                                            <div class="modal-content" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);">
-                                                                <div class="modal-header" style="border-bottom: 1px solid #e9ecef; border-radius: 12px 12px 0 0; background-color: #f8f9fa;">
-                                                                    <h5 class="modal-title" style="color: #4682B4; font-weight: 600; font-size: 1.25rem;">
-                                                                        <i class="fas fa-envelope me-2"></i>Αποστολή Email Διπλωματικής
-                                                                    </h5>
-                                                                    <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" 
-                                                                            @onclick="CloseEmailConfirmationModalForThesisApplicants"
-                                                                            onmouseover="this.style.backgroundColor='#4a5568'" 
-                                                                            onmouseout="this.style.backgroundColor='#2d3748'">
-                                                                        <span style="font-size: 1.2rem; line-height: 1;">×</span>
-                                                                    </button>
-                                                                </div>
-                                                                <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
-                                                                    <div class="list-group">
-                                                                        <div class="form-group">
-                                                                            <label style="font-weight: bold; color: #2d3748;">Επιλεγμένες Αιτήσεις</label>
-                                                                            <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
-                                                                                <i class="fas fa-list-check" style="color: #5F9EA0; margin-right: 8px;"></i>
-                                                                                <span>@selectedThesisApplicantIds.Count αιτήσεις</span>
-                                                                            </div>
-                                                                        </div>
-
-                                                                        <div class="form-group">
-                                                                            <label style="font-weight: bold; color: #2d3748;">Ενέργεια</label>
-                                                                            <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
-                                                                                <i class="fas @(pendingBulkActionForThesisApplicants == "accept" ? "fa-check text-success" : "fa-times text-danger") me-2"></i>
-                                                                                <span>@(pendingBulkActionForThesisApplicants == "accept" ? "Μαζική Αποδοχή" : "Μαζική Απόρριψη")</span>
-                                                                            </div>
-                                                                        </div>
-
-                                                                        <div class="form-group">
-                                                                            <label style="font-weight: bold; color: #2d3748;">Αποστολή Email Ειδοποιήσεων</label>
-                                                                            <div class="form-control" style="border-radius: 8px; background-color: #f8f9fa; border: none;">
-                                                                                <div class="form-check mb-2">
-                                                                                    <input class="form-check-input" type="radio" name="emailOptionThesis" 
-                                                                                           id="sendEmailsThesis" value="true" @onchange="@((e) => sendEmailsForBulkThesisAction = true)" 
-                                                                                           checked="@sendEmailsForBulkThesisAction"
-                                                                                           style="cursor: pointer; margin-right: 8px;" />
-                                                                                    <label class="form-check-label" for="sendEmailsThesis" style="cursor: pointer; color: #2d3748;">
-                                                                                        <i class="fas fa-envelope me-1" style="color: #4682B4;"></i>
-                                                                                        Να σταλούν Email στους Φοιτητές και στην Εταιρεία
-                                                                                    </label>
-                                                                                </div>
-                                                                                <div class="form-check">
-                                                                                    <input class="form-check-input" type="radio" name="emailOptionThesis" 
-                                                                                           id="dontSendEmailsThesis" value="false" @onchange="@((e) => sendEmailsForBulkThesisAction = false)" 
-                                                                                           checked="@(!sendEmailsForBulkThesisAction)"
-                                                                                           style="cursor: pointer; margin-right: 8px;" />
-                                                                                    <label class="form-check-label" for="dontSendEmailsThesis" style="cursor: pointer; color: #2d3748;">
-                                                                                        <i class="fas fa-envelope-slash me-1" style="color: #6c757d;"></i>
-                                                                                        Να μην σταλούν Email (μόνο ενημέρωση κατάστασης)
-                                                                                    </label>
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
-
-                                                                        <div class="alert @(sendEmailsForBulkThesisAction ? "alert-info" : "alert-warning")" style="border-radius: 8px;">
-                                                                            <i class="fas @(sendEmailsForBulkThesisAction ? "fa-info-circle" : "fa-exclamation-triangle") me-2"></i>
-                                                                            @if (sendEmailsForBulkThesisAction)
-                                                                            {
-                                                                                <strong>Πληροφορία:</strong> 
-                                                                                <span>Θα σταλούν @selectedThesisApplicantIds.Count email @(pendingBulkActionForThesisApplicants == "accept" ? "αποδοχής" : "απόρριψης") στους φοιτητές και email ειδοποίησης στην εταιρεία.</span>
-                                                                            }
-                                                                            else
-                                                                            {
-                                                                                <strong>Προσοχή:</strong> 
-                                                                                <span>Η ενέργεια θα εφαρμοστεί μόνο στην εφαρμογή. Δεν θα σταλούν email ειδοποιήσεων. Οι φοιτητές θα δουν την αλλαγή κατάστασης όταν συνδεθούν.</span>
-                                                                            }
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div class="modal-footer" style="border-top: 1px solid #e9ecef; border-radius: 0 0 12px 12px; background-color: #f8f9fa;">
-                                                                    <button type="button" class="modern-button" style="background-color: #6c757d; color: white; border: none; border-radius: 6px; padding: 8px 20px; transition: all 0.2s;" 
-                                                                            @onclick="CloseEmailConfirmationModalForThesisApplicants"
-                                                                            onmouseover="this.style.backgroundColor='#5a6268'" 
-                                                                            onmouseout="this.style.backgroundColor='#6c757d'">
-                                                                        <i class="fas fa-times me-1"></i>Ακύρωση
-                                                                    </button>
-                                                                    <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; padding: 8px 20px; transition: all 0.2s;" 
-                                                                            @onclick="ExecuteBulkActionForThesisApplicants" 
-                                                                            onmouseover="this.style.backgroundColor='#4a5568'" 
-                                                                            onmouseout="this.style.backgroundColor='#2d3748'">
-                                                                        <i class="fas fa-play me-1"></i>Εκτέλεση
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
+                                                    <CompanyThesisEmailConfirmationModal 
+                                                        SelectedCount="selectedThesisApplicantIds.Count"
+                                                        PendingAction="pendingBulkActionForThesisApplicants"
+                                                        SendEmails="sendEmailsForBulkThesisAction"
+                                                        OnClose="CloseEmailConfirmationModalForThesisApplicants"
+                                                        OnExecute="ExecuteBulkActionForThesisApplicants"
+                                                        OnSendEmailsChange="@((value) => sendEmailsForBulkThesisAction = value)" />
                                                 }
                                                 
 
