@@ -1,0 +1,246 @@
+@* StudentCompanyDetailModal.razor - Reusable Company Details Modal for Student sections *@
+
+@if (Company != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+            <div class="modal-content" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);">
+                <div class="modal-header" style="border-bottom: 1px solid #e9ecef; border-radius: 12px 12px 0 0; background-color: #f8f9fa;">
+                    <h5 class="modal-title" style="color: #4682B4; font-weight: 600; font-size: 1.25rem;">@Company.CompanyName</h5>
+                    <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" 
+                            @onclick="OnClose"
+                            onmouseover="this.style.backgroundColor='#4a5568'" 
+                            onmouseout="this.style.backgroundColor='#2d3748'">
+                        <span style="font-size: 1.2rem; line-height: 1;">×</span>
+                    </button>
+                </div>
+                <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                    <div class="form-group text-center">
+                        @if (Company.CompanyLogo != null)
+                        {
+                            <img src="data:image/png;base64,@Convert.ToBase64String(Company.CompanyLogo)" 
+                                 alt="Company Logo" 
+                                 class="rounded-circle img-fluid"
+                                 style="max-width: 150px; max-height: 150px; object-fit: cover;" />
+                        }
+                        else
+                        {
+                            <p style="color: #6c757d;">Δεν είναι διαθέσιμο</p>
+                        }
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Σύντομη Ονομασία</label>
+                        <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                            <i class="fas fa-tag" style="color: #5F9EA0; margin-right: 8px;"></i>
+                            <span class="flex-grow-1">@Company.CompanyShortName</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Τύπος Εταιρείας</label>
+                        <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" value="@Company.CompanyType" readonly />
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Email Εταιρείας</label>
+                        <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                            <i class="fas fa-envelope" style="color: #4682B4; margin-right: 8px;"></i>
+                            @if (!string.IsNullOrEmpty(Company.CompanyEmail))
+                            {
+                                <a href="mailto:@Company.CompanyEmail" 
+                                   style="color: #007bff; text-decoration: underline; word-break: break-all;">
+                                    @Company.CompanyEmail
+                                </a>
+                            }
+                            else
+                            {
+                                <span style="color: #6c757d;">Δεν υπάρχει email</span>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Ιστοσελίδα Εταιρείας</label>
+                        @if (!string.IsNullOrEmpty(Company.CompanyWebsite))
+                        {
+                            <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa; cursor: pointer;" 
+                                 onclick="window.open('@(Company.CompanyWebsite.StartsWith("http") ? Company.CompanyWebsite : "http://" + Company.CompanyWebsite)', '_blank')">
+                                <i class="fas fa-globe" style="color: #007bff; margin-right: 8px;"></i>
+                                <span style="color: #007bff; text-decoration: underline;">@Company.CompanyWebsite</span>
+                            </div>
+                        }
+                        else
+                        {
+                            <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" value="Δεν υπάρχει" readonly />
+                        }
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Ανακοινώσεις Εταιρείας</label>
+                        @if (!string.IsNullOrEmpty(Company.CompanyWebsiteAnnouncements))
+                        {
+                            <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa; cursor: pointer;" 
+                                 onclick="window.open('@(Company.CompanyWebsiteAnnouncements.StartsWith("http") ? Company.CompanyWebsiteAnnouncements : "http://" + Company.CompanyWebsiteAnnouncements)', '_blank')">
+                                <i class="fas fa-bullhorn" style="color: #007bff; margin-right: 8px;"></i>
+                                <span style="color: #007bff; text-decoration: underline;">@Company.CompanyWebsiteAnnouncements</span>
+                            </div>
+                        }
+                        else
+                        {
+                            <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" value="Δεν υπάρχει" readonly />
+                        }
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Θέσεις Εργασίας Εταιρείας</label>
+                        @if (!string.IsNullOrEmpty(Company.CompanyWebsiteJobs))
+                        {
+                            <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa; cursor: pointer;" 
+                                 onclick="window.open('@(Company.CompanyWebsiteJobs.StartsWith("http") ? Company.CompanyWebsiteJobs : "http://" + Company.CompanyWebsiteJobs)', '_blank')">
+                                <i class="fas fa-briefcase" style="color: #007bff; margin-right: 8px;"></i>
+                                <span style="color: #007bff; text-decoration: underline;">@Company.CompanyWebsiteJobs</span>
+                            </div>
+                        }
+                        else
+                        {
+                            <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" value="Δεν υπάρχει" readonly />
+                        }
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Τηλέφωνο Εταιρείας</label>
+                        <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                            <i class="fas fa-phone" style="color: #28a745; margin-right: 8px;"></i>
+                            <span class="flex-grow-1">@Company.CompanyTelephone</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Περιγραφή Εταιρείας</label>
+                        <textarea class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" rows="4" readonly>@Company.CompanyDescription</textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Δραστηριότητα Εταιρείας</label>
+                        <textarea class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" readonly>@Company.CompanyActivity</textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Περιοχές Ενδιαφέροντος</label>
+                        <textarea class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" readonly>@Company.CompanyAreas</textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Χώρα</label>
+                        <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" value="@Company.CompanyCountry" readonly />
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Περιφέρεια</label>
+                        <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                            <i class="fas fa-map" style="color: #5F9EA0; margin-right: 8px;"></i>
+                            <span class="flex-grow-1">@Company.CompanyRegions</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Πόλη</label>
+                        <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                            <i class="fas fa-city" style="color: #5F9EA0; margin-right: 8px;"></i>
+                            <span class="flex-grow-1">@Company.CompanyTown</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Διεύθυνση</label>
+                        <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                            <i class="fas fa-map-marker-alt" style="color: #dc3545; margin-right: 8px;"></i>
+                            <a href="https://www.google.com/maps/search/?api=1&query=@Uri.EscapeDataString(Company.CompanyLocation ?? "")"
+                               target="_blank"
+                               style="color: #007bff; text-decoration: underline; word-break: break-word;">
+                                @Company.CompanyLocation
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Ταχυδρομικός Κώδικας</label>
+                        <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                            <i class="fas fa-envelope-open-text" style="color: #5F9EA0; margin-right: 8px;"></i>
+                            <span class="flex-grow-1">@Company.CompanyPC</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Email Υπεύθυνου Ανθρώπινου Δυναμικού</label>
+                        <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                            <i class="fas fa-envelope" style="color: #4682B4; margin-right: 8px;"></i>
+                            @if (!string.IsNullOrEmpty(Company.CompanyHREmail))
+                            {
+                                <a href="mailto:@Company.CompanyHREmail" 
+                                   style="color: #007bff; text-decoration: underline; word-break: break-all;">
+                                    @Company.CompanyHREmail
+                                </a>
+                            }
+                            else
+                            {
+                                <span style="color: #6c757d;">Δεν υπάρχει email</span>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Τηλέφωνο Υπεύθυνου Ανθρώπινου Δυναμικού</label>
+                        <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                            <i class="fas fa-phone" style="color: #28a745; margin-right: 8px;"></i>
+                            <span class="flex-grow-1">@Company.CompanyHRTelephone</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Επικεφαλής Τμήματος Έρευνας και Ανάπτυξης</label>
+                        <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" value="@Company.RnD_HeadName" readonly />
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Υπεύθυνος Επικοινωνίας Τμήματος Έρευνας και Ανάπτυξης</label>
+                        <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" value="@Company.RnD_ContactPersonFullName" readonly />
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: bold;">Email Επικοινωνίας Υπευθύνου Τμήματος Έρευνας και Ανάπτυξης</label>
+                        <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                            <i class="fas fa-envelope" style="color: #4682B4; margin-right: 8px;"></i>
+                            @if (!string.IsNullOrEmpty(Company.RnD_ContactPersonEmail))
+                            {
+                                <a href="mailto:@Company.RnD_ContactPersonEmail" 
+                                   style="color: #007bff; text-decoration: underline; word-break: break-all;">
+                                    @Company.RnD_ContactPersonEmail
+                                </a>
+                            }
+                            else
+                            {
+                                <span style="color: #6c757d;">Δεν υπάρχει email</span>
+                            }
+                        </div>
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+                    <button class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; padding: 8px 20px; transition: all 0.2s;" 
+                            @onclick="OnClose"
+                            onmouseover="this.style.backgroundColor='#4a5568'" 
+                            onmouseout="this.style.backgroundColor='#2d3748'">
+                        <i class="fas fa-arrow-left me-2"></i> Κλείσιμο
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public QuizManager.Models.Company? Company { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+}
