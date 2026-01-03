@@ -1,0 +1,112 @@
+@* ProfessorThesisEmailConfirmationModal.razor - Email confirmation modal for thesis applicants *@
+
+<div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0, 0, 0, 0.5);">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);">
+            <div class="modal-header" style="border-bottom: 1px solid #e9ecef; border-radius: 12px 12px 0 0; background-color: #f8f9fa;">
+                <h5 class="modal-title" style="color: #4682B4; font-weight: 600; font-size: 1.25rem;">
+                    <i class="fas fa-envelope me-2"></i>Αποστολή Email Διπλωματικής
+                </h5>
+                <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" 
+                        @onclick="OnClose"
+                        onmouseover="this.style.backgroundColor='#4a5568'" 
+                        onmouseout="this.style.backgroundColor='#2d3748'">
+                    <span style="font-size: 1.2rem; line-height: 1;">×</span>
+                </button>
+            </div>
+            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                <div class="list-group">
+                    <div class="form-group">
+                        <label style="font-weight: bold; color: #2d3748;">Επιλεγμένες Αιτήσεις</label>
+                        <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                            <i class="fas fa-list-check" style="color: #5F9EA0; margin-right: 8px;"></i>
+                            <span>@SelectedCount αιτήσεις</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: bold; color: #2d3748;">Ενέργεια</label>
+                        <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                            <i class="fas @(PendingAction == "accept" ? "fa-check text-success" : "fa-times text-danger") me-2"></i>
+                            <span>@(PendingAction == "accept" ? "Μαζική Αποδοχή" : "Μαζική Απόρριψη")</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: bold; color: #2d3748;">Αποστολή Email Ειδοποιήσεων</label>
+                        <div class="form-control" style="border-radius: 8px; background-color: #f8f9fa; border: none;">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" name="emailOptionProfessorThesis" 
+                                       id="sendEmailsProfessorThesis" value="true" @onchange="@((e) => OnSendEmailsChange.InvokeAsync(true))" 
+                                       checked="@SendEmails"
+                                       style="cursor: pointer; margin-right: 8px;" />
+                                <label class="form-check-label" for="sendEmailsProfessorThesis" style="cursor: pointer; color: #2d3748;">
+                                    <i class="fas fa-envelope me-1" style="color: #4682B4;"></i>
+                                    Να σταλούν Email στους Φοιτητές και στον Καθηγητή
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="emailOptionProfessorThesis" 
+                                       id="dontSendEmailsProfessorThesis" value="false" @onchange="@((e) => OnSendEmailsChange.InvokeAsync(false))" 
+                                       checked="@(!SendEmails)"
+                                       style="cursor: pointer; margin-right: 8px;" />
+                                <label class="form-check-label" for="dontSendEmailsProfessorThesis" style="cursor: pointer; color: #2d3748;">
+                                    <i class="fas fa-envelope-slash me-1" style="color: #6c757d;"></i>
+                                    Να μην σταλούν Email (μόνο ενημέρωση κατάστασης)
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert @(SendEmails ? "alert-info" : "alert-warning")" style="border-radius: 8px;">
+                        <i class="fas @(SendEmails ? "fa-info-circle" : "fa-exclamation-triangle") me-2"></i>
+                        @if (SendEmails)
+                        {
+                            <strong>Πληροφορία:</strong> 
+                            <span>Θα σταλούν @SelectedCount email @(PendingAction == "accept" ? "αποδοχής" : "απόρριψης") στους φοιτητές και email ειδοποίησης στον καθηγητή.</span>
+                        }
+                        else
+                        {
+                            <strong>Προσοχή:</strong> 
+                            <span>Η ενέργεια θα εφαρμοστεί μόνο στην εφαρμογή. Δεν θα σταλούν email ειδοποιήσεων. Οι φοιτητές θα δουν την αλλαγή κατάστασης όταν συνδεθούν.</span>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid #e9ecef; border-radius: 0 0 12px 12px; background-color: #f8f9fa;">
+                <button type="button" class="modern-button" style="background-color: #6c757d; color: white; border: none; border-radius: 6px; padding: 8px 20px; transition: all 0.2s;" 
+                        @onclick="OnClose"
+                        onmouseover="this.style.backgroundColor='#5a6268'" 
+                        onmouseout="this.style.backgroundColor='#6c757d'">
+                    <i class="fas fa-times me-1"></i>Ακύρωση
+                </button>
+                <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; padding: 8px 20px; transition: all 0.2s;" 
+                        @onclick="OnExecute" 
+                        onmouseover="this.style.backgroundColor='#4a5568'" 
+                        onmouseout="this.style.backgroundColor='#2d3748'">
+                    <i class="fas fa-play me-1"></i>Εκτέλεση
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public int SelectedCount { get; set; }
+
+    [Parameter]
+    public string? PendingAction { get; set; }
+
+    [Parameter]
+    public bool SendEmails { get; set; } = true;
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    [Parameter]
+    public EventCallback OnExecute { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> OnSendEmailsChange { get; set; }
+}
