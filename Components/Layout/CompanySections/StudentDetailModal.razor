@@ -203,6 +203,29 @@
                         <label style="font-weight: bold;">Δεξιότητες</label>
                         <textarea class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" readonly rows="3">@Student.Keywords</textarea>
                     </div>
+
+                    <!-- CV Download (if callback provided) -->
+                    @if (OnDownloadCV.HasDelegate)
+                    {
+                        <div class="form-group">
+                            <label style="font-weight: bold;">Βιογραφικό</label>
+                            <div>
+                                @if (Student.Attachment != null)
+                                {
+                                    <button class="modern-button" @onclick="() => OnDownloadCV.InvokeAsync(Student.Email)"
+                                            style="background-color: #2d3748; color: white; border: none; border-radius: 6px; padding: 8px 20px; transition: all 0.2s;"
+                                            onmouseover="this.style.backgroundColor='#4a5568'; this.style.transform='translateY(-1px)';" 
+                                            onmouseout="this.style.backgroundColor='#2d3748'; this.style.transform='translateY(0)';">
+                                        <i class="fas fa-download me-2"></i>Λήψη Βιογραφικού
+                                    </button>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Δεν Διατίθεται Βιογραφικό!</span>
+                                }
+                            </div>
+                        </div>
+                    }
                 </div>
 
                 <div class="modal-footer">
@@ -223,4 +246,6 @@
     [Parameter] public EventCallback OnClose { get; set; }
     [Parameter] public string? TransportNeed { get; set; }
     [Parameter] public string? TransportLocation { get; set; }
+    [Parameter] public EventCallback<string> OnDownloadCV { get; set; }
 }
+
