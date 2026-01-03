@@ -1,0 +1,459 @@
+using Microsoft.AspNetCore.Components;
+using QuizManager.Models;
+using QuizManager.Services.ResearchGroupDashboard;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+
+namespace QuizManager.Components.Layout.ResearchGroupSections
+{
+    public partial class ResearchGroupCompanySearchSection : ComponentBase
+    {
+        [Inject] private IResearchGroupDashboardService ResearchGroupDashboardService { get; set; } = default!;
+
+        private ResearchGroupDashboardLookups lookups = ResearchGroupDashboardLookups.Empty;
+
+        // Form Visibility
+        private bool isRGSearchCompanyFormVisible = false;
+
+        // Search Fields
+        private string searchCompanyEmailAsRGToFindCompany = string.Empty;
+        private string searchCompanyNameENGAsRGToFindCompany = string.Empty;
+        private List<string> companyNameSuggestionsAsRG = new List<string>();
+        private string searchCompanyTypeAsRGToFindCompany = string.Empty;
+        private string searchCompanyActivityrAsRGToFindCompany = string.Empty;
+        private string searchCompanyTownAsRGToFindCompany = string.Empty;
+        private string searchCompanyAreasAsRGToFindCompany = string.Empty;
+        private List<string> areasOfInterestSuggestions = new List<string>();
+        private List<string> selectedAreasOfInterest = new List<string>();
+        private string searchCompanyDesiredSkillsInputAsRGToFindCompany = string.Empty;
+        private List<string> companyDesiredSkillsSuggestionsAsRG = new List<string>();
+        private List<string> selectedCompanyDesiredSkillsAsRG = new List<string>();
+
+        // Search Results
+        private List<QuizManager.Models.Company> searchResultsAsRGToFindCompany;
+
+        // Pagination
+        private int currentPage_CompanySearchAsRG = 1;
+        private int CompanySearchPerPageAsRG = 10;
+        private int[] companySearchPageSizeOptions = new[] { 10, 50, 100 };
+
+        // Company Details Modal
+        private bool showCompanyDetailsModal = false;
+        private QuizManager.Models.Company selectedCompany;
+
+        // Company Types
+        private List<string> companyTypes = new List<string>
+        {
+            "Ανώνυμη Εταιρεία (Α.Ε.)",
+            "Εταιρεία Περιορισμένης Ευθύνης (Ε.Π.Ε.)",
+            "Ιδιωτική Κεφαλαιουχική Εταιρεία (Ι.Κ.Ε.)",
+            "Ομόρρυθμη Εταιρεία (Ο.Ε.)",
+            "Ετερόρρυθμη Εταιρεία (Ε.Ε.)",
+            "Ατομική Επιχείρηση",
+            "Κοινοπραξία",
+            "Αστική Εταιρεία",
+            "Συνεταιρισμός",
+            "Κοινωφελής Επιχείρηση",
+            "Δημόσια Επιχείρηση",
+            "Μη Κυβερνητική Οργάνωση (Μ.Κ.Ο.)"
+        };
+
+        // ForeasType
+        private List<string> ForeasType = new List<string>
+        {
+            "Ιδιωτικός Φορέας",
+            "Δημόσιος Φορέας",
+            "Μ.Κ.Ο.",
+            "Άλλο"
+        };
+
+        // Regions and Towns
+        private List<string> Regions = new List<string>
+        {
+            "Ανατολική Μακεδονία και Θράκη",
+            "Κεντρική Μακεδονία",
+            "Δυτική Μακεδονία",
+            "Ήπειρος",
+            "Θεσσαλία",
+            "Ιόνια Νησιά",
+            "Δυτική Ελλάδα",
+            "Κεντρική Ελλάδα",
+            "Αττική",
+            "Πελοπόννησος",
+            "Βόρειο Αιγαίο",
+            "Νότιο Αιγαίο",
+            "Κρήτη"
+        };
+        private Dictionary<string, List<string>> RegionToTownsMap = new Dictionary<string, List<string>>
+        {
+            {"Ανατολική Μακεδονία και Θράκη", new List<string> {"Κομοτηνή", "Αλεξανδρούπολη", "Καβάλα", "Ξάνθη", "Δράμα", "Ορεστιάδα", "Διδυμότειχο", "Ίασμος", "Νέα Βύσσα", "Φέρες"}},
+            {"Κεντρική Μακεδονία", new List<string> {"Θεσσαλονίκη", "Κατερίνη", "Σέρρες", "Κιλκίς", "Πολύγυρος", "Ναούσα", "Έδεσσα", "Γιαννιτσά", "Καβάλα", "Άμφισσα"}},
+            {"Δυτική Μακεδονία", new List<string> {"Κοζάνη", "Φλώρινα", "Καστοριά", "Γρεβενά"}},
+            {"Ήπειρος", new List<string> {"Ιωάννινα", "Άρτα", "Πρέβεζα", "Ηγουμενίτσα"}},
+            {"Θεσσαλία", new List<string> {"Λάρισα", "Βόλος", "Τρίκαλα", "Καρδίτσα"}},
+            {"Ιόνια Νησιά", new List<string> {"Κέρκυρα", "Λευκάδα", "Κεφαλονιά", "Ζάκυνθος", "Ιθάκη", "Παξοί", "Κυθήρα"}},
+            {"Δυτική Ελλάδα", new List<string> {"Πάτρα", "Μεσολόγγι", "Αμφιλοχία", "Πύργος", "Αιγίο", "Ναύπακτος"}},
+            {"Κεντρική Ελλάδα", new List<string> {"Λαμία", "Χαλκίδα", "Λιβαδειά", "Θήβα", "Αλιάρτος", "Αμφίκλεια"}},
+            {"Αττική", new List<string> {"Αθήνα", "Πειραιάς", "Κηφισιά", "Παλλήνη", "Αγία Παρασκευή", "Χαλάνδρι", "Καλλιθέα", "Γλυφάδα", "Περιστέρι", "Αιγάλεω"}},
+            {"Πελοπόννησος", new List<string> {"Πάτρα", "Τρίπολη", "Καλαμάτα", "Κορίνθος", "Άργος", "Ναύπλιο", "Σπάρτη", "Κυπαρισσία", "Πύργος", "Μεσσήνη"}},
+            {"Βόρειο Αιγαίο", new List<string> {"Μυτιλήνη", "Χίος", "Λήμνος", "Σάμος", "Ίκαρος", "Λέσβος", "Θάσος", "Σκύρος", "Ψαρά"}},
+            {"Νότιο Αιγαίο", new List<string> {"Ρόδος", "Κως", "Κρήτη", "Κάρπαθος", "Σαντορίνη", "Μύκονος", "Νάξος", "Πάρος", "Σύρος", "Άνδρος"}},
+            {"Κρήτη", new List<string> {"Ηράκλειο", "Χανιά", "Ρέθυμνο", "Αγία Νικόλαος", "Ιεράπετρα", "Σητεία", "Κίσαμος", "Παλαιόχωρα", "Αρχάνες", "Ανώγεια"}}
+        };
+
+        // Towns by Region (for backward compatibility)
+        private Dictionary<string, List<string>> townsByRegion = new Dictionary<string, List<string>>
+        {
+            {"Αττικής", new List<string> {"Αθήνα", "Πειραιάς", "Καλλιθέα", "Νίκαια", "Γλυφάδα", "Αμαρούσιο", "Χαλάνδρι", "Κηφισιά", "Νέα Σμύρνη", "Παλαιό Φάληρο"}},
+            {"Θεσσαλονίκης", new List<string> {"Θεσσαλονίκη", "Καλαμαριά", "Εύοσμος", "Σταυρούπολη", "Νεάπολη", "Πυλαία", "Τριανδρία", "Σίνδος", "Περαία", "Μίκρα"}},
+            {"Κεντρικής Μακεδονίας", new List<string> {"Σέρρες", "Βέροια", "Κατερίνη", "Νάουσα", "Γιαννιτσά", "Έδεσσα", "Κιλκίς", "Αλεξάνδρεια", "Πολύγυρος", "Κασσάνδρεια"}},
+            {"Δυτικής Μακεδονίας", new List<string> {"Κοζάνη", "Πτολεμαΐδα", "Φλώρινα", "Καστοριά", "Γρεβενά", "Σιάτιστα", "Άργος Ορεστικό", "Νεάπολη", "Αμύνταιο", "Δεσκάτη"}},
+            {"Ανατολικής Μακεδονίας και Θράκης", new List<string> {"Καβάλα", "Αλεξανδρούπολη", "Κομοτηνή", "Ξάνθη", "Δράμα", "Ορεστιάδα", "Χρυσούπολη", "Σουφλί", "Σάπες", "Ελευθερούπολη"}},
+            {"Ηπείρου", new List<string> {"Ιωάννινα", "Άρτα", "Πρέβεζα", "Ηγουμενίτσα", "Φιλιάτες", "Κόνιτσα", "Μέτσοβο", "Παραμυθιά", "Δελβινάκι", "Ζίτσα"}},
+            {"Θεσσαλίας", new List<string> {"Λάρισα", "Βόλος", "Τρίκαλα", "Καρδίτσα", "Φάρσαλα", "Ελασσόνα", "Αλμυρός", "Νέα Ιωνία", "Καλαμπάκα", "Σοφάδες"}},
+            {"Στερεάς Ελλάδας", new List<string> {"Λαμία", "Χαλκίδα", "Λιβαδειά", "Θήβα", "Άμφισσα", "Καρπενήσι", "Ιστιαία", "Κύμη", "Αταλάντη", "Μαρτίνο"}},
+            {"Δυτικής Ελλάδας", new List<string> {"Πάτρα", "Αγρίνιο", "Μεσολόγγι", "Πύργος", "Αίγιο", "Αμαλιάδα", "Ναύπακτος", "Ζαχάρω", "Κάτω Αχαΐα", "Λεχαινά"}},
+            {"Πελοποννήσου", new List<string> {"Τρίπολη", "Καλαμάτα", "Κόρινθος", "Σπάρτη", "Ναύπλιο", "Άργος", "Κιάτο", "Γύθειο", "Μεγαλόπολη", "Λεωνίδιο"}},
+            {"Ιονίων Νήσων", new List<string> {"Κέρκυρα", "Ζάκυνθος", "Αργοστόλι", "Λευκάδα", "Λιξούρι", "Βασιλική", "Περατάτα", "Σάμη", "Γαστούρι", "Μπενίτσες"}},
+            {"Βορείου Αιγαίου", new List<string> {"Μυτιλήνη", "Χίος", "Σάμος", "Καρλόβασι", "Μόλυβος", "Πλωμάρι", "Καλλονή", "Πυθαγόρειο", "Αγιάσος", "Ερεσός"}},
+            {"Νοτίου Αιγαίου", new List<string> {"Ρόδος", "Σύρος", "Κως", "Μύκονος", "Σαντορίνη", "Νάξος", "Πάρος", "Κάλυμνος", "Λέρος", "Κάρπαθος"}},
+            {"Κρήτης", new List<string> {"Ηράκλειο", "Χανιά", "Ρέθυμνο", "Άγιος Νικόλαος", "Ιεράπετρα", "Σητεία", "Μοίρες", "Τυμπάκι", "Αρκαλοχώρι", "Νεάπολη"}}
+        };
+
+        // Computed Properties
+        private IEnumerable<string> allTowns => townsByRegion.Values.SelectMany(t => t).Distinct().OrderBy(t => t);
+
+        private int totalPages_CompanySearchAsRG =>
+            (int)Math.Ceiling((double)(searchResultsAsRGToFindCompany?.Count ?? 0) / CompanySearchPerPageAsRG);
+
+        // Visibility Toggle
+        protected override async Task OnInitializedAsync()
+        {
+            lookups = await ResearchGroupDashboardService.GetLookupsAsync();
+            if (lookups.Regions.Any())
+            {
+                Regions = lookups.Regions.ToList();
+            }
+            if (lookups.RegionToTownsMap.Any())
+            {
+                RegionToTownsMap = lookups.RegionToTownsMap.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToList());
+                townsByRegion = RegionToTownsMap.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToList());
+            }
+        }
+
+        private void ToggleFormVisibilityForSearchCompanyAsRG()
+        {
+            isRGSearchCompanyFormVisible = !isRGSearchCompanyFormVisible;
+            StateHasChanged();
+        }
+
+        // Search Input Handlers
+        private async Task HandleCompanyInputAsRG(ChangeEventArgs e)
+        {
+            searchCompanyNameENGAsRGToFindCompany = e.Value?.ToString();
+            if (!string.IsNullOrWhiteSpace(searchCompanyNameENGAsRGToFindCompany) && searchCompanyNameENGAsRGToFindCompany.Length >= 2)
+            {
+                var companies = await ResearchGroupDashboardService.SearchCompaniesAsync(searchCompanyNameENGAsRGToFindCompany);
+                companyNameSuggestionsAsRG = companies
+                    .Select(c => c.CompanyName ?? string.Empty)
+                    .Where(n => !string.IsNullOrWhiteSpace(n))
+                    .Distinct()
+                    .Take(10)
+                    .ToList();
+            }
+            else
+            {
+                companyNameSuggestionsAsRG.Clear();
+            }
+        }
+
+        private void SelectCompanyNameSuggestionAsRG(string suggestion)
+        {
+            searchCompanyNameENGAsRGToFindCompany = suggestion;
+            companyNameSuggestionsAsRG.Clear();
+        }
+
+        private async Task HandleAreasOfInterestInput_WhenSearchForCompanyAsRG(ChangeEventArgs e)
+        {
+            searchCompanyAreasAsRGToFindCompany = e.Value?.ToString().Trim() ?? string.Empty;
+            areasOfInterestSuggestions = new List<string>();
+
+            if (searchCompanyAreasAsRGToFindCompany.Length >= 1)
+            {
+                try
+                {
+                    var allAreas = lookups.Areas.Where(a =>
+                            a.AreaName.Contains(searchCompanyAreasAsRGToFindCompany, StringComparison.OrdinalIgnoreCase) ||
+                            (!string.IsNullOrEmpty(a.AreaSubFields) && a.AreaSubFields.Contains(searchCompanyAreasAsRGToFindCompany, StringComparison.OrdinalIgnoreCase)))
+                        .ToList();
+
+                    var suggestionsSet = new HashSet<string>();
+
+                    foreach (var area in allAreas)
+                    {
+                        if (area.AreaName.Contains(searchCompanyAreasAsRGToFindCompany, StringComparison.OrdinalIgnoreCase))
+                        {
+                            suggestionsSet.Add(area.AreaName);
+                        }
+
+                        if (!string.IsNullOrEmpty(area.AreaSubFields))
+                        {
+                            var subfields = area.AreaSubFields
+                                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                                .Select(sub => sub.Trim())
+                                .Where(sub => !string.IsNullOrEmpty(sub) &&
+                                            sub.Contains(searchCompanyAreasAsRGToFindCompany, StringComparison.OrdinalIgnoreCase));
+
+                            foreach (var subfield in subfields)
+                            {
+                                suggestionsSet.Add($"{area.AreaName} - {subfield}");
+                            }
+                        }
+                    }
+
+                    areasOfInterestSuggestions = suggestionsSet.Take(10).ToList();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error: {ex.Message}");
+                    areasOfInterestSuggestions = new List<string>();
+                }
+            }
+
+            StateHasChanged();
+        }
+
+        private void SelectAreasOfInterestSuggestion_WhenSearchForCompanyAsRG(string suggestion)
+        {
+            if (!string.IsNullOrWhiteSpace(suggestion))
+            {
+                selectedAreasOfInterest.Add(suggestion);
+                searchCompanyAreasAsRGToFindCompany = suggestion;
+                areasOfInterestSuggestions.Clear();
+                StateHasChanged();
+            }
+        }
+
+        private void RemoveSelectedAreaOfInterest_WhenSearchForCompanyAsRG(string area)
+        {
+            selectedAreasOfInterest.Remove(area);
+            StateHasChanged();
+        }
+
+        private async Task HandleCompanyDesiredSkillsInputAsRG(ChangeEventArgs e)
+        {
+            searchCompanyDesiredSkillsInputAsRGToFindCompany = e.Value?.ToString().Trim() ?? string.Empty;
+            companyDesiredSkillsSuggestionsAsRG = new List<string>();
+
+            if (searchCompanyDesiredSkillsInputAsRGToFindCompany.Length >= 1)
+            {
+                try
+                {
+                    var skills = await ResearchGroupDashboardService.SearchSkillsAsync(searchCompanyDesiredSkillsInputAsRGToFindCompany);
+                    companyDesiredSkillsSuggestionsAsRG = skills
+                        .Select(s => s.SkillName)
+                        .Where(n => !string.IsNullOrWhiteSpace(n))
+                        .Distinct()
+                        .Take(10)
+                        .ToList();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error: {ex.Message}");
+                    companyDesiredSkillsSuggestionsAsRG = new List<string>();
+                }
+            }
+
+            StateHasChanged();
+        }
+
+        private void SelectCompanyDesiredSkillSuggestionAsRG(string suggestion)
+        {
+            if (!string.IsNullOrWhiteSpace(suggestion) && !selectedCompanyDesiredSkillsAsRG.Contains(suggestion))
+            {
+                selectedCompanyDesiredSkillsAsRG.Add(suggestion);
+                companyDesiredSkillsSuggestionsAsRG.Clear();
+                searchCompanyDesiredSkillsInputAsRGToFindCompany = string.Empty;
+            }
+        }
+
+        private void RemoveSelectedCompanyDesiredSkillAsRG(string skill)
+        {
+            selectedCompanyDesiredSkillsAsRG.Remove(skill);
+            StateHasChanged();
+        }
+
+        // Search Execution
+        private async Task SearchCompaniesAsRG()
+        {
+            var combinedSearchAreas = new List<string>();
+
+            if (selectedAreasOfInterest != null && selectedAreasOfInterest.Any())
+                combinedSearchAreas.AddRange(selectedAreasOfInterest);
+
+            if (!string.IsNullOrEmpty(searchCompanyAreasAsRGToFindCompany))
+                combinedSearchAreas.Add(searchCompanyAreasAsRGToFindCompany);
+
+            var normalizedSearchAreas = combinedSearchAreas
+                .SelectMany(area => NormalizeAreas(area))
+                .Distinct()
+                .ToList();
+
+            var request = new ResearchGroupCompanySearchRequest
+            {
+                Email = string.IsNullOrWhiteSpace(searchCompanyEmailAsRGToFindCompany) ? null : searchCompanyEmailAsRGToFindCompany,
+                Name = string.IsNullOrWhiteSpace(searchCompanyNameENGAsRGToFindCompany) ? null : searchCompanyNameENGAsRGToFindCompany,
+                Type = string.IsNullOrWhiteSpace(searchCompanyTypeAsRGToFindCompany) ? null : searchCompanyTypeAsRGToFindCompany,
+                Activity = string.IsNullOrWhiteSpace(searchCompanyActivityrAsRGToFindCompany) ? null : searchCompanyActivityrAsRGToFindCompany,
+                Town = string.IsNullOrWhiteSpace(searchCompanyTownAsRGToFindCompany) ? null : searchCompanyTownAsRGToFindCompany,
+                Areas = normalizedSearchAreas,
+                DesiredSkills = selectedCompanyDesiredSkillsAsRG.ToList()
+            };
+
+            var companies = await ResearchGroupDashboardService.FilterCompaniesAsync(request);
+
+            searchResultsAsRGToFindCompany = companies?.ToList();
+            currentPage_CompanySearchAsRG = 1;
+        }
+
+        private void ClearSearchFieldsAsRGToFindCompany()
+        {
+            searchCompanyEmailAsRGToFindCompany = string.Empty;
+            searchCompanyNameENGAsRGToFindCompany = string.Empty;
+            searchCompanyTypeAsRGToFindCompany = string.Empty;
+            searchCompanyActivityrAsRGToFindCompany = string.Empty;
+            searchCompanyTownAsRGToFindCompany = string.Empty;
+            searchCompanyAreasAsRGToFindCompany = string.Empty;
+            searchCompanyDesiredSkillsInputAsRGToFindCompany = string.Empty;
+            selectedAreasOfInterest.Clear();
+            selectedCompanyDesiredSkillsAsRG.Clear();
+            areasOfInterestSuggestions.Clear();
+            companyDesiredSkillsSuggestionsAsRG.Clear();
+            searchResultsAsRGToFindCompany = null;
+            StateHasChanged();
+        }
+
+        // Pagination
+        private IEnumerable<QuizManager.Models.Company> GetPaginatedCompanySearchResultsAsRG()
+        {
+            return searchResultsAsRGToFindCompany?
+                .Skip((currentPage_CompanySearchAsRG - 1) * CompanySearchPerPageAsRG)
+                .Take(CompanySearchPerPageAsRG) ?? Enumerable.Empty<QuizManager.Models.Company>();
+        }
+
+        private void OnPageSizeChangeForCompanySearchAsRG(ChangeEventArgs e)
+        {
+            if (int.TryParse(e.Value?.ToString(), out int newSize) && newSize > 0)
+            {
+                CompanySearchPerPageAsRG = newSize;
+                currentPage_CompanySearchAsRG = 1;
+                StateHasChanged();
+            }
+        }
+
+        private void GoToFirstPage_CompanySearchAsRG()
+        {
+            currentPage_CompanySearchAsRG = 1;
+            StateHasChanged();
+        }
+
+        private void PreviousPage_CompanySearchAsRG()
+        {
+            if (currentPage_CompanySearchAsRG > 1)
+            {
+                currentPage_CompanySearchAsRG--;
+                StateHasChanged();
+            }
+        }
+
+        private void NextPage_CompanySearchAsRG()
+        {
+            if (currentPage_CompanySearchAsRG < totalPages_CompanySearchAsRG)
+            {
+                currentPage_CompanySearchAsRG++;
+                StateHasChanged();
+            }
+        }
+
+        private void GoToLastPage_CompanySearchAsRG()
+        {
+            currentPage_CompanySearchAsRG = totalPages_CompanySearchAsRG;
+            StateHasChanged();
+        }
+
+        private void GoToPage_CompanySearchAsRG(int page)
+        {
+            if (page > 0 && page <= totalPages_CompanySearchAsRG)
+            {
+                currentPage_CompanySearchAsRG = page;
+                StateHasChanged();
+            }
+        }
+
+        private List<int> GetVisiblePages_CompanySearchAsRG()
+        {
+            var pages = new List<int>();
+            int current = currentPage_CompanySearchAsRG;
+            int total = totalPages_CompanySearchAsRG;
+
+            if (total == 0) return pages;
+
+            pages.Add(1);
+            if (current > 3) pages.Add(-1);
+
+            int start = Math.Max(2, current - 1);
+            int end = Math.Min(total - 1, current + 1);
+
+            for (int i = start; i <= end; i++) pages.Add(i);
+
+            if (current < total - 2) pages.Add(-1);
+            if (total > 1) pages.Add(total);
+
+            return pages;
+        }
+
+        // Company Details Modal
+        private void ShowCompanyDetailsWhenSearchAsRG(QuizManager.Models.Company company)
+        {
+            selectedCompany = company;
+            showCompanyDetailsModal = true;
+        }
+
+        private void CloseCompanyDetailsModalWhenSearchAsProfessor()
+        {
+            showCompanyDetailsModal = false;
+            selectedCompany = null;
+        }
+
+        // Helper Methods
+        private IEnumerable<string> NormalizeAreas(string areas)
+        {
+            if (string.IsNullOrWhiteSpace(areas))
+                return Enumerable.Empty<string>();
+
+            return areas.Split(new[] { ',', ';', '|' }, StringSplitOptions.RemoveEmptyEntries)
+                       .Select(a => a.Trim().ToLowerInvariant())
+                       .Where(a => !string.IsNullOrEmpty(a));
+        }
+
+        private HashSet<string> ExpandAreasWithSubfields(IEnumerable<string> areas)
+        {
+            var expanded = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var area in areas)
+            {
+                expanded.Add(area);
+                var lookupArea = lookups.Areas.FirstOrDefault(a => a.AreaName.Equals(area, StringComparison.OrdinalIgnoreCase));
+                if (lookupArea != null && !string.IsNullOrEmpty(lookupArea.AreaSubFields))
+                {
+                    var subfields = lookupArea.AreaSubFields.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(s => s.Trim().ToLowerInvariant());
+                    foreach (var sub in subfields)
+                        expanded.Add(sub);
+                }
+            }
+            return expanded;
+        }
+    }
+}

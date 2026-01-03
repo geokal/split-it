@@ -1,0 +1,39 @@
+@using System
+@inject NavigationManager NavigationManager
+
+<div class="sr-only" aria-live="polite">Μεταφορά στη σελίδα σύνδεσης...</div>
+
+@code {
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        var returnUri = BuildReturnPath();
+        NavigationManager.NavigateTo($"login?redirectUri={Uri.EscapeDataString(returnUri)}", forceLoad: true);
+    }
+
+    private string BuildReturnPath()
+    {
+        var absoluteUri = NavigationManager.Uri;
+        var baseUri = NavigationManager.BaseUri;
+
+        if (absoluteUri.StartsWith(baseUri, StringComparison.OrdinalIgnoreCase))
+        {
+            var relative = NavigationManager.ToBaseRelativePath(absoluteUri);
+            if (string.IsNullOrWhiteSpace(relative))
+            {
+                return "/";
+            }
+
+            if (!relative.StartsWith("/", StringComparison.Ordinal))
+            {
+                relative = "/" + relative;
+            }
+
+            return relative;
+        }
+
+        return "/";
+    }
+}
+

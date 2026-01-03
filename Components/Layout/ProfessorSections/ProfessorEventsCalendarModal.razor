@@ -1,0 +1,152 @@
+@using System.Globalization
+
+@if (IsVisible)
+{
+    <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0, 0, 0, 0.5);">
+        <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
+            <div class="modal-content" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); width: 100vw; max-width: none; margin: 0;">
+                <div class="modal-header" style="border-bottom: 1px solid #e9ecef; border-radius: 12px 12px 0 0; background-color: #f8f9fa;">
+                    <h5 class="modal-title" style="color: #2d3748; font-weight: 600; font-size: 1.25rem;">
+                        <strong>Λεπτομέρειες Εκδήλωσης/σεων</strong>:
+                        <span style="color: #2d3748;">
+                            @SelectedDate?.ToString("dd MMMM yyyy", CultureInfo.GetCultureInfo("el-GR"))
+                        </span>
+                    </h5>
+                    <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;"
+                            @onclick="OnClose"
+                            onmouseover="this.style.backgroundColor='#4a5568'"
+                            onmouseout="this.style.backgroundColor='#2d3748'">
+                        <span style="font-size: 1.2rem; line-height: 1;">×</span>
+                    </button>
+                </div>
+                <div class="modal-body" style="max-height: 80vh; overflow-y: auto;">
+                    @if (SelectedEvent == null)
+                    {
+                        <!-- Filter and Event List -->
+                        <div class="form-group">
+                            <label style="font-weight: bold;">Φιλτράρισμα Εκδηλώσεων</label>
+                            <div class="input-group custom-width">
+                                <select class=".form-control-calendarEventModal" style="border-radius: 8px; background-color: #f8f9fa;" @bind="SelectedEventFilter" @bind:after="OnFilterChanged">
+                                    <option value="All">Όλες οι Εκδηλώσεις</option>
+                                    <option value="Company">Εκδηλώσεις Εταιρειών</option>
+                                    <option value="Professor">Εκδηλώσεις Καθηγητών</option>
+                                </select>
+                            </div>
+                        </div>
+                        <br />
+                        @if (FilteredCompanyEvents.Count == 0 && FilteredProfessorEvents.Count == 0)
+                        {
+                            <p>"Δεν βρέθηκε καμία Εκδήλωση για αυτήν τη μέρα"</p>
+                            <p>Η σημερινή ημερομηνία είναι: <strong>@DateTime.Today.ToString("dd MMMM , yyyy", CultureInfo.GetCultureInfo("el-GR"))</strong></p>
+                        }
+                        else
+                        {
+                            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                                <table class="table table-responsive" style="width: 100%; table-layout: auto; border-radius: 8px; overflow: hidden;">
+                                    <thead>
+                                        <tr>
+                                            <th class="text-center" style="max-width: auto;">Διοργανωτής</th>
+                                            <th class="text-center" style="max-width: auto;">Ημερομηνία</th>
+                                            <th class="text-center" style="max-width: auto;">Ώρα</th>
+                                            <th class="text-center" style="max-width: auto;">Τίτλος</th>
+                                            <th class="text-center" style="max-width: auto;">Λεπτομέρειες</th>
+                                            @if (SelectedEventFilter != "Professor")
+                                            {
+                                                <th class="text-center" style="max-width: auto;">Ένδειξη Ενδιαφέροντος</th>
+                                            }
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @if (SelectedEventFilter == "All" || SelectedEventFilter == "Company")
+                                        {
+                                            @foreach (var companyEvent in FilteredCompanyEvents)
+                                            {
+                                                bool hasInterest = HasAlreadyExpressedInterest?.Invoke(companyEvent) ?? false;
+                                                <tr style="cursor:pointer; text-align: center; background-color: @(hasInterest ? "lightgreen" : "transparent");">
+                                                    <td>@companyEvent.Company?.CompanyName</td>
+                                                    <td>@companyEvent.CompanyEventActiveDate.Date.ToString("dd MMMM", CultureInfo.GetCultureInfo("el-GR"))</td>
+                                                    <td>@companyEvent.CompanyEventTime</td>
+                                                    <td>@companyEvent.CompanyEventTitle</td>
+                                                    <td>
+                                                        <i class="fas fa-eye" @onclick="() => OnShowEventDetails.InvokeAsync(companyEvent)" style="cursor: pointer; font-size: 20px;"></i>
+                                                    </td>
+                                                    @if (SelectedEventFilter != "Professor")
+                                                    {
+                                                        <td style="max-width: 250px;">
+                                                            @if (hasInterest)
+                                                            {
+                                                                <span style="color: black; font-weight: bold;">Έχετε Εκδηλώσει Ενδιαφέρον</span>
+                                                            }
+                                                            else
+                                                            {
+                                                                <i class="fas fa-heart" @onclick="() => OnShowInterest.InvokeAsync(companyEvent)"
+                                                                   style="cursor: pointer; font-size: 20px; color: goldenrod;"></i>
+                                                            }
+                                                        </td>
+                                                    }
+                                                </tr>
+                                            }
+                                        }
+                                        @if (SelectedEventFilter == "All" || SelectedEventFilter == "Professor")
+                                        {
+                                            @foreach (var professorEvent in FilteredProfessorEvents)
+                                            {
+                                                <tr style="cursor:pointer; text-align: center;">
+                                                    <td>@professorEvent.Professor?.ProfName @professorEvent.Professor?.ProfSurname</td>
+                                                    <td>@professorEvent.ProfessorEventActiveDate.Date.ToString("dd MMMM", CultureInfo.GetCultureInfo("el-GR"))</td>
+                                                    <td>@professorEvent.ProfessorEventTime</td>
+                                                    <td>@professorEvent.ProfessorEventTitle</td>
+                                                    <td>
+                                                        <i class="fas fa-eye" @onclick="() => OnShowEventDetails.InvokeAsync(professorEvent)" style="cursor: pointer; font-size: 20px;"></i>
+                                                    </td>
+                                                    @if (SelectedEventFilter != "Professor")
+                                                    {
+                                                        <td>-</td>
+                                                    }
+                                                </tr>
+                                            }
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                        <div class="text-center mt-3">
+                            <button class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; padding: 8px 20px;"
+                                    @onclick="OnClose">
+                                <i class="fas fa-times me-2"></i> Κλείσιμο
+                            </button>
+                        </div>
+                    }
+                    else
+                    {
+                        <!-- Event Details View -->
+                        @ChildContent
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public DateTime? SelectedDate { get; set; }
+    [Parameter] public string SelectedEventFilter { get; set; } = "All";
+    [Parameter] public object? SelectedEvent { get; set; }
+    [Parameter] public List<CompanyEvent> FilteredCompanyEvents { get; set; } = new();
+    [Parameter] public List<ProfessorEvent> FilteredProfessorEvents { get; set; } = new();
+    
+    [Parameter] public Func<CompanyEvent, bool>? HasAlreadyExpressedInterest { get; set; }
+    
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback<object> OnShowEventDetails { get; set; }
+    [Parameter] public EventCallback<CompanyEvent> OnShowInterest { get; set; }
+    [Parameter] public EventCallback<string> OnFilterChange { get; set; }
+    
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private async Task OnFilterChanged()
+    {
+        await OnFilterChange.InvokeAsync(SelectedEventFilter);
+    }
+}

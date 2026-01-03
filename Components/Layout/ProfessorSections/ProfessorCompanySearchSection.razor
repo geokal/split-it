@@ -1,0 +1,384 @@
+                                                        <div class="mb-3 row-dark-gray">
+                                                            <div class="d-flex justify-content-between align-items-center" @onclick="ToggleFormVisibilityForSearchCompanyAsProfessor" style="cursor: pointer;">
+                                                                <label class="form-label" style="color: #FFF8DC;">• Αναζήτηση Εταιρείας •</label>
+                                                                <button class="btn btn-link" @onclick="ToggleFormVisibilityForSearchCompanyAsProfessor" @onclick:stopPropagation="true">
+                                                                    @if (isProfessorSearchCompanyFormVisible)
+                                                                    {
+                                                                        <span>&#8722;</span> <!-- Minus sign -->
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <span>&#43;</span> <!-- Plus sign -->
+                                                                    }
+                                                                </button>
+                                                            </div>
+                                                        </div>
+
+                                                        @if (isProfessorSearchCompanyFormVisible)
+                                                        {
+                                                            <div class="row mb-3">
+                                                                 <div class="col-md-4">
+                                                                    <label for="searchCompanyEmailAsProfessor"><strong>Email</strong></label>
+                                                                    <input type="text" class="form-control" placeholder="Αναζήτηση με Email" @bind="searchCompanyEmailAsProfessorToFindCompany" />
+                                                                </div>
+                                                                <div class="col-md-4 position-relative">
+                                                                    <label for="searchCompanyNameAsProfessor"><strong>Όνομα Εταιρείας</strong></label>
+                                                                    <input 
+                                                                        type="text" 
+                                                                        id="searchCompanyNameAsProfessor"
+                                                                        class="form-control" 
+                                                                        placeholder="Αναζήτηση με όνομα" 
+                                                                        @bind="searchCompanyNameENGAsProfessorToFindCompany" 
+                                                                        @oninput="HandleCompanyInput" />
+
+                                                                    <!-- Suggestions dropdown -->
+                                                                    <ul class="list-group position-absolute" 
+                                                                        style="z-index: 100; width: 100%; max-height: 150px; overflow-y: auto;" 
+                                                                        hidden="@(!companyNameSuggestions.Any())">
+                                                                        @foreach (var suggestion in companyNameSuggestions)
+                                                                        {
+                                                                            <li class="list-group-item list-group-item-action" 
+                                                                                @onclick="() => SelectCompanyNameSuggestion(suggestion)">
+                                                                                @suggestion
+                                                                            </li>
+                                                                        }
+                                                                    </ul>
+                                                                </div>
+                                                                <div class="col-md-4">
+                                                                    <label for="searchCompanyTypeAsProfessor" style="font-weight: bold;">Τύπος Εταιρείας</label>
+                                                                    <div class="input-group">
+                                                                        <select 
+                                                                            id="searchCompanyTypeAsProfessor" 
+                                                                            class="form-control" 
+                                                                            @bind="searchCompanyTypeAsProfessorToFindCompany">
+                                                                            <option value=""> - Επιλέξτε Τύπο - </option>
+                                                                            @foreach (var type in ForeasType)
+                                                                            {
+                                                                                <option value="@type">@type</option>
+                                                                            }
+                                                                        </select>
+                                                                        <div class="input-group-append">
+                                                                            <span class="input-group-text">
+                                                                                <i class="fas fa-chevron-down"></i>
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+
+                                                                <!-- Company Activity Field with Autocomplete -->
+                                                                <div class="col-md-4 position-relative">
+                                                                    <label for="searchCompanyActivityAsProfessor" class="fw-bold">Δραστηριότητα Εταιρείας</label>
+                                                                    <input 
+                                                                        type="text" 
+                                                                        id="searchCompanyActivityAsProfessor"
+                                                                        class="form-control" 
+                                                                        placeholder="Αναζήτηση με δραστηριότητα" 
+                                                                        @bind="searchCompanyActivityInputAsProfessorToFindCompany" 
+                                                                        @oninput="HandleCompanyActivityInput" />
+    
+                                                                    <!-- Suggestions Dropdown -->
+                                                                    <ul class="list-group position-absolute" 
+                                                                        style="z-index: 100; width: 100%; max-height: 150px; overflow-y: auto;" 
+                                                                        hidden="@(!companyActivitySuggestions.Any())">
+                                                                        @foreach (var suggestion in companyActivitySuggestions)
+                                                                        {
+                                                                            <li class="list-group-item list-group-item-action" 
+                                                                                @onclick="() => SelectCompanyActivitySuggestion(suggestion)">
+                                                                                @suggestion
+                                                                            </li>
+                                                                        }
+                                                                    </ul>
+
+                                                                    <!-- Selected Activities -->
+                                                                    <div class="mt-3 selected-activities-container">
+                                                                        @if (selectedCompanyActivities.Any())
+                                                                        {
+                                                                            <ul class="list-group selected-activities-list">
+                                                                                @foreach (var activity in selectedCompanyActivities)
+                                                                                {
+                                                                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                                                        @activity
+                                                                                        <button class="btn btn-danger btn-sm" @onclick="() => RemoveSelectedCompanyActivity(activity)">
+                                                                                            <i class="fas fa-times"></i>
+                                                                                        </button>
+                                                                                    </li>
+                                                                                }
+                                                                            </ul>
+                                                                        }
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="col-md-4">
+                                                                    <label for="searchCompanyTownAsProfessor" style="font-weight: bold;">Πόλη</label>
+                                                                    <div class="input-group">
+                                                                        <select id="searchCompanyTownAsProfessor" 
+                                                                                class="form-control" 
+                                                                                @bind="searchCompanyTownAsProfessorToFindCompany">
+                                                                            <option value=""> - Επιλέξτε Πόλη - </option>
+                                                                            @foreach (var region in Regions)
+                                                                            {
+                                                                                <optgroup label="@region">
+                                                                                    @foreach (var town in RegionToTownsMap[region])
+                                                                                    {
+                                                                                        <option value="@town">@town</option>
+                                                                                    }
+                                                                                </optgroup>
+                                                                            }
+                                                                        </select>
+                                                                        <div class="input-group-append">
+                                                                            <span class="input-group-text">
+                                                                                <i class="fas fa-chevron-down"></i>
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <!-- Areas of Interest Container -->
+                                                                <div class="col-md-4 position-relative">
+                                                                    <label for="searchCompanyAreasAsProfessorToFindCompany" style="font-weight: bold;">Περιοχές Ενδιαφέροντος</label>
+                                                                    <input 
+                                                                        type="text"
+                                                                        class="form-control"
+                                                                        placeholder="Αναζήτηση με Περιοχές"
+                                                                        @bind="searchCompanyAreasAsProfessorToFindCompany"
+                                                                        @oninput="HandleAreasOfInterestInput_WhenSearchForCompanyAsProfessor" />
+
+                                                                    <ul class="list-group position-absolute" 
+                                                                        style="z-index: 100; width: 100%; max-height: 150px; overflow-y: auto;" 
+                                                                        hidden="@(!areasOfInterestSuggestions.Any())">
+                                                                        @foreach (var suggestion in areasOfInterestSuggestions)
+                                                                        {
+                                                                            <li class="list-group-item list-group-item-action" 
+                                                                                @onclick="() => SelectAreasOfInterestSuggestion_WhenSearchForCompanyAsProfessor(suggestion)">
+                                                                                @if (suggestion.Contains(" - "))
+                                                                                {
+                                                                                    var parts = suggestion.Split(new[] { " - " }, StringSplitOptions.None);
+                                                                                    <div>
+                                                                                        <span class="text-muted">@parts[0] - </span>
+                                                                                        <span class="fw-bold">@parts[1]</span>
+                                                                                    </div>
+                                                                                }
+                                                                                else
+                                                                                {
+                                                                                    <div>@suggestion</div>
+                                                                                }
+                                                                            </li>
+                                                                        }
+                                                                    </ul>
+
+                                                                    <div class="mt-3 selected-areas-container">
+                                                                        @if (selectedAreasOfInterest.Any())
+                                                                        {
+                                                                            <ul class="list-group selected-areas-list">
+                                                                                @foreach (var area in selectedAreasOfInterest)
+                                                                                {
+                                                                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                                                        @if (area.Contains(" - "))
+                                                                                        {
+                                                                                            var parts = area.Split(new[] { " - " }, StringSplitOptions.None);
+                                                                                            <span>
+                                                                                                <span class="text-muted">@parts[0] - </span>
+                                                                                                <span class="fw-bold">@parts[1]</span>
+                                                                                            </span>
+                                                                                        }
+                                                                                        else
+                                                                                        {
+                                                                                            <span>@area</span>
+                                                                                        }
+                                                                                        <button class="btn btn-danger btn-sm" @onclick="() => RemoveSelectedAreaOfInterest_WhenSearchForCompanyAsProfessor(area)">
+                                                                                            <i class="fas fa-times"></i>
+                                                                                        </button>
+                                                                                    </li>
+                                                                                }
+                                                                            </ul>
+                                                                        }
+                                                                    </div>
+                                                                </div>
+
+
+                                                                <br/>
+                                                                <!-- Company Desired Skills Field with Autocomplete -->
+                                                                <div class="col-md-4 position-relative">
+                                                                    <label for="searchCompanyDesiredSkillsAsProfessor" class="fw-bold">Επιθυμητές Δεξιότητες</label>
+                                                                    <input 
+                                                                        type="text" 
+                                                                        id="searchCompanyDesiredSkillsAsProfessor"
+                                                                        class="form-control" 
+                                                                        placeholder="Αναζήτηση με δεξιότητες" 
+                                                                        @bind="searchCompanyDesiredSkillsInputAsProfessorToFindCompany" 
+                                                                        @oninput="HandleCompanyDesiredSkillsInput" />
+    
+                                                                    <!-- Suggestions Dropdown -->
+                                                                    <ul class="list-group position-absolute" 
+                                                                        style="z-index: 100; width: 100%; max-height: 150px; overflow-y: auto;" 
+                                                                        hidden="@(!companyDesiredSkillsSuggestions.Any())">
+                                                                        @foreach (var suggestion in companyDesiredSkillsSuggestions)
+                                                                        {
+                                                                            <li class="list-group-item list-group-item-action" 
+                                                                                @onclick="() => SelectCompanyDesiredSkillSuggestion(suggestion)">
+                                                                                @suggestion
+                                                                            </li>
+                                                                        }
+                                                                    </ul>
+
+                                                                    <!-- Selected Skills -->
+                                                                    <div class="mt-3 selected-skills-container">
+                                                                        @if (selectedCompanyDesiredSkills.Any())
+                                                                        {
+                                                                            <ul class="list-group selected-skills-list">
+                                                                                @foreach (var skill in selectedCompanyDesiredSkills)
+                                                                                {
+                                                                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                                                        @skill
+                                                                                        <button class="btn btn-danger btn-sm" @onclick="() => RemoveSelectedCompanyDesiredSkill(skill)">
+                                                                                            <i class="fas fa-times"></i>
+                                                                                        </button>
+                                                                                    </li>
+                                                                                }
+                                                                            </ul>
+                                                                        }
+                                                                    </div>
+                                                                </div>
+                                                                <br/>
+                                                                <br/>
+                                                                <div class="row mb-3">
+                                                                    <div class="col-md-12">
+                                                                        <button class="modern-button" style="background-color: #2d3748; color: white; display: inline-flex; align-items: center;" @onclick="SearchCompaniesAsProfessor">
+                                                                            <i class="fa-brands fa-searchengin" style="margin-right: 8px;"></i>Αναζήτηση
+                                                                        </button>
+                                                                        <button class="modern-button" style="background-color: #2d3748; color: white; display: inline-flex; align-items: center;" @onclick="ClearSearchFieldsAsProfessorToFindCompany">
+                                                                            <i class="fa-solid fa-broom" style="margin-right: 8px;"></i>Εκκαθάριση
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <br/>
+                                                            <br/>
+                                                        }
+
+
+                                                        @if (searchResultsAsProfessorToFindCompany != null && searchResultsAsProfessorToFindCompany.Any())
+                                                        {
+                                                           <div class="row mb-3">
+                                                                <div class="col-md-2">
+                                                                    <label style="color: #2d3748; font-weight: bold; font-size: 15px; display: block;">Αποτελέσματα ανά Σελίδα</label>
+                                                                    <div class="input-group" style="max-width: 65px;">
+                                                                        <select class="form-control form-control-sm" 
+                                                                                @onchange="OnPageSizeChangeForCompanySearch" 
+                                                                                aria-label="Items per page">
+                                                                            @foreach (var option in companySearchPageSizeOptions)
+                                                                            {
+                                                                                <option value="@option" selected="@(CompanySearchPerPage == option)">@option</option>
+                                                                            }
+                                                                        </select>
+                                                                        <div class="input-group-append">
+                                                                            <span class="input-group-text">
+                                                                                <i class="fas fa-chevron-down"></i>
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <table class="table mt-4">
+                                                                <thead>
+                                                                    <td colspan="8" style="padding: 0;">
+                                                                        <div style="display: flex; justify-content: space-between; align-items: center; height: 24px; line-height: 24px; width: 100%;">
+                                                                            <i class="fa-solid fa-magnifying-glass" style="font-size: 18px; color: #0d6efd  ;"></i>
+                                                                            <label class="form-label" style="color: #0d6efd ; font-weight: bold; font-size: 18px; margin: 0;">Αποτέλεσμα Αναζήτησης</label>
+                                                                            <i class="fa-solid fa-magnifying-glass" style="font-size: 18px; color: #0d6efd  ;"></i>
+                                                                        </div>
+                                                                    </td>
+                                                                    <tr style="border: 2px solid black; background-color: lightgray;">
+                                                                        <th style="border: 2px solid black;">
+                                                                            <i class="fa-solid fa-industry fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                            Όνομα Εταιρείας
+                                                                        </th>
+                                                                        <th style="border: 2px solid black;">
+                                                                            <i class="fa-solid fa-tags fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                            Δραστηριότητα
+                                                                        </th>
+                                                                        <th style="border: 2px solid black;">
+                                                                            <i class="fa-solid fa-city fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                            Πόλη
+                                                                        </th>
+                                                                        <th style="border: 2px solid black;">
+                                                                            <i class="fa-solid fa-envelope fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                            Email
+                                                                        </th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    @foreach (var company in GetPaginatedCompanySearchResults())
+                                                                    {
+                                                                        <tr>
+                                                                            <td>
+                                                                                <a href="#" style="text-decoration: none; color: #0d6efd; font-weight: 500;" 
+                                                                                   @onclick="() => ShowCompanyDetailsWhenSearchAsProfessor(company)" 
+                                                                                   title="Προβολή λεπτομερειών">
+                                                                                    @company.CompanyName
+                                                                                </a>
+                                                                            </td>
+                                                                            <td>@company.CompanyActivity</td>
+                                                                            <td>@company.CompanyTown</td>
+                                                                            <td>
+                                                                                @company.CompanyEmail
+                                                                                <a href="mailto:@company.CompanyEmail" title="Αποστολή Email">
+                                                                                    <i class="fas fa-envelope"></i>
+                                                                                </a>
+                                                                            </td>
+                                                                        </tr>
+                                                                    }
+                                                                </tbody>
+                                                            </table>
+                                                            <div class="d-flex justify-content-center align-items-center mt-3 gap-1">
+                                                                <span class="pagination-item @(currentPage_CompanySearch == 1 ? "disabled" : "")"
+                                                                      @onclick="GoToFirstPage_CompanySearch">
+                                                                    &lt;&lt;
+                                                                </span>
+
+                                                                <span class="pagination-item @(currentPage_CompanySearch == 1 ? "disabled" : "")"
+                                                                      @onclick="PreviousPage_CompanySearch">
+                                                                    &lt;
+                                                                </span>
+
+                                                                @foreach (var pageNum in GetVisiblePages_CompanySearch())
+                                                                {
+                                                                    if (pageNum == -1)
+                                                                    {
+                                                                        <span class="pagination-ellipsis">...</span>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <span class="pagination-item @(pageNum == currentPage_CompanySearch ? "active" : "")"
+                                                                              @onclick="@(() => GoToPage_CompanySearch(pageNum))">
+                                                                            @pageNum
+                                                                        </span>
+                                                                    }
+                                                                }
+
+                                                                <span class="pagination-item @(currentPage_CompanySearch == totalPages_CompanySearch ? "disabled" : "")"
+                                                                      @onclick="NextPage_CompanySearch">
+                                                                    &gt;
+                                                                </span>
+
+                                                                <span class="pagination-item @(currentPage_CompanySearch == totalPages_CompanySearch ? "disabled" : "")"
+                                                                      @onclick="GoToLastPage_CompanySearch">
+                                                                    &gt;&gt;
+                                                                </span>
+
+                                                                <span class="ms-3">
+                                                                    Σελίδα @currentPage_CompanySearch από @totalPages_CompanySearch
+                                                                </span>
+                                                            </div>
+                                                            <br/>
+                                                            <br/>
+                                                        }
+                                                        else if (searchResultsAsProfessorToFindCompany != null)
+                                                        {
+                                                            <div class="alert alert-warning d-flex align-items-center" role="alert">
+                                                                 <i class="fas fa-exclamation-triangle me-2"></i>
+                                                                 <div>
+                                                                     Δεν βρέθηκε κάποιο αποτέλεσμα που να πληρεί τα κριτήρια της Αναζήτησης σας.
+                                                                 </div>
+                                                            </div>
+                                                        }
+

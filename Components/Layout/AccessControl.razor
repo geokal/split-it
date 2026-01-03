@@ -1,0 +1,479 @@
+﻿@page "/accessControl"
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject QuizManager.Services.UserContext.IUserContextService UserContextService
+@using System.Security.Claims
+@using System.Linq
+
+<style>
+    .user-role1 {
+        position: absolute;
+        top: 6px;
+        left: 10px;
+        background: linear-gradient(135deg, #1a1a1a, #2d2d2d);
+        padding: 10px;
+        border-radius: 5px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        font-size: 14px;
+        color: #ffffff;
+        z-index: 1;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: fit-content;
+        border: 2px solid #3498db;
+        transition: all 0.3s ease;
+        font-weight: 600;
+    }
+
+        .user-role1:hover {
+            background: linear-gradient(135deg, #2d2d2d, #1a1a1a);
+            border-color: #ADD8E6;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+    .user-role {
+        position: absolute;
+        top: 6px;
+        left: 160px;
+        background: linear-gradient(135deg, #1a1a1a, #2d2d2d);
+        padding: 10px;
+        border-radius: 5px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        font-size: 14px;
+        color: #ffffff;
+        cursor: default;
+        display: flex;
+        align-items: center;
+        width: fit-content;
+        border: 2px solid #34495e;
+        transition: all 0.3s ease;
+        font-weight: 600;
+    }
+
+    /* Professional dropdown styling */
+    .dropdown-container {
+        position: relative;
+        display: inline-block;
+    }
+
+    .dropdown-toggle-custom {
+        background: linear-gradient(135deg, #2c3e50, #34495e);
+        border: 2px solid #34495e;
+        border-radius: 8px;
+        padding: 8px 16px;
+        color: white;
+        font-weight: 600;
+        font-size: 14px;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-width: 200px;
+        height: 44px;
+        position: relative;
+        cursor: pointer;
+    }
+
+        .dropdown-toggle-custom:hover {
+            background: linear-gradient(135deg, #34495e, #2c3e50);
+            border-color: #ADD8E6;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .dropdown-toggle-custom:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.3);
+        }
+
+    .dropdown-menu-custom {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        z-index: 1000;
+        border: none;
+        border-radius: 8px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        padding: 0; /* Changed from 8px 0 to 0 */
+        margin-top: 4px;
+        background: white;
+        min-width: 200px;
+        width: 100%;
+        opacity: 0;
+        transform: translateY(-10px);
+        transition: all 0.3s ease;
+        visibility: hidden;
+        pointer-events: none;
+        overflow: hidden; /* Added to contain hover effects */
+    }
+
+        .dropdown-menu-custom.show {
+            opacity: 1;
+            transform: translateY(0);
+            visibility: visible;
+            pointer-events: all;
+        }
+
+    .dropdown-item-custom {
+        padding: 10px 16px;
+        font-size: 14px;
+        color: #2c3e50;
+        transition: all 0.2s ease;
+        border: none;
+        background: none;
+        width: 100%;
+        text-align: left;
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        text-decoration: none;
+        box-sizing: border-box; /* Added to include padding in width calculation */
+        margin: 0; /* Ensure no margin */
+    }
+
+        .dropdown-item-custom:hover {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            text-decoration: none;
+        }
+
+        .dropdown-item-custom i {
+            margin-right: 8px;
+            width: 16px;
+            text-align: center;
+        }
+
+    .user-avatar {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        margin-right: 10px;
+        border: 2px solid #ADD8E6;
+        object-fit: cover;
+    }
+
+    .user-name {
+        flex: 1;
+        text-align: left;
+        color: #ADD8E6;
+        font-weight: bold;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .dropdown-divider-custom {
+        margin: 0; /* Changed from 4px 0 to 0 */
+        border-top: 1px solid #ecf0f1;
+        height: 1px;
+        background-color: #ecf0f1;
+    }
+
+    .chevron {
+        transition: transform 0.3s ease;
+        margin-left: 8px;
+        font-size: 12px;
+        color: #ADD8E6;
+    }
+
+        .chevron.rotated {
+            transform: rotate(180deg);
+        }
+
+    /* Add first and last child border radius to maintain dropdown rounded corners */
+    .dropdown-menu-custom .dropdown-item-custom:first-child {
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
+    }
+
+    .dropdown-menu-custom .dropdown-item-custom:last-child {
+        border-bottom-left-radius: 8px;
+        border-bottom-right-radius: 8px;
+    }
+</style>
+
+<!-- Include Bootstrap CSS -->
+<link href="~/css/bootstrap/bootstrap.min.css" rel="stylesheet" />
+<!-- Include Font Awesome for icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+<!-- Include your site.css file -->
+<link href="~/css/site.css" rel="stylesheet" />
+
+<!-- Eginan allages sto out border twn top Images + Dropdown component -->
+<div class="user-role1" @onclick="returnToMainPage" title="Αρχική Σελίδα">
+    <span style="font-weight: bold;">@AppName</span>
+    <img src="https://static.vecteezy.com/system/resources/thumbnails/011/658/583/small_2x/letter-a-abstract-logo-flat-capital-letter-a-abstract-logo-icon-image-with-transparent-background-png.png"
+         style="width: 21px; height: 21px; border-radius: 50%; margin-left: 8px; border: 1px solid #ADD8E6;" />
+</div>
+
+<AuthorizeView>
+    <Authorized>
+        <div class="user-role" title="Ρόλος Χρήστη">
+            @if (UserRole == "Student")
+            {
+                <span style="display: flex; align-items: center;">
+                    <i class="fas fa-user-graduate" style="margin-right: 5px; color: #ADD8E6;"></i><strong>Member</strong>
+                </span>
+            }
+            else if (UserRole == "Company")
+            {
+                <span style="display: flex; align-items: center;">
+                    <i class="fas fa-industry" style="margin-right: 5px; color: #ADD8E6;"></i><strong>Enterprise</strong>
+                </span>
+            }
+            else if (UserRole == "Professor")
+            {
+                <span style="display: flex; align-items: center;">
+                    <i class="fas fa-chalkboard-teacher" style="margin-right: 5px; color: #ADD8E6;"></i><strong>Faculty Member</strong>
+                </span>
+            }
+            else if (UserRole == "Admin")
+            {
+                <span style="display: flex; align-items: center;">
+                    <i class="fa-solid fa-screwdriver-wrench" style="margin-right: 5px; color: #ADD8E6;"></i><strong>Admin Member</strong>
+                </span>
+            }
+            else if (UserRole == "Research Group")
+            {
+                <span style="display: flex; align-items: center;">
+                    <i class="fa-solid fa-user-group" style="margin-right: 5px; color: #ADD8E6;"></i><strong>Research Group</strong>
+                </span>
+            }
+            else
+            {
+                <span><strong>@UserRole</strong></span>
+            }
+        </div>
+
+        <div class="dropdown-container">
+            <button class="dropdown-toggle-custom" type="button" @onclick="ToggleDropdown">
+                @if (!string.IsNullOrEmpty(Picture))
+                {
+                    <img src="@Picture" alt="User Picture" class="user-avatar">
+                }
+                <span class="user-name">
+                    @GetDisplayName()
+                </span>
+                <i class="fas fa-chevron-down chevron @(dropdownOpen ? "rotated" : "")"></i>
+            </button>
+            <div class="dropdown-menu-custom @(dropdownOpen ? "show" : "")">
+                <a class="dropdown-item-custom" @onclick="(e => { RedirectToProfile(); ToggleDropdown(); })">
+                    <i class="fas fa-user"></i>Προφίλ Χρήστη
+                </a>
+                <a class="dropdown-item-custom" href="settings" @onclick="ToggleDropdown">
+                    <i class="fas fa-cog"></i>Ρυθμίσεις
+                </a>
+                <div class="dropdown-divider-custom"></div>
+                <a class="dropdown-item-custom" href="logout" @onclick="ToggleDropdown">
+                    <i class="fas fa-sign-out-alt"></i>Αποσύνδεση
+                </a>
+            </div>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <a class="about-link" href="login?redirectUri=/">Σύνδεση</a>
+    </NotAuthorized>
+</AuthorizeView>
+
+@*
+<body>
+    <div class="useful-links">
+        <ul>
+            <li><a href="https://www.uoa.gr/">University Of Athens</a></li>
+            <li><a href="https://eclass.uoa.gr/">eClass</a></li>
+            <li><a href="https://fogus.gr/">Support</a></li>
+        </ul>
+    </div>
+</body>
+*@
+
+@inject IJSRuntime JSRuntime;
+@code {
+    private string Username = "Anonymous User";
+    private string CompanyName = "Anonymous CompanyModel";
+    private string ResearchGroupName = "Anonymous Research Group";
+    private string Picture = "";
+    private string UserRole = "";
+    private string AppName = "AcadeMyHub";
+    private string realName = "";
+    private string realCompanyName = "";
+    private string userEmail = "";
+    private int StudentId = 0;
+    private int CompanyId = 0;
+    private int ProfessorId = 0;
+    private int ResearchGroupId = 0;
+    private bool dropdownOpen = false;
+
+    private string GetDisplayName()
+    {
+        return UserRole switch
+        {
+            "Company" => string.IsNullOrEmpty(CompanyName) ? userEmail : CompanyName,
+            "Professor" => string.IsNullOrEmpty(realName) ? userEmail : realName,
+            "Student" => string.IsNullOrEmpty(Username) ? userEmail : Username,
+            "Admin" => string.IsNullOrEmpty(Username) ? userEmail : Username,
+            "Research Group" => string.IsNullOrEmpty(Username) ? userEmail : Username,
+            _ => userEmail
+        };
+    }
+
+    private void ToggleDropdown()
+    {
+        dropdownOpen = !dropdownOpen;
+        StateHasChanged();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Add click event listener to close dropdown when clicking outside
+            await JSRuntime.InvokeVoidAsync("eval", @"
+                document.addEventListener('click', function(event) {
+                    const dropdownContainer = document.querySelector('.dropdown-container');
+                    const dropdownMenu = document.querySelector('.dropdown-menu-custom');
+                    const dropdownToggle = document.querySelector('.dropdown-toggle-custom');
+
+                    if (dropdownContainer && !dropdownContainer.contains(event.target)) {
+                        const component = DotNet.invokeMethodAsync('QuizManager', 'GetAccessControlComponent');
+                        component.then(result => {
+                            if (result) {
+                                DotNet.invokeMethodAsync('QuizManager', 'CloseDropdown');
+                            }
+                        });
+                    }
+                });
+            ");
+        }
+    }
+
+    [JSInvokable]
+    public static void CloseDropdown()
+    {
+        // This will be called from JavaScript
+        // The actual implementation would need to communicate with the component instance
+    }
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationState { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (authenticationState is not null)
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+ 
+            userEmail = user.FindFirst("name")?.Value;
+            if (!string.IsNullOrEmpty(userEmail))
+            {
+                // Use cached UserContextService instead of direct database queries
+                var userContext = await UserContextService.GetStateAsync();
+                
+                // Set properties from cached user context
+                StudentId = userContext.Student?.Id ?? 0;
+                CompanyId = userContext.Company?.Id ?? 0;
+                ProfessorId = userContext.Professor?.Id ?? 0;
+                ResearchGroupId = userContext.ResearchGroup?.Id ?? 0;
+                
+                // Set display names
+                Username = userContext.Student?.Name ??
+                          userContext.Company?.CompanyName ??
+                          userContext.Professor?.ProfName ??
+                          userContext.ResearchGroup?.ResearchGroupName ??
+                          userEmail;
+                
+                realName = Username;
+                CompanyName = userContext.Company?.CompanyName ?? "";
+                ResearchGroupName = userContext.ResearchGroup?.ResearchGroupName ?? "";
+                
+                // Set profile picture from cached entity
+                Picture = "/Images/noImage.png";
+                if (userContext.Student?.Image != null && userContext.Student.Image.Length > 0)
+                {
+                    Picture = $"data:image/png;base64,{Convert.ToBase64String(userContext.Student.Image)}";
+                }
+                else if (userContext.Company?.CompanyLogo != null && userContext.Company.CompanyLogo.Length > 0)
+                {
+                    Picture = $"data:image/png;base64,{Convert.ToBase64String(userContext.Company.CompanyLogo)}";
+                }
+                else if (userContext.Professor?.ProfImage != null && userContext.Professor.ProfImage.Length > 0)
+                {
+                    Picture = $"data:image/png;base64,{Convert.ToBase64String(userContext.Professor.ProfImage)}";
+                }
+                else if (userContext.ResearchGroup?.ResearchGroupImage != null && userContext.ResearchGroup.ResearchGroupImage.Length > 0)
+                {
+                    Picture = $"data:image/png;base64,{Convert.ToBase64String(userContext.ResearchGroup.ResearchGroupImage)}";
+                }
+                
+                // Set role from claims
+                UserRole = user.FindFirst(ClaimTypes.Role)?.Value ?? "Unknown";
+                
+                // Handle Admin special case
+                if (UserRole == "Admin")
+                {
+                    Username = "Διαχειριστής Πλατφόρμας";
+                    Picture = "/Images/admin-avatar.png";
+                }
+            }
+        }
+        await base.OnInitializedAsync();
+    }
+
+    private async Task RedirectToProfile()
+    {
+        if (UserRole == "Student")
+        {
+            if (StudentId > 0)
+            {
+                NavigationManager.NavigateTo($"/studentRegistration?studentId={StudentId}&isEditing=true");
+            }
+            else
+            {
+                Console.WriteLine("StudentModel ID is not set.");
+            }
+        }
+        else if (UserRole == "Company")
+        {
+            if (CompanyId > 0)
+            {
+                NavigationManager.NavigateTo($"/companyRegistration?companyId={CompanyId}&isEditing=true");
+            }
+            else
+            {
+                Console.WriteLine("CompanyModel ID is not set.");
+            }
+        }
+        else if (UserRole == "Professor")
+        {
+            if (ProfessorId > 0)
+            {
+                NavigationManager.NavigateTo($"/professorRegistration?professorId={ProfessorId}&isEditing=true");
+            }
+        }
+        else if (UserRole == "Admin")
+        {
+            NavigationManager.NavigateTo("/Profile");
+        }
+        else if (UserRole == "Research Group")
+        {
+            if (ResearchGroupId > 0)
+            {
+                NavigationManager.NavigateTo($"/researchGroupRegistration?researchGroupId={ResearchGroupId}&isEditing=true");
+            }
+        }
+        else
+        {
+            Console.WriteLine("Role not recognized or not handled.");
+        }
+    }
+
+    private void returnToMainPage()
+    {
+        NavigationManager.NavigateTo("/", forceLoad: true);
+    }
+}

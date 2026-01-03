@@ -1,0 +1,683 @@
+                                        <div class="mb-3 row-dark-gray mt-4">
+                                            <div class="d-flex justify-content-between align-items-center" @onclick="ToggleCompanySearchResearchGroupVisible" style="cursor: pointer;">
+                                                <label class="form-label" style="color: #FFF8DC;">• Αναζήτηση Ερευνητικής Ομάδας •</label>
+                                                <button class="btn btn-link" @onclick="ToggleCompanySearchResearchGroupVisible" @onclick:stopPropagation="true">
+                                                    @if (isCompanySearchResearchGroupVisible)
+                                                    {
+                                                        <span>&#8722;</span> <!-- Minus sign -->
+                                                    }
+                                                    else
+                                                    {
+                                                        <span>&#43;</span> <!-- Plus sign -->
+                                                    }
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        @if (isCompanySearchResearchGroupVisible)
+                                        {
+                                            <!-- Search Form -->
+                                            <div class="row mb-3">
+                                                <!-- Search Research Group by Name -->
+                                                <div class="col-md-4 position-relative">
+                                                    <label for="searchResearchGroupNameAsCompanyToFindResearchGroup" style="font-weight: bold;">Όνομα Ερευνητικής Ομάδας</label>
+                                                    <input 
+                                                        type="text" 
+                                                        id="searchResearchGroupNameAsCompanyToFindResearchGroup"
+                                                        class="form-control" 
+                                                        placeholder="Αναζήτηση με όνομα ομάδας" 
+                                                        @bind="searchResearchGroupNameAsCompanyToFindResearchGroup" 
+                                                        @oninput="HandleResearchGroupNameInput" />
+
+                                                    <!-- Suggestions dropdown -->
+                                                    <ul class="list-group position-absolute" 
+                                                        style="z-index: 100; width: 100%; max-height: 150px; overflow-y: auto;" 
+                                                        hidden="@(!researchgroupNameSuggestions.Any())">
+                                                        @foreach (var suggestion in researchgroupNameSuggestions)
+                                                        {
+                                                            <li class="list-group-item list-group-item-action" 
+                                                                @onclick="() => SelectResearchGroupNameSuggestion(suggestion)">
+                                                                @suggestion
+                                                            </li>
+                                                        }
+                                                    </ul>
+                                                </div>
+                                                <!-- Search Research Group by School -->
+                                                <div class="col-md-4">
+                                                    <label for="searchResearchGroupSchoolAsCompanyToFindResearchGroup" style="font-weight: bold;">Σχολή</label>
+                                                    <div class="input-group">
+                                                        <select class="form-control" 
+                                                                value="@searchResearchGroupSchoolAsCompanyToFindResearchGroup"
+                                                                @onchange="OnSchoolSelectionChanged">
+                                                            <option value=""> - Επιλέξτε Σχολή - </option>
+                                                            @foreach (var school in researchGroupSchools)
+                                                            {
+                                                                <option value="@school">@school</option>
+                                                            }
+                                                        </select>
+                                                        <div class="input-group-append">
+                                                            <span class="input-group-text">
+                                                                <i class="fas fa-chevron-down"></i>
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Search Research Group by University Department -->
+                                                <div class="col-md-4">
+                                                    <label for="searchResearchGroupUniversityDepartmentAsCompanyToFindResearchGroup" style="font-weight: bold;">Τμήμα Πανεπιστημίου</label>
+                                                    <div class="input-group">
+                                                        <select class="form-control" 
+                                                                @bind="searchResearchGroupUniversityDepartmentAsCompanyToFindResearchGroup"
+                                                                disabled="@string.IsNullOrEmpty(searchResearchGroupSchoolAsCompanyToFindResearchGroup)">
+                                                            <option value=""> - Επιλέξτε Τμήμα - </option>
+                                                            @if (!string.IsNullOrEmpty(searchResearchGroupSchoolAsCompanyToFindResearchGroup))
+                                                            {
+                                                                @foreach (var department in filteredDepartments)
+                                                                {
+                                                                    <option value="@department">@department</option>
+                                                                }
+                                                            }
+                                                        </select>
+                                                        <div class="input-group-append">
+                                                            <span class="input-group-text">
+                                                                <i class="fas fa-chevron-down"></i>
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Search Research Group by Areas -->
+                                                <div class="col-md-4 position-relative mt-3">
+                                                    <label for="searchResearchGroupAreasAsCompanyToFindResearchGroup" style="font-weight: bold;">Περιοχές Έρευνας</label>
+                                                    <input 
+                                                        type="text" 
+                                                        id="searchResearchGroupAreasAsCompanyToFindResearchGroup"
+                                                        class="form-control" 
+                                                        placeholder="Αναζήτηση με περιοχές έρευνας" 
+                                                        @bind="searchResearchGroupAreasAsCompanyToFindResearchGroup" 
+                                                        @oninput="HandleResearchGroupAreasInput"
+                                                        @onkeydown="HandleResearchGroupAreasKeyDown" />
+
+                                                    <!-- Suggestions dropdown for Research Areas -->
+                                                    <ul class="list-group position-absolute" 
+                                                        style="z-index: 100; width: 100%; max-height: 150px; overflow-y: auto;" 
+                                                        hidden="@(!researchGroupAreasSuggestions.Any())">
+                                                        @foreach (var suggestion in researchGroupAreasSuggestions)
+                                                        {
+                                                            <li class="list-group-item list-group-item-action" 
+                                                                @onclick="() => SelectResearchGroupAreasSuggestion(suggestion)">
+                                                                @if (suggestion.Contains(" - "))
+                                                                {
+                                                                    var parts = suggestion.Split(new[] { " - " }, StringSplitOptions.None);
+                                                                    <div>
+                                                                        <span class="text-muted">@parts[0] - </span>
+                                                                        <span class="fw-bold">@parts[1]</span>
+                                                                    </div>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <div>@suggestion</div>
+                                                                }
+                                                            </li>
+                                                        }
+                                                    </ul>
+
+                                                    <!-- Selected Research Areas -->
+                                                    <div class="mt-3 selected-areas-container">
+                                                        @if (selectedResearchGroupAreas.Any())
+                                                        {
+                                                            <ul class="list-group selected-areas-list">
+                                                                @foreach (var area in selectedResearchGroupAreas)
+                                                                {
+                                                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                                        @if (area.Contains(" - "))
+                                                                        {
+                                                                            var parts = area.Split(new[] { " - " }, StringSplitOptions.None);
+                                                                            <span>
+                                                                                <span class="text-muted">@parts[0] - </span>
+                                                                                <span class="fw-bold">@parts[1]</span>
+                                                                            </span>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <span>@area</span>
+                                                                        }
+                                                                        <button class="btn btn-danger btn-sm" @onclick="() => RemoveSelectedResearchGroupArea(area)">
+                                                                            <i class="fas fa-times"></i>
+                                                                        </button>
+                                                                    </li>
+                                                                }
+                                                            </ul>
+                                                        }
+                                                    </div>
+                                                </div>
+
+                                                <!-- Search Research Group by Skills -->
+                                                <div class="col-md-4 position-relative mt-3">
+                                                    <label for="searchResearchGroupSkillsAsCompanyToFindResearchGroup" style="font-weight: bold;">Τεχνολογίες</label>
+                                                    <input 
+                                                        type="text" 
+                                                        id="searchResearchGroupSkillsAsCompanyToFindResearchGroup"
+                                                        class="form-control" 
+                                                        placeholder="Αναζήτηση με δεξιότητες" 
+                                                        @bind="searchResearchGroupSkillsAsCompanyToFindResearchGroup" 
+                                                        @oninput="HandleResearchGroupSkillsInput"
+                                                        @onkeydown="HandleResearchGroupSkillsKeyDown" />
+
+                                                    <!-- Suggestions dropdown for Research Skills -->
+                                                    <ul class="list-group position-absolute" 
+                                                        style="z-index: 100; width: 100%; max-height: 150px; overflow-y: auto;" 
+                                                        hidden="@(!researchGroupSkillsSuggestions.Any())">
+                                                        @foreach (var suggestion in researchGroupSkillsSuggestions)
+                                                        {
+                                                            <li class="list-group-item list-group-item-action" 
+                                                                @onclick="() => SelectResearchGroupSkillsSuggestion(suggestion)">
+                                                                @suggestion
+                                                            </li>
+                                                        }
+                                                    </ul>
+
+                                                    <!-- Selected Research Skills -->
+                                                    <div class="mt-3 selected-skills-container">
+                                                        @if (selectedResearchGroupSkills.Any())
+                                                        {
+                                                            <ul class="list-group selected-skills-list">
+                                                                @foreach (var skill in selectedResearchGroupSkills)
+                                                                {
+                                                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                                        @skill
+                                                                        <button class="btn btn-danger btn-sm" @onclick="() => RemoveSelectedResearchGroupSkill(skill)">
+                                                                            <i class="fas fa-times"></i>
+                                                                        </button>
+                                                                    </li>
+                                                                } 
+                                                            </ul>
+                                                        }
+                                                    </div>
+                                                </div>
+
+                                                <!-- Search Research Group by Keywords -->
+                                                <div class="col-md-4 position-relative mt-3">
+                                                    <label for="searchResearchGroupKeywordsAsCompanyToFindResearchGroup" style="font-weight: bold;">Λέξεις Κλειδιά</label>
+                                                    <input 
+                                                        type="text" 
+                                                        id="searchResearchGroupKeywordsAsCompanyToFindResearchGroup"
+                                                        class="form-control" 
+                                                        placeholder="Αναζήτηση με λέξεις κλειδιά" 
+                                                        @bind="searchResearchGroupKeywordsAsCompanyToFindResearchGroup" />
+                                                </div>
+                                                <br/>
+                                                <br/>
+                                                <div class="row mb-3">
+                                                    <div class="col-md-12">
+                                                        <button class="modern-button" style="background-color: #2d3748; color: white; display: inline-flex; align-items: center;" @onclick="SearchResearchGroupsAsCompany">
+                                                            <i class="fa-brands fa-searchengin" style="margin-right: 8px;"></i>Αναζήτηση
+                                                        </button>
+                                                        <button class="modern-button" style="background-color: #2d3748; color: white; display: inline-flex; align-items: center;" @onclick="ClearSearchFieldsAsCompanyToFindResearchGroup">
+                                                            <i class="fa-solid fa-broom" style="margin-right: 8px;"></i>Εκκαθάριση
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <br/>
+                                            <br/>
+                                            <!-- Results Table -->
+                                            @if (hasSearchedForResearchGroups && searchResultsAsCompanyToFindResearchGroup != null)
+                                            {
+                                                if (searchResultsAsCompanyToFindResearchGroup.Any())
+                                                {
+                                                    <div class="col-md-2">
+                                                        <label style="color: #2d3748; font-weight: bold; font-size: 15px; display: block;">Αποτελέσματα ανά Σελίδα</label>
+                                                        <div class="input-group" style="max-width: 65px;">
+                                                            <select class="form-control form-control-sm" @onchange="OnPageSizeChange_SearchForResearchGroupsAsCompany" aria-label="Items per page">
+                                                                @foreach (var option in pageSizeOptions_SearchForResearchGroupsAsCompany)
+                                                                {
+                                                                    <option value="@option" selected="@(ResearchGroupsPerPage_SearchForResearchGroupsAsCompany == option)">@option</option>
+                                                                }
+                                                            </select>
+                                                            <div class="input-group-append">
+                                                                <span class="input-group-text">
+                                                                    <i class="fas fa-chevron-down"></i>
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <table class="table mt-4">
+                                                        <thead>
+                                                            <tr>
+                                                                <td colspan="9" style="padding: 0;">
+                                                                    <div style="display: flex; justify-content: space-between; align-items: center; height: 24px; line-height: 24px; width: 100%;">
+                                                                        <i class="fa-solid fa-magnifying-glass" style="font-size: 18px; color: #0d6efd;"></i>
+                                                                        <label class="form-label" style="color: #0d6efd; font-weight: bold; font-size: 18px; margin: 0;">Αποτέλεσμα Αναζήτησης</label>
+                                                                        <i class="fa-solid fa-magnifying-glass" style="font-size: 18px; color: #0d6efd;"></i>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                            <tr style="background-color: lightgray; border: 2px solid black;">
+                                                                <th style="border: 2px solid black;">
+                                                                    <i class="fa-solid fa-users fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                    Όνομα Ομάδας
+                                                                </th>
+                                                                <th style="border: 2px solid black;">
+                                                                    <i class="fa-solid fa-globe fa-sm" style="color: #0d6efd; margin-right: 8px;"></i>
+                                                                    Ιστοσελίδα Ομάδας
+                                                                </th>
+                                                                <th style="border: 2px solid black;">
+                                                                    <i class="fa-solid fa-building fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                    Σχολή
+                                                                </th>
+                                                                <th style="border: 2px solid black;">
+                                                                    <i class="fa-solid fa-building fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                    Τμήμα
+                                                                </th>
+                                                                <th style="border: 2px solid black;">
+                                                                    <i class="fa-solid fa-tags fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                    Περιοχές Έρευνας
+                                                                </th>
+                                                                <th style="border: 2px solid black;">
+                                                                    <i class="fa-solid fa-tools fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                    Τεχνολογίες
+                                                                </th>
+                                                                <th style="border: 2px solid black;">
+                                                                    <i class="fa-solid fa-key fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                    Λέξεις Κλειδιά
+                                                                </th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            @foreach (var researchGroup in GetPaginatedResearchGroupResults())
+                                                            {
+                                                                <tr>
+                                                                    <td style="font-weight: 500;">
+                                                                        <!-- Modal View -->
+                                                                        <a href="#" style="text-decoration: none; color: #0d6efd;" 
+                                                                           @onclick="() => ShowResearchGroupDetailsModal(researchGroup)" 
+                                                                           title="Γρήγορη Επισκόπηση">
+                                                                            @researchGroup.ResearchGroupName
+                                                                        </a>
+                                                                    </td>
+                                                                    <td>
+                                                                        <a href="/researchGroupDetails?id=@researchGroup.ResearchGroup_UniqueID" 
+                                                                           target="_blank"
+                                                                           rel="noopener noreferrer"
+                                                                           title="Πλήρης Προβολή σε Νέα Σελίδα"
+                                                                           style="text-decoration: none; color: #28a745;">
+                                                                            <i class="fas fa-external-link-alt me-1"></i>
+                                                                            Ιστοσελίδα
+                                                                        </a>
+                                                                    </td>
+                                                                    <td>@researchGroup.ResearchGroupSchool</td>
+                                                                    <td>@researchGroup.ResearchGroupUniversityDepartment</td>
+                                                                    <td>
+                                                                        @string.Join(", ", researchGroup.ResearchGroupAreas)
+                                                                    </td>
+                                                                    <td>
+                                                                        @string.Join(", ", researchGroup.ResearchGroupSkills)
+                                                                    </td>
+                                                                    <td>
+                                                                        @string.Join(", ", researchGroup.ResearchGroupKeywords)
+                                                                    </td>
+                                                                </tr>
+                                                            }
+                                                        </tbody>
+                                                    </table>
+                                                    <div class="d-flex justify-content-center align-items-center mt-3 gap-1">
+                                                        <!-- First Page (<<) -->
+                                                        <span class="pagination-item @(currentResearchGroupPage_SearchForResearchGroupsAsCompany == 1 ? "disabled" : "")" 
+                                                              @onclick="@(() => GoToFirstResearchGroupPage())">
+                                                            &lt;&lt;
+                                                        </span>
+
+                                                        <!-- Previous Page (<) -->
+                                                        <span class="pagination-item @(currentResearchGroupPage_SearchForResearchGroupsAsCompany == 1 ? "disabled" : "")" 
+                                                              @onclick="@(() => PreviousResearchGroupPage())">
+                                                            &lt;
+                                                        </span>
+
+                                                        <!-- Page Numbers -->
+                                                        @foreach (var pageNum in GetVisibleResearchGroupPages())
+                                                        {
+                                                            @if (pageNum == -1)
+                                                            {
+                                                                <span class="pagination-ellipsis">...</span>
+                                                            }
+                                                            else
+                                                            {
+                                                                <span class="pagination-item @(pageNum == currentResearchGroupPage_SearchForResearchGroupsAsCompany ? "active" : "")" 
+                                                                      @onclick="@(() => GoToResearchGroupPage(pageNum))">
+                                                                    @pageNum
+                                                                </span>
+                                                            }
+                                                        }
+
+                                                        <!-- Next Page (>) -->
+                                                        <span class="pagination-item @(currentResearchGroupPage_SearchForResearchGroupsAsCompany == totalResearchGroupPages_SearchForResearchGroupsAsCompany ? "disabled" : "")" 
+                                                              @onclick="@(() => NextResearchGroupPage())">
+                                                            &gt;
+                                                        </span>
+
+                                                        <!-- Last Page (>>) -->
+                                                        <span class="pagination-item @(currentResearchGroupPage_SearchForResearchGroupsAsCompany == totalResearchGroupPages_SearchForResearchGroupsAsCompany ? "disabled" : "")" 
+                                                              @onclick="@(() => GoToLastResearchGroupPage())">
+                                                            &gt;&gt;
+                                                        </span>
+
+                                                        <!-- Page counter -->
+                                                        <span class="ms-3">Σελίδα @currentResearchGroupPage_SearchForResearchGroupsAsCompany από @totalResearchGroupPages_SearchForResearchGroupsAsCompany</span>
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <div class="alert alert-warning d-flex align-items-center" role="alert">
+                                                      <i class="fas fa-exclamation-triangle me-2"></i>
+                                                      <div>Δεν βρέθηκε κάποιο αποτέλεσμα που να πληρεί τα κριτήρια της Αναζήτησης σας.</div>
+                                                    </div>
+                                                }
+                                            }
+                                        }
+                                    @*SEARCH RESEARCH GROUP AS COMPANY - END - *@
+                                    <!-- Modal for displaying research group details FOR SEARCH AS COMPANY -->
+                                    @if (showResearchGroupDetailsModalWhenSearchForResearchGroupsAsCompany && selectedResearchGroupWhenSearchForResearchGroupsAsCompany != null)
+                                    {
+                                        <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0, 0, 0, 0.5);">
+                                            <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+                                                <div class="modal-content" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);">
+                                                    <div class="modal-header" style="border-bottom: 1px solid #e9ecef; border-radius: 12px 12px 0 0; background-color: #f8f9fa;">
+                                                        <h5 class="modal-title" style="color: #4682B4; font-weight: 600; font-size: 1.25rem;">
+                                                            @selectedResearchGroupWhenSearchForResearchGroupsAsCompany.ResearchGroupName
+                                                        </h5>
+                                                        <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" 
+                                                                @onclick="CloseModalResearchGroupDetailsOnEyeIconWhenSearchForResearchGroupsAsCompany"
+                                                                onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                onmouseout="this.style.backgroundColor='#2d3748'">
+                                                            <span style="font-size: 1.2rem; line-height: 1;">×</span>
+                                                        </button>
+                                                    </div>
+                                                    <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                                                        <!-- Research Group Logo -->
+                                                        <div class="text-center mb-4">
+                                                            @if (selectedResearchGroupWhenSearchForResearchGroupsAsCompany.ResearchGroupImage != null && selectedResearchGroupWhenSearchForResearchGroupsAsCompany.ResearchGroupImage.Length > 0)
+                                                            {
+                                                                var base64Image = Convert.ToBase64String(selectedResearchGroupWhenSearchForResearchGroupsAsCompany.ResearchGroupImage);
+                                                                <img src="data:image/jpeg;base64,@base64Image" alt="Λογότυπο Ερευνητικής Ομάδας" 
+                                                                     style="max-width: 150px; max-height: 150px; border-radius: 50%; object-fit: cover; border: 3px solid #ddd;" />
+                                                            }
+                                                            else
+                                                            {
+                                                                <div style="width: 150px; height: 150px; border-radius: 50%; background-color: #f8f9fa; display: flex; align-items: center; justify-content: center; margin: 0 auto; border: 3px solid #ddd;">
+                                                                    <i class="fas fa-users" style="font-size: 3rem; color: #6c757d;"></i>
+                                                                </div>
+                                                            }
+                                                        </div>
+
+                                                        <!-- Research Group Name -->
+                                                        <div class="form-group">
+                                                            <label style="font-weight: bold;">Όνομα Ομάδας</label>
+                                                            <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                <i class="fas fa-users mr-2 text-primary"></i>
+                                                                <span>@selectedResearchGroupWhenSearchForResearchGroupsAsCompany.ResearchGroupName</span>
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Research Group School -->
+                                                        <div class="form-group">
+                                                            <label style="font-weight: bold;">Σχολή</label>
+                                                            <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                <i class="fas fa-university mr-2 text-primary"></i>
+                                                                <span>@selectedResearchGroupWhenSearchForResearchGroupsAsCompany.ResearchGroupSchool</span>
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Research Group University Department -->
+                                                        <div class="form-group">
+                                                            <label style="font-weight: bold;">Τμήμα Πανεπιστημίου</label>
+                                                            <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                <i class="fas fa-building mr-2"></i>
+                                                                <span>@selectedResearchGroupWhenSearchForResearchGroupsAsCompany.ResearchGroupUniversityDepartment</span>
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Research Group Email -->
+                                                        <div class="form-group">
+                                                            <label style="font-weight: bold;">Email</label>
+                                                            <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                <i class="fas fa-envelope mr-2 text-primary"></i>
+                                                                <span>@selectedResearchGroupWhenSearchForResearchGroupsAsCompany.ResearchGroupEmail</span>
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Research Group Contact Email -->
+                                                        @if (!string.IsNullOrEmpty(selectedResearchGroupWhenSearchForResearchGroupsAsCompany.ResearchGroupContactEmail))
+                                                        {
+                                                            <div class="form-group">
+                                                                <label style="font-weight: bold;">Email Επικοινωνίας</label>
+                                                                <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                    <i class="fas fa-envelope mr-2"></i>
+                                                                    <span>@selectedResearchGroupWhenSearchForResearchGroupsAsCompany.ResearchGroupContactEmail</span>
+                                                                </div>
+                                                            </div>
+                                                        }
+
+                                                        <!-- Research Group Telephone -->
+                                                        @if (!string.IsNullOrEmpty(selectedResearchGroupWhenSearchForResearchGroupsAsCompany.ResearchGroupTelephoneNumber))
+                                                        {
+                                                            <div class="form-group">
+                                                                <label style="font-weight: bold;">Τηλέφωνο</label>
+                                                                <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                    <i class="fas fa-phone mr-2 text-success"></i>
+                                                                    <span>@selectedResearchGroupWhenSearchForResearchGroupsAsCompany.ResearchGroupTelephoneNumber</span>
+                                                                </div>
+                                                            </div>
+                                                        }
+
+                                                        <!-- Research Group Areas -->
+                                                        <div class="form-group">
+                                                            <label style="font-weight: bold;">Περιοχές Έρευνας</label>
+                                                            <textarea class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" readonly rows="3">@selectedResearchGroupWhenSearchForResearchGroupsAsCompany.ResearchGroupAreas</textarea>
+                                                        </div>
+
+                                                        <!-- Research Group Skills -->
+                                                        <div class="form-group">
+                                                            <label style="font-weight: bold;">Δεξιότητες</label>
+                                                            <textarea class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" readonly rows="3">@selectedResearchGroupWhenSearchForResearchGroupsAsCompany.ResearchGroupSkills</textarea>
+                                                        </div>
+
+                                                        <!-- Research Group Keywords -->
+                                                        <div class="form-group">
+                                                            <label style="font-weight: bold;">Λέξεις Κλειδιά</label>
+                                                            <textarea class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" readonly rows="3">@selectedResearchGroupWhenSearchForResearchGroupsAsCompany.ResearchGroupKeywords</textarea>
+                                                        </div>
+
+                                                        <!-- Faculty Members -->
+                                                        <div class="form-group">
+                                                            <label style="font-weight: bold;">Ακαδημαϊκό Προσωπικό</label>
+                                                            <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa; min-height: 60px; flex-wrap: wrap; padding: 8px;">
+                                                                @if (facultyMembers.Any())
+                                                                {
+                                                                    @foreach (var member in facultyMembers)
+                                                                    {
+                                                                        <span class="badge bg-info me-1 mb-1">@member.Name @member.Surname</span>
+                                                                    }
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span style="color: #6c757d;">Δεν υπάρχουν ακαδημαϊκοί μέλη</span>
+                                                                }
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Non-Faculty Members -->
+                                                        <div class="form-group">
+                                                            <label style="font-weight: bold;">Μη Ακαδημαϊκό Προσωπικό</label>
+                                                            <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa; min-height: 60px; flex-wrap: wrap; padding: 8px;">
+                                                                @if (nonFacultyMembers.Any())
+                                                                {
+                                                                    @foreach (var member in nonFacultyMembers)
+                                                                    {
+                                                                        <span class="badge bg-warning text-dark me-1 mb-1">@member.Name @member.Surname</span>
+                                                                    }
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span style="color: #6c757d;">Δεν υπάρχουν μη ακαδημαϊκά μέλη</span>
+                                                                }
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Patents Count -->
+                                                        <div class="form-group">
+                                                            <label style="font-weight: bold;">Αριθμός Πατεντών</label>
+                                                            <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                <i class="fas fa-certificate mr-2" style="color: #ffc107;"></i>
+                                                                <span>@patentsCount</span>
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Active Research Actions Count -->
+                                                        <div class="form-group">
+                                                            <label style="font-weight: bold;">Ενεργές Ερευνητικές Δράσεις</label>
+                                                            <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                <i class="fas fa-flask mr-2 text-success"></i>
+                                                                <span>@activeResearchActionsCount</span>
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Spin-off Companies -->
+                                                        <div class="form-group">
+                                                            <label style="font-weight: bold;">Spin-off Εταιρεία</label>
+                                                            <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa; min-height: 60px; flex-wrap: wrap; padding: 8px;">
+                                                                @if (spinOffCompanies.Any())
+                                                                {
+                                                                    @foreach (var company in spinOffCompanies)
+                                                                    {
+                                                                        <div class="w-100 mb-2">
+                                                                            <span class="fw-bold">@company.CompanyName</span>
+                                                                            <span style="color: #6c757d;">(ΑΦΜ: @company.CompanyAFM)</span>
+                                                                        </div>
+                                                                    }
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span style="color: #6c757d;">Δεν υπάρχουν spin-off εταιρείες</span>
+                                                                }
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="form-group">
+                                                            <label style="font-weight: bold;"> Υποδομές</label>
+                                                            <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa; min-height: 60px; flex-wrap: wrap; padding: 8px;">
+                                                                @if (researchGroupIpodomes != null && researchGroupIpodomes.Any())
+                                                                {
+                                                                    @foreach (var item in researchGroupIpodomes)
+                                                                    {
+                                                                        <div class="w-100 mb-2 p-2" style="border-bottom: 1px solid #e9ecef;">
+                                                                            <div class="d-flex align-items-start">
+                                                                                <i class="fas fa-server mt-1 mr-2" style="color: #6f42c1;"></i>
+                        
+                                                                                <div>
+                                                                                    <span class="fw-bold" style="color: #2d3748;">@item.Name</span>
+                                                                                    @if (!string.IsNullOrEmpty(item.Description))
+                                                                                    {
+                                                                                        <div class="text-muted small mt-1">@item.Description</div>
+                                                                                    }
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    }
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span style="color: #6c757d;">Δεν υπάρχουν καταχωρημένες υποδομές</span>
+                                                                }
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Website -->
+                                                        @if (!string.IsNullOrEmpty(selectedResearchGroupWhenSearchForResearchGroupsAsCompany.ResearchGroup_Website))
+                                                        {
+                                                            <div class="form-group">
+                                                                <label style="font-weight: bold;">Ιστοσελίδα</label>
+                                                                <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                    <i class="fas fa-globe mr-2 text-info"></i>
+                                                                    <a href="@selectedResearchGroupWhenSearchForResearchGroupsAsCompany.ResearchGroup_Website" target="_blank" 
+                                                                       class="text-primary text-decoration-underline">
+                                                                        @selectedResearchGroupWhenSearchForResearchGroupsAsCompany.ResearchGroup_Website
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        }
+
+                                                        <!-- Facebook -->
+                                                        @if (!string.IsNullOrEmpty(selectedResearchGroupWhenSearchForResearchGroupsAsCompany.ResearchGroup_Facebook))
+                                                        {
+                                                            <div class="form-group">
+                                                                <label style="font-weight: bold;">Facebook</label>
+                                                                <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                    <i class="fab fa-facebook mr-2" style="color: #3b5998;"></i>
+                                                                    <a href="@selectedResearchGroupWhenSearchForResearchGroupsAsCompany.ResearchGroup_Facebook" target="_blank" 
+                                                                       class="text-decoration-underline" style="color: #3b5998;">
+                                                                        @selectedResearchGroupWhenSearchForResearchGroupsAsCompany.ResearchGroup_Facebook
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        }
+
+                                                        <!-- Twitter -->
+                                                        @if (!string.IsNullOrEmpty(selectedResearchGroupWhenSearchForResearchGroupsAsCompany.ResearchGroup_Twitter))
+                                                        {
+                                                            <div class="form-group">
+                                                                <label style="font-weight: bold;">Twitter</label>
+                                                                <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                    <i class="fab fa-twitter mr-2" style="color: #1da1f2;"></i>
+                                                                    <a href="@selectedResearchGroupWhenSearchForResearchGroupsAsCompany.ResearchGroup_Twitter" target="_blank" 
+                                                                       class="text-decoration-underline" style="color: #1da1f2;">
+                                                                        @selectedResearchGroupWhenSearchForResearchGroupsAsCompany.ResearchGroup_Twitter
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        }
+
+                                                        <!-- LinkedIn -->
+                                                        @if (!string.IsNullOrEmpty(selectedResearchGroupWhenSearchForResearchGroupsAsCompany.ResearchGroup_LinkedIn))
+                                                        {
+                                                            <div class="form-group">
+                                                                <label style="font-weight: bold;">LinkedIn</label>
+                                                                <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                    <i class="fab fa-linkedin mr-2" style="color: #0077b5;"></i>
+                                                                    <a href="@selectedResearchGroupWhenSearchForResearchGroupsAsCompany.ResearchGroup_LinkedIn" target="_blank" 
+                                                                       class="text-decoration-underline" style="color: #0077b5;">
+                                                                        @selectedResearchGroupWhenSearchForResearchGroupsAsCompany.ResearchGroup_LinkedIn
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        }
+
+                                                        <!-- YouTube -->
+                                                        @if (!string.IsNullOrEmpty(selectedResearchGroupWhenSearchForResearchGroupsAsCompany.ResearchGroup_YouTubeChannel))
+                                                        {
+                                                            <div class="form-group">
+                                                                <label style="font-weight: bold;">YouTube</label>
+                                                                <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                    <i class="fab fa-youtube mr-2" style="color: #ff0000;"></i>
+                                                                    <a href="@selectedResearchGroupWhenSearchForResearchGroupsAsCompany.ResearchGroup_YouTubeChannel" target="_blank" 
+                                                                       class="text-decoration-underline" style="color: #ff0000;">
+                                                                        @selectedResearchGroupWhenSearchForResearchGroupsAsCompany.ResearchGroup_YouTubeChannel
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; padding: 8px 20px; transition: all 0.2s;" 
+                                                                @onclick="CloseModalResearchGroupDetailsOnEyeIconWhenSearchForResearchGroupsAsCompany"
+                                                                onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                onmouseout="this.style.backgroundColor='#2d3748'">
+                                                            <i class="fas fa-arrow-left me-2"></i> Κλείσιμο
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }

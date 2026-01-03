@@ -1,0 +1,98 @@
+<div class="d-flex justify-content-center align-items-center mt-3 gap-1">
+    <span class="pagination-item @(CurrentPage == 1 ? "disabled" : "")"
+          @onclick="GoToFirstPage">
+        &lt;&lt;
+    </span>
+
+    <span class="pagination-item @(CurrentPage == 1 ? "disabled" : "")"
+          @onclick="PreviousPage">
+        &lt;
+    </span>
+
+    @foreach (var pageNum in GetVisiblePages())
+    {
+        if (pageNum == -1)
+        {
+            <span class="pagination-ellipsis">...</span>
+        }
+        else
+        {
+            <span class="pagination-item @(pageNum == CurrentPage ? "active" : "")"
+                  @onclick="@(() => GoToPage.InvokeAsync(pageNum))">
+                @pageNum
+            </span>
+        }
+    }
+
+    <span class="pagination-item @(CurrentPage == TotalPages ? "disabled" : "")"
+          @onclick="NextPage">
+        &gt;
+    </span>
+
+    <span class="pagination-item @(CurrentPage == TotalPages ? "disabled" : "")"
+          @onclick="GoToLastPage">
+        &gt;&gt;
+    </span>
+
+    <span class="ms-3">
+        Σελίδα @CurrentPage από @TotalPages
+    </span>
+</div>
+
+@code {
+    [Parameter]
+    public int CurrentPage { get; set; }
+
+    [Parameter]
+    public int TotalPages { get; set; }
+
+    [Parameter]
+    public EventCallback<int> GoToPage { get; set; }
+
+    [Parameter]
+    public EventCallback GoToFirstPage { get; set; }
+
+    [Parameter]
+    public EventCallback PreviousPage { get; set; }
+
+    [Parameter]
+    public EventCallback NextPage { get; set; }
+
+    [Parameter]
+    public EventCallback GoToLastPage { get; set; }
+
+    private List<int> GetVisiblePages()
+    {
+        var pages = new List<int>();
+        if (TotalPages <= 7)
+        {
+            for (int i = 1; i <= TotalPages; i++)
+            {
+                pages.Add(i);
+            }
+        }
+        else
+        {
+            pages.Add(1);
+            if (CurrentPage > 4)
+            {
+                pages.Add(-1); // Ellipsis
+            }
+
+            int start = Math.Max(2, CurrentPage - 2);
+            int end = Math.Min(TotalPages - 1, CurrentPage + 2);
+
+            for (int i = start; i <= end; i++)
+            {
+                pages.Add(i);
+            }
+
+            if (CurrentPage < TotalPages - 3)
+            {
+                pages.Add(-1); // Ellipsis
+            }
+            pages.Add(TotalPages);
+        }
+        return pages;
+    }
+}

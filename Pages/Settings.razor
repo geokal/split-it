@@ -1,0 +1,872 @@
+﻿@page "/settings"
+
+@using Auth0.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authentication.Cookies
+@using Microsoft.EntityFrameworkCore
+@using QuizManager.Data
+@using QuizManager.Models
+@using Microsoft.AspNetCore.Components.Forms
+@using System.Net.Http.Json
+@using System.Net.Http
+@using System.Net.Http.Headers
+@using System.Text.Json
+@using System.Security.Claims
+@inject IConfiguration Configuration
+@inject IDbContextFactory<AppDbContext> DbContextFactory
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject HttpClient HttpClient
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+@inject IAuth0Service Auth0Service
+@inject InternshipEmailService InternshipEmailService
+
+<style>
+    /* ... Previous Styles Remain the Same ... */
+    .delete-section {
+        background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
+        border: 2px solid #fed7d7;
+        border-radius: 12px;
+        padding: 2rem;
+        margin: 2rem 0;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .delete-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .delete-icon {
+        font-size: 2rem;
+        margin-right: 1rem;
+        color: #e53e3e;
+    }
+
+    .delete-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #2d3748;
+        margin: 0;
+    }
+
+    .delete-subtitle {
+        color: #718096;
+        margin-bottom: 1.5rem;
+        line-height: 1.6;
+    }
+
+    .delete-button {
+        background-color: #2d3748;
+        color: white;
+        border: 2px solid black;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+        .delete-button:hover:not(:disabled) {
+            background-color: #1a202c;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            border-color: #000000;
+        }
+
+        .delete-button:active:not(:disabled) {
+            transform: translateY(0);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .delete-button:focus {
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(45, 55, 72, 0.5);
+        }
+
+        .delete-button:disabled {
+            background-color: #718096;
+            border-color: #4a5568;
+            cursor: not-allowed;
+            opacity: 0.9;
+            transform: none;
+            box-shadow: none;
+        }
+
+    /* Modal Styles */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        width: 90%;
+        max-width: 500px;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        animation: modalAppear 0.3s ease-out;
+    }
+
+    @@keyframes modalAppear {
+        from {
+            opacity: 0;
+            transform: scale(0.9) translateY(-10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+        }
+    }
+
+    .modal-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #fed7d7;
+    }
+
+    .modal-icon {
+        font-size: 1.5rem;
+        margin-right: 1rem;
+        color: #e53e3e;
+    }
+
+    .modal-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #2d3748;
+        margin: 0;
+    }
+
+    .modal-description {
+        color: #718096;
+        margin-bottom: 1.5rem;
+        line-height: 1.6;
+    }
+
+    .input-group {
+        margin-bottom: 1.5rem;
+        position: relative; /* For eye icon positioning */
+    }
+
+    .input-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: #4a5568;
+    }
+
+    .text-input {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 16px;
+        transition: border-color 0.3s ease;
+    }
+
+        .text-input:focus {
+            outline: none;
+            border-color: #4299e1;
+            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+        }
+
+        .text-input.error {
+            border-color: #e53e3e;
+            box-shadow: 0 0 0 3px rgba(229, 62, 62, 0.1);
+        }
+
+    .password-toggle {
+        position: absolute;
+        right: 10px;
+        top: 38px; /* Adjusted for label height */
+        cursor: pointer;
+        font-size: 1.2rem;
+        color: #718096;
+    }
+
+    .error-message {
+        color: #e53e3e;
+        font-size: 0.875rem;
+        margin-top: 0.5rem;
+    }
+
+    .modal-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+    }
+
+    .cancel-button {
+        background: #e2e8f0;
+        color: #4a5568;
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 8px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+        .cancel-button:hover {
+            background: #cbd5e0;
+        }
+
+    .confirm-delete-button {
+        background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 8px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+        .confirm-delete-button:hover:not(:disabled) {
+            background: linear-gradient(135deg, #c53030 0%, #9b2c2c 100%);
+            transform: translateY(-1px);
+        }
+
+        .confirm-delete-button:disabled {
+            background: #a0aec0;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+    .security-notice {
+        background: #fffaf0;
+        border: 1px solid #fbd38d;
+        border-radius: 6px;
+        padding: 0.75rem;
+        margin-bottom: 1rem;
+        font-size: 0.875rem;
+        color: #dd6b20;
+    }
+
+    /* --- Password Section Styles (Blue Theme) --- */
+    .password-section {
+        background: linear-gradient(135deg, #ebf8ff 0%, #bee3f8 100%);
+        border: 2px solid #bee3f8;
+        border-radius: 12px;
+        padding: 2rem;
+        margin: 2rem 0;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .password-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .password-icon {
+        font-size: 2rem;
+        margin-right: 1rem;
+        color: #3182ce;
+    }
+
+    .password-button {
+        background-color: #2b6cb0;
+        color: white;
+        border: 2px solid #2c5282;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+        .password-button:hover:not(:disabled) {
+            background-color: #2c5282;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .password-button:disabled {
+            background-color: #a0aec0;
+            cursor: not-allowed;
+            border-color: #718096;
+        }
+
+    /* Helper for modal spacing */
+    .gap-2 {
+        gap: 1rem;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* --- Notification Modal Styles (New) --- */
+    .notification-content {
+        text-align: center;
+        padding: 3rem 2rem;
+        max-width: 450px;
+    }
+
+    .notification-icon {
+        font-size: 4rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .notification-message {
+        font-size: 1.2rem;
+        color: #2d3748;
+        margin-bottom: 2rem;
+        line-height: 1.5;
+    }
+
+    .ok-button {
+        background-color: #3182ce;
+        color: white;
+        border: none;
+        padding: 10px 30px;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 1rem;
+        transition: background 0.2s;
+    }
+
+        .ok-button:hover {
+            background-color: #2c5282;
+        }
+
+</style>
+
+<div class="password-section">
+    <div class="password-header">
+        <div class="password-icon">🔒</div>
+        <h3 class="delete-title">Ασφάλεια Κωδικού</h3>
+    </div>
+
+    <p class="delete-subtitle">
+        Σας προτείνουμε να αλλάζετε τον κωδικό σας τακτικά για την ασφάλεια του λογαριασμού σας.
+    </p>
+
+    <button @onclick="OpenPasswordModal" class="password-button">
+        Αλλαγή Κωδικού
+    </button>
+</div>
+
+@if (showPasswordModal)
+{
+    <div class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header" style="border-bottom-color: #bee3f8;">
+                <div class="modal-icon" style="color: #3182ce;">🔑</div>
+                <h3 class="modal-title">Αλλαγή Κωδικού</h3>
+            </div>
+
+            <div class="gap-2">
+                <div class="input-group">
+                    <label class="input-label">Τρέχων Κωδικός:</label>
+                    <input @bind="oldPassInput"
+                           type="password"
+                           class="text-input"
+                           placeholder="Εισάγετε τον τρέχοντα κωδικό" />
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">Νέος Κωδικός:</label>
+                    <input @bind="newPassInput"
+                           type="password"
+                           class="text-input"
+                           placeholder="Εισάγετε νέο κωδικό" />
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">Επιβεβαίωση Νέου Κωδικού:</label>
+                    <input @bind="confirmPassInput"
+                           type="password"
+                           class="text-input @(passwordsMatch ? "" : "error")"
+                           placeholder="Επιβεβαιώστε τον νέο κωδικό" />
+                </div>
+            </div>
+
+            @if (showPassError)
+            {
+                <div class="error-message">@passErrorMessage</div>
+            }
+
+            <div class="modal-actions">
+                <button @onclick="ClosePasswordModal" class="cancel-button">Ακύρωση</button>
+                <button @onclick="SubmitPasswordChange"
+                        disabled="@isProcessingPass"
+                        class="password-button">
+                    @if (isProcessingPass)
+                    {
+                        <span>Αποθήκευση...</span>
+                    }
+                    else
+                    {
+                        <span>Ενημέρωση</span>
+                    }
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+<div class="delete-section">
+    <div class="delete-header">
+        <div class="delete-icon">⚠️</div>
+        <h3 class="delete-title">Μόνιμη Διαγραφή Λογαριασμού</h3>
+    </div>
+
+    <div class="security-notice">
+        <strong>ΠΡΟΣΟΧΗ:</strong> Αυτή η ενέργεια είναι μόνιμη και μη αναστρέψιμη.
+        Όλα τα δεδομένα σας θα ΔΙΑΓΡΑΦΟΥΝ ΟΡΙΣΤΙΚΑ από τo AcademyHub!!
+    </div>
+
+    <p class="delete-subtitle">
+        Για ασφάλεια, απαιτείται επιβεβαίωση των στοιχείων σας προκειμένου να προχωρήσετε.
+    </p>
+
+    <button @onclick="ShowConfirmationModal"
+            disabled="@isDeleting"
+            class="delete-button">
+        @if (isDeleting)
+        {
+            <span>Διαγραφή σε εξέλιξη...</span>
+        }
+        else
+        {
+            <span>Διαγραφή Λογαριασμού</span>
+        }
+    </button>
+</div>
+
+@if (showConfirmationModal)
+{
+    <div class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-icon">🗑️</div>
+                <h3 class="modal-title">Επιβεβαίωση Διαγραφής Λογαριασμού</h3>
+            </div>
+
+            @if (isSocialLogin)
+            {
+                <p class="modal-description">
+                    Επειδή έχετε συνδεθεί μέσω <strong>@socialProvider</strong>, παρακαλώ πληκτρολογήστε το email σας για επιβεβαίωση:
+                </p>
+                <div class="input-group">
+                    <label class="input-label">Email:</label>
+                    <input @bind="emailConfirmation"
+                           @onkeyup="OnInputKeyUp"
+                           class="text-input @(showError ? "error" : "")"
+                           placeholder="@userEmail" />
+                </div>
+            }
+            else
+            {
+                <p class="modal-description">
+                    Για να διαγράψετε μόνιμα τον λογαριασμό σας, παρακαλώ πληκτρολογήστε τον <strong>κωδικό πρόσβασής</strong> σας:
+                </p>
+                <div class="input-group">
+                    <label class="input-label">Κωδικός Πρόσβασης:</label>
+                    <input @bind="passwordConfirmation"
+                           @onkeyup="OnInputKeyUp"
+                           type="@(showPassword ? "text" : "password")"
+                           class="text-input @(showError ? "error" : "")"
+                           placeholder="Εισάγετε τον κωδικό σας" />
+
+                    <span class="password-toggle" @onclick="TogglePasswordVisibility">
+                        @(showPassword ? "🙈" : "👁️")
+                    </span>
+                </div>
+            }
+
+            @if (showError)
+            {
+                <div class="error-message">@errorMessage</div>
+            }
+
+            <div class="modal-actions">
+                <button @onclick="HideConfirmationModal" class="cancel-button">Ακύρωση</button>
+                <button @onclick="ConfirmDelete"
+                        disabled="@isDeleting"
+                        class="confirm-delete-button">
+                    @if (isDeleting)
+                    {
+                        <span>Διαγραφή...</span>
+                    }
+                    else
+                    {
+                        <span>Διαγραφή Λογαριασμού</span>
+                    }
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (showNotificationModal)
+{
+    <div class="modal-overlay">
+        <div class="modal-content notification-content">
+            <div class="notification-icon">
+                @if (notificationType == "success")
+                {
+                    <span>✅</span>
+                }
+                else if (notificationType == "error")
+                {
+                    <span>❌</span>
+                }
+                else
+                {
+                    <span>ℹ️</span>
+                }
+            </div>
+
+            <h3 class="notification-message">@notificationMessage</h3>
+
+            @if (!isDeleting)
+            {
+                <button class="ok-button" @onclick="CloseNotificationModal">OK</button>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    private string userEmail;
+    private string userId;
+    private string userName = "Χρήστη"; // Default fallback
+
+    // Deletion State
+    private bool isDeleting = false;
+    private bool showConfirmationModal = false;
+
+    // Notification Modal State
+    private bool showNotificationModal = false;
+    private string notificationMessage = "";
+    private string notificationType = "info"; // success, error, info
+
+    // Inputs
+    private string emailConfirmation = string.Empty;
+    private string passwordConfirmation = string.Empty;
+
+    // Logic Flags
+    private bool isSocialLogin = false;
+    private string socialProvider = "";
+    private bool showPassword = false;
+    private bool showError = false;
+    private string errorMessage = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUserData();
+    }
+
+    private void TogglePasswordVisibility()
+    {
+        showPassword = !showPassword;
+    }
+
+    private async Task LoadUserData()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity.IsAuthenticated)
+        {
+            userEmail = user.FindFirst(ClaimTypes.Email)?.Value ?? user.FindFirst("name")?.Value;
+            userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            // Try to find a name for the email personalization
+            var nameClaim = user.FindFirst(ClaimTypes.GivenName)?.Value
+                         ?? user.FindFirst(ClaimTypes.Name)?.Value
+                         ?? user.Identity.Name;
+
+            if (!string.IsNullOrEmpty(nameClaim))
+            {
+                userName = nameClaim;
+            }
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                userId = user.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value;
+            }
+
+            // Detect if user is Social Login (e.g., google-oauth2|1234...)
+            if (userId != null && !userId.StartsWith("auth0|"))
+            {
+                isSocialLogin = true;
+                socialProvider = userId.Split('|')[0];
+            }
+        }
+    }
+
+    private void ShowConfirmationModal()
+    {
+        showConfirmationModal = true;
+        emailConfirmation = string.Empty;
+        passwordConfirmation = string.Empty;
+        showError = false;
+        StateHasChanged();
+    }
+
+    private void HideConfirmationModal()
+    {
+        showConfirmationModal = false;
+        StateHasChanged();
+    }
+
+    // --- Notification Modal Logic ---
+    private void ShowMessage(string message, string type)
+    {
+        notificationMessage = message;
+        notificationType = type;
+        showNotificationModal = true;
+        StateHasChanged();
+    }
+
+    private void CloseNotificationModal()
+    {
+        showNotificationModal = false;
+        StateHasChanged();
+    }
+
+    private void OnInputKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !isDeleting)
+        {
+            ConfirmDelete();
+        }
+    }
+
+    private async Task ConfirmDelete()
+    {
+        showError = false;
+        errorMessage = "";
+
+        // 1. Validation Phase
+        if (isSocialLogin)
+        {
+            if (!emailConfirmation.Trim().Equals(userEmail, StringComparison.OrdinalIgnoreCase))
+            {
+                showError = true;
+                errorMessage = "Το email δεν ταιριάζει.";
+                return;
+            }
+        }
+        else
+        {
+            if (string.IsNullOrWhiteSpace(passwordConfirmation))
+            {
+                showError = true;
+                errorMessage = "Παρακαλώ εισάγετε τον κωδικό σας.";
+                return;
+            }
+
+            isDeleting = true;
+            StateHasChanged();
+
+            // Call Service to verify password
+            bool isPasswordCorrect = await Auth0Service.VerifyUserPasswordAsync(userEmail, passwordConfirmation);
+
+            if (!isPasswordCorrect)
+            {
+                isDeleting = false;
+                showError = true;
+                errorMessage = "Ο κωδικός πρόσβασης είναι λανθασμένος.";
+                StateHasChanged();
+                return;
+            }
+        }
+
+        // 2. Deletion Phase
+        isDeleting = true;
+        StateHasChanged();
+
+        try
+        {
+            bool auth0Deleted = await Auth0Service.DeleteUserAsync(userId);
+            bool databaseDeleted = await DeleteUserFromDatabase();
+
+            if (auth0Deleted && databaseDeleted)
+            {
+                // --- SEND EMAIL NOTIFICATION ---
+                await InternshipEmailService.SendAccountDeletionNotification(userEmail, userName);
+
+                // Show Success Modal
+                ShowMessage("Ο λογαριασμός διαγράφηκε επιτυχώς. Ανακατεύθυνση...", "success");
+
+                // Wait while showing modal
+                await Task.Delay(2000);
+
+                NavigationManager.NavigateTo("/logout", forceLoad: true);
+            }
+            else
+            {
+                string msg = !auth0Deleted ? "Πρόβλημα με την διαγραφή από το σύστημα (Auth0)." : "Πρόβλημα με την διαγραφή από τη βάση δεδομένων.";
+                ShowMessage($"{msg} Παρακαλώ επικοινωνήστε με την υποστήριξη.", "warning");
+                await Task.Delay(3000);
+                NavigationManager.NavigateTo("/logout", forceLoad: true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Deletion error: {ex.Message}");
+            ShowMessage("Παρουσιάστηκε σφάλμα.", "error");
+            isDeleting = false; // Stop deleting spinner if error occurs
+        }
+        // Removed 'finally' so we control isDeleting state manually for the success transition
+    }
+
+    private async Task<bool> DeleteUserFromDatabase()
+    {
+        if (string.IsNullOrEmpty(userEmail)) return false;
+
+        try
+        {
+            await using var context = await DbContextFactory.CreateDbContextAsync();
+            bool deletionPerformed = false;
+
+            var student = await context.Students.FirstOrDefaultAsync(s => s.Email == userEmail);
+            if (student != null) { context.Students.Remove(student); deletionPerformed = true; }
+
+            var professor = await context.Professors.FirstOrDefaultAsync(p => p.ProfEmail == userEmail);
+            if (professor != null) { context.Professors.Remove(professor); deletionPerformed = true; }
+
+            var company = await context.Companies.FirstOrDefaultAsync(c => c.CompanyEmail == userEmail);
+            if (company != null) { context.Companies.Remove(company); deletionPerformed = true; }
+
+            var researchGroup = await context.ResearchGroups.FirstOrDefaultAsync(rg => rg.ResearchGroupEmail == userEmail);
+            if (researchGroup != null) { context.ResearchGroups.Remove(researchGroup); deletionPerformed = true; }
+
+            if (deletionPerformed) await context.SaveChangesAsync();
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    // --- Password Change State ---
+    private bool showPasswordModal = false;
+    private bool isProcessingPass = false;
+    private bool showPassError = false;
+    private string passErrorMessage = "";
+
+    // Inputs
+    private string oldPassInput = "";
+    private string newPassInput = "";
+    private string confirmPassInput = "";
+
+    // UI Helper to check if passwords match visually
+    private bool passwordsMatch => string.IsNullOrEmpty(confirmPassInput) || newPassInput == confirmPassInput;
+
+    private void OpenPasswordModal()
+    {
+        oldPassInput = "";
+        newPassInput = "";
+        confirmPassInput = "";
+        showPassError = false;
+        showPasswordModal = true;
+    }
+
+    private void ClosePasswordModal()
+    {
+        showPasswordModal = false;
+    }
+
+    private async Task SubmitPasswordChange()
+    {
+        showPassError = false;
+
+        // 1. Validations
+        if (string.IsNullOrWhiteSpace(oldPassInput) || string.IsNullOrWhiteSpace(newPassInput))
+        {
+            passErrorMessage = "Παρακαλώ συμπληρώστε όλα τα πεδία.";
+            showPassError = true;
+            return;
+        }
+
+        if (newPassInput != confirmPassInput)
+        {
+            passErrorMessage = "Οι νέοι κωδικοί δεν ταιριάζουν.";
+            showPassError = true;
+            return;
+        }
+
+        if (newPassInput.Length < 8)
+        {
+            passErrorMessage = "Ο κωδικός πρέπει να έχει τουλάχιστον 8 χαρακτήρες.";
+            showPassError = true;
+            return;
+        }
+
+        isProcessingPass = true;
+        StateHasChanged();
+
+        try
+        {
+            // 2. Verify Old Password (Security Check)
+            bool isOldCorrect = await Auth0Service.VerifyUserPasswordAsync(userEmail, oldPassInput);
+
+            if (!isOldCorrect)
+            {
+                passErrorMessage = "Ο τρέχων κωδικός είναι λανθασμένος.";
+                showPassError = true;
+                isProcessingPass = false;
+                return;
+            }
+
+            // 3. Update to New Password
+            bool success = await Auth0Service.UpdateUserPasswordAsync(userId, newPassInput);
+
+            if (success)
+            {
+                // --- SEND EMAIL NOTIFICATION ---
+                await InternshipEmailService.SendPasswordChangeNotification(userEmail, userName);
+
+                ClosePasswordModal();
+
+                // Show Success Modal
+                ShowMessage("Ο κωδικός ενημερώθηκε επιτυχώς!", "success");
+            }
+            else
+            {
+                passErrorMessage = "Σφάλμα ενημέρωσης. Δοκιμάστε ξανά.";
+                showPassError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error changing password: {ex.Message}");
+            passErrorMessage = "Παρουσιάστηκε σφάλμα συστήματος.";
+            showPassError = true;
+        }
+        finally
+        {
+            isProcessingPass = false;
+            StateHasChanged();
+        }
+    }
+}

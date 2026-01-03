@@ -1,0 +1,203 @@
+﻿@page "/email-verification"
+
+@using System.Security.Claims
+@using QuizManager.Data
+@using System.Text.Json
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IJSRuntime JSRuntime
+@inject IAuth0Service Auth0Service
+
+<style>
+    .modern-button {
+        background-color: #2d3748; /* New Dark Grey Color */
+        color: white;
+        border: 2px solid black;
+        padding: 12px 24px;
+        font-size: 16px;
+        font-weight: 500;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+    }
+
+        .modern-button i {
+            margin-right: 8px;
+        }
+
+        .modern-button:hover {
+            background-color: #1a202c; /* Slightly darker on hover for effect */
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            border-color: #000000;
+        }
+
+        .modern-button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .modern-button:focus {
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(45, 55, 72, 0.5); /* Matching focus ring */
+        }
+</style>
+
+@if (!isEmailVerified && !(contextUser?.Identity?.IsAuthenticated ?? false))
+{
+    <div class="alert alert-danger" role="alert">
+        <h5 class="alert-heading">Απαιτείται η Επαλήθευση του Email σας!</h5>
+        <br />
+        <p>Για να συνεχίσετε, παρακαλούμε ελέγξτε τα Εισερχόμενά σας και <strong>Επαληθεύστε το Email σας</strong>.</p>
+        <p>Σε περίπτωση που δεν έχετε λάβει Email ελέγξτε στα Ανεπιθύμητα του λογαριασμού σας, ειδάλλως <strong>αποστείλετε ξανά Email Επιβεβαίωσης</strong>.</p>
+    </div>
+
+    <div class="form-group">
+        <label for="emailInput" class="font-weight-bold">Πληκτρολογείστε το Email σας</label>
+        <input type="email" class="form-control" id="emailInput" @bind="email" placeholder="YourEmail@example.com" required />
+    </div>
+
+    <div class="d-flex justify-content-between mt-3">
+        <button class="modern-button" @onclick="ResendVerificationLink">
+            Επαναποστολή Συνδέσμου
+        </button>
+        <button class="modern-button" @onclick="RedirectToHome">
+            Είσοδος στον Λογαριασμό μου
+        </button>
+    </div>
+
+    @*
+    <div class="debug-console">
+        <strong>DEBUG LOGS (Copy these if it fails):</strong><br />
+        <pre>@debugOutput</pre>
+    </div>
+    *@
+}
+
+@code {
+    private bool isEmailVerified;
+    private ClaimsPrincipal contextUser;
+    private string email;
+    private string debugOutput = "Ready..."; // Logs appear here
+
+    protected override async Task OnInitializedAsync()
+    {
+        Log("Initializing Page...");
+        await RefreshAuthenticationState();
+    }
+
+    private void Log(string message)
+    {
+        debugOutput += $"\n[{DateTime.Now:HH:mm:ss}] {message}";
+        StateHasChanged(); // Force UI update
+    }
+
+    private async Task RefreshAuthenticationState()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        contextUser = authState.User;
+
+        var contextEmail = contextUser.Claims.FirstOrDefault(c => c.Type == "email")?.Value;
+        Log($"Current User Identity Email: '{contextEmail}'");
+
+        if (!string.IsNullOrEmpty(contextEmail))
+        {
+            email = contextEmail;
+            Log($"Auto-checking status for: {email}");
+            // We wrap this in try-catch to log service errors to UI
+            try
+            {
+                var userDetails = await Auth0Service.GetUserDetailsByEmailAsync(email);
+                isEmailVerified = userDetails?.IsEmailVerified ?? false;
+                Log($"Verified Status: {isEmailVerified}");
+            }
+            catch (Exception ex)
+            {
+                Log($"ERROR during auto-check: {ex.Message}");
+            }
+        }
+    }
+
+    private void RedirectToHome()
+    {
+        NavigationManager.NavigateTo("/");
+    }
+
+    private async Task ResendVerificationLink()
+    {
+        Log("------------------------------------------------");
+        Log("Button Clicked: ResendVerificationLink");
+
+        try
+        {
+            // 0. Sanitize Input
+            if (string.IsNullOrEmpty(email))
+            {
+                Log("Error: Email field is empty.");
+                await JSRuntime.InvokeVoidAsync("confirmActionWithHTML2", "Πληκτρολογείστε μια έγκυρη διεύθυνση Email");
+                return;
+            }
+
+            // Trim spaces! This is a common cause of "Not Found"
+            email = email.Trim();
+            Log($"Searching for Email: '{email}'");
+
+            // 1. Check if user exists
+            Log("Step 1: Calling GetUserDetailsByEmailAsync...");
+            var userDetails = await Auth0Service.GetUserDetailsByEmailAsync(email);
+
+            if (userDetails == null)
+            {
+                Log("FAILURE: UserDetails returned NULL.");
+                Log("Possible causes: Email mismatch, User deleted, or API Token issue.");
+                await JSRuntime.InvokeVoidAsync("confirmActionWithHTML2", "Το Email ΔΕΝ Βρέθηκε.");
+                return;
+            }
+            Log($"SUCCESS: User found. Verified: {userDetails.IsEmailVerified}");
+
+            // 2. Check if already verified
+            if (userDetails.IsEmailVerified == true)
+            {
+                Log("Info: User is already verified.");
+                await JSRuntime.InvokeVoidAsync("confirmActionWithHTML2", "Αυτό το Email έχει ήδη Επικυρωθεί");
+                return;
+            }
+
+            // 3. Get the Raw User ID
+            Log("Step 2: Getting Raw User ID for Job...");
+            string userId = await Auth0Service.GetUserIdByEmailRawAsync(email);
+            Log($"User ID Retrieved: '{userId}'");
+
+            if (!string.IsNullOrEmpty(userId))
+            {
+                // 4. Send the verification email
+                Log($"Step 3: Triggering Email Job for ID: {userId}...");
+                bool success = await Auth0Service.ResendVerificationEmailAsync(userId);
+
+                if (success)
+                {
+                    Log("SUCCESS: Job Triggered Successfully.");
+                    await JSRuntime.InvokeVoidAsync("confirmActionWithHTML2", "Έχει γίνει Αποστολή του Συνδέσμου Επικύρωσης στο Email σας");
+                }
+                else
+                {
+                    Log("FAILURE: Job returned false (Check Server Logs/Auth0 Logs).");
+                    await JSRuntime.InvokeVoidAsync("confirmActionWithHTML2", "Αποτυχία Επαναποστολής Συνδέσμου.");
+                }
+            }
+            else
+            {
+                Log("FAILURE: User ID was empty/null.");
+                await JSRuntime.InvokeVoidAsync("confirmActionWithHTML2", "Το Email ΔΕΝ Βρέθηκε (User ID Missing).");
+            }
+        }
+        catch (Exception ex)
+        {
+            Log($"CRITICAL EXCEPTION: {ex.Message}");
+            Log($"Stack Trace: {ex.StackTrace}");
+            await JSRuntime.InvokeVoidAsync("confirmActionWithHTML2", $"Παρουσιάστηκε Πρόβλημα : {ex.Message}");
+        }
+    }
+}

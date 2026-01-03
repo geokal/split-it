@@ -1,0 +1,640 @@
+using Microsoft.AspNetCore.Components;
+using QuizManager.Models;
+using QuizManager.Services.ProfessorDashboard;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+
+namespace QuizManager.Components.Layout.ProfessorSections
+{
+    public partial class ProfessorStudentSearchSection : ComponentBase
+    {
+        [Inject] private IProfessorDashboardService ProfessorDashboardService { get; set; } = default!;
+
+        // Form Visibility
+        private bool isProfessorSearchStudentFormVisible = false;
+
+        // Search Fields
+        private string searchEmailAsProfessorToFindStudent = "";
+        private string searchNameAsProfessorToFindStudent = "";
+        private List<string> studentNameSuggestions = new List<string>();
+        private string searchSurnameAsProfessorToFindStudent = "";
+        private List<string> studentSurnameSuggestions = new List<string>();
+        private string searchRegNumberAsProfessorToFindStudent = "";
+        private string searchSchoolAsProfessorToFindStudent = "";
+        private string searchDepartmentAsProfessorToFindStudent = "";
+        private string searchAreasOfExpertiseAsProfessorToFindStudent = "";
+        private string searchKeywordsAsProfessorToFindStudent = "";
+
+        // Selected values
+        private List<string> selectedAreasOfExpertise = new List<string>();
+        private List<string> selectedKeywords = new List<string>();
+        
+        // Suggestions
+        private List<string> areasOfExpertiseSuggestions = new List<string>();
+        private List<string> keywordsSuggestions = new List<string>();
+
+        // University Departments
+        private Dictionary<string, List<string>> universityDepartments = new()
+        {
+            ["ΑΓΡΟΤΙΚΗΣ ΑΝΑΠΤΥΞΗΣ, ΔΙΑΤΡΟΦΗΣ ΚΑΙ ΑΕΙΦΟΡΙΑΣ"] = new List<string>
+            {
+                "ΤΜΗΜΑ ΑΓΡΟΤΙΚΗΣ ΑΝΑΠΤΥΞΗΣ, ΑΓΡΟΔΙΑΤΡΟΦΗΣ ΚΑΙ ΔΙΑΧΕΙΡΙΣΗΣ ΦΥΣΙΚΩΝ ΠΟΡΩΝ"
+            },
+            ["ΕΠΙΣΤΗΜΩΝ ΑΓΩΓΗΣ"] = new List<string>
+            {
+                "ΠΑΙΔΑΓΩΓΙΚΟ ΤΜΗΜΑ ΔΗΜΟΤΙΚΗΣ ΕΚΠΑΙΔΕΥΣΗΣ",
+                "ΤΜΗΜΑ ΕΚΠΑΙΔΕΥΣΗΣ ΚΑΙ ΑΓΩΓΗΣ ΣΤΗΝ ΠΡΟΣΧΟΛΙΚΗ ΗΛΙΚΙΑ"
+            },
+            ["ΕΠΙΣΤΗΜΩΝ ΥΓΕΙΑΣ"] = new List<string>
+            {
+                "ΤΜΗΜΑ ΙΑΤΡΙΚΗΣ",
+                "ΤΜΗΜΑ ΝΟΣΗΛΕΥΤΙΚΗΣ",
+                "ΤΜΗΜΑ ΟΔΟΝΤΙΑΤΡΙΚΗΣ",
+                "ΤΜΗΜΑ ΦΑΡΜΑΚΕΥΤΙΚΗΣ"
+            },
+            ["ΕΠΙΣΤΗΜΗΣ ΦΥΣΙΚΗΣ ΑΓΩΓΗΣ ΚΑΙ ΑΘΛΗΤΙΣΜΟΥ"] = new List<string>
+            {
+                "ΤΜΗΜΑ ΕΠΙΣΤΗΜΗΣ ΦΥΣΙΚΗΣ ΑΓΩΓΗΣ ΚΑΙ ΑΘΛΗΤΙΣΜΟΥ"
+            },
+            ["ΘΕΟΛΟΓΙΚΗ"] = new List<string>
+            {
+                "ΤΜΗΜΑ ΘΕΟΛΟΓΙΑΣ",
+                "ΤΜΗΜΑ ΚΟΙΝΩΝΙΚΗΣ ΘΕΟΛΟΓΙΑΣ ΚΑΙ ΘΡΗΣΚΕΙΟΛΟΓΙΑΣ"
+            },
+            ["ΘΕΤΙΚΩΝ ΕΠΙΣΤΗΜΩΝ"] = new List<string>
+            {
+                "ΤΜΗΜΑ ΑΕΡΟΔΙΑΣΤΗΜΙΑΚΗΣ ΕΠΙΣΤΗΜΗΣ ΚΑΙ ΤΕΧΝΟΛΟΓΙΑΣ",
+                "ΤΜΗΜΑ ΒΙΟΛΟΓΙΑΣ",
+                "ΤΜΗΜΑ ΓΕΩΛΟΓΙΑΣ ΚΑΙ ΓΕΩΠΕΡΙΒΑΛΛΟΝΤΟΣ",
+                "ΤΜΗΜΑ ΙΣΤΟΡΙΑΣ ΚΑΙ ΦΙΛΟΣΟΦΙΑΣ ΤΗΣ ΕΠΙΣΤΗΜΗΣ",
+                "ΤΜΗΜΑ ΜΑΘΗΜΑΤΙΚΩΝ",
+                "ΤΜΗΜΑ ΠΛΗΡΟΦΟΡΙΚΗΣ ΚΑΙ ΤΗΛΕΠΙΚΟΙΝΩΝΙΩΝ",
+                "ΤΜΗΜΑ ΤΕΧΝΟΛΟΓΙΩΝ ΨΗΦΙΑΚΗΣ ΒΙΟΜΗΧΑΝΙΑΣ",
+                "ΤΜΗΜΑ ΦΥΣΙΚΗΣ",
+                "ΤΜΗΜΑ ΧΗΜΕΙΑΣ"
+            },
+            ["ΝΟΜΙΚΗ"] = new List<string>
+            {
+                "ΝΟΜΙΚΗ ΣΧΟΛΗ"
+            },
+            ["ΟΙΚΟΝΟΜΙΚΩΝ ΚΑΙ ΠΟΛΙΤΙΚΩΝ ΕΠΙΣΤΗΜΩΝ"] = new List<string>
+            {
+                "ΤΜΗΜΑ ΔΙΑΧΕΙΡΙΣΗΣ ΛΙΜΕΝΩΝ ΚΑΙ ΝΑΥΤΙΛΙΑΣ",
+                "ΤΜΗΜΑ ΕΠΙΚΟΙΝΩΝΙΑΣ ΚΑΙ ΜΕΣΩΝ ΜΑΖΙΚΗΣ ΕΝΗΜΕΡΩΣΗΣ",
+                "ΤΜΗΜΑ ΟΙΚΟΝΟΜΙΚΩΝ ΕΠΙΣΤΗΜΩΝ",
+                "ΤΜΗΜΑ ΠΟΛΙΤΙΚΗΣ ΕΠΙΣΤΗΜΗΣ ΚΑΙ ΔΗΜΟΣΙΑΣ ΔΙΟΙΚΗΣΗΣ",
+                "ΤΜΗΜΑ ΤΟΥΡΚΙΚΩΝ ΣΠΟΥΔΩΝ ΚΑΙ ΣΥΓΧΡΟΝΩΝ ΑΣΙΑΤΙΚΩΝ ΣΠΟΥΔΩΝ",
+                "ΤΜΗΜΑ ΔΙΟΙΚΗΣΗΣ ΕΠΙΧΕΙΡΗΣΕΩΝ ΚΑΙ ΟΡΓΑΝΙΣΜΩΝ",
+                "ΤΜΗΜΑ ΚΟΙΝΩΝΙΟΛΟΓΙΑΣ",
+                "ΤΜΗΜΑ ΨΗΦΙΑΚΩΝ ΤΕΧΝΩΝ ΚΑΙ ΚΙΝΗΜΑΤΟΓΡΑΦΟΥ"
+            },
+            ["ΦΙΛΟΣΟΦΙΚΗ"] = new List<string>
+            {
+                "ΠΑΙΔΑΓΩΓΙΚΟ ΤΜΗΜΑ ΔΕΥΤΕΡΟΒΑΘΜΙΑΣ ΕΚΠΑΙΔΕΥΣΗΣ",
+                "ΤΜΗΜΑ ΑΓΓΛΙΚΗΣ ΓΛΩΣΣΑΣ ΚΑΙ ΦΙΛΟΛΟΓΙΑΣ",
+                "ΤΜΗΜΑ ΓΑΛΛΙΚΗΣ ΓΛΩΣΣΑΣ ΚΑΙ ΦΙΛΟΛΟΓΙΑΣ",
+                "ΤΜΗΜΑ ΓΕΡΜΑΝΙΚΗΣ ΓΛΩΣΣΑΣ ΚΑΙ ΦΙΛΟΛΟΓΙΑΣ",
+                "ΤΜΗΜΑ ΘΕΑΤΡΙΚΩΝ ΣΠΟΥΔΩΝ",
+                "ΤΜΗΜΑ ΙΣΠΑΝΙΚΗΣ ΓΛΩΣΣΑΣ ΚΑΙ ΦΙΛΟΛΟΓΙΑΣ",
+                "ΤΜΗΜΑ ΙΣΤΟΡΙΑΣ ΚΑΙ ΑΡΧΑΙΟΛΟΓΙΑΣ",
+                "ΤΜΗΜΑ ΙΤΑΛΙΚΗΣ ΓΛΩΣΣΑΣ ΚΑΙ ΦΙΛΟΛΟΓΙΑΣ",
+                "ΤΜΗΜΑ ΜΟΥΣΙΚΩΝ ΣΠΟΥΔΩΝ",
+                "ΤΜΗΜΑ ΡΩΣΙΚΗΣ ΓΛΩΣΣΑΣ ΚΑΙ ΦΙΛΟΛΟΓΙΑΣ ΚΑΙ ΣΛΑΒΙΚΩΝ ΣΠΟΥΔΩΝ",
+                "ΤΜΗΜΑ ΦΙΛΟΛΟΓΙΑΣ",
+                "ΤΜΗΜΑ ΦΙΛΟΣΟΦΙΑΣ",
+                "ΤΜΗΜΑ ΨΥΧΟΛΟΓΙΑΣ"
+            }
+        };
+
+        // Computed Properties
+        private List<string> researchGroupSchools => universityDepartments.Keys.ToList();
+        private List<string> filteredStudentDepartmentsAsProfessor => 
+            string.IsNullOrEmpty(searchSchoolAsProfessorToFindStudent) 
+                ? GetAllStudentDepartments() 
+                : universityDepartments.ContainsKey(searchSchoolAsProfessorToFindStudent)
+                    ? universityDepartments[searchSchoolAsProfessorToFindStudent]
+                    : new List<string>();
+        
+        private List<string> filteredStudentDepartments =>
+            string.IsNullOrEmpty(searchSchoolAsProfessorToFindStudent)
+                ? new List<string>()
+                : universityDepartments.ContainsKey(searchSchoolAsProfessorToFindStudent)
+                    ? universityDepartments[searchSchoolAsProfessorToFindStudent]
+                    : new List<string>();
+
+        // Search Results and Pagination
+        private List<QuizManager.Models.Student> searchResultsAsProfessorToFindStudent = new List<QuizManager.Models.Student>();
+        private int StudentsPerPage_SearchForStudentsAsProfessor = 10;
+        private int[] pageSizeOptions_SearchForStudentsAsProfessor = new[] { 10, 50, 100 };
+        private int currentStudentPage_SearchForStudentsAsProfessor = 1;
+        private int totalStudentPages_SearchForStudentsAsProfessor = 0;
+
+        private void ToggleFormVisibilityForSearchStudentAsProfessor()
+        {
+            isProfessorSearchStudentFormVisible = !isProfessorSearchStudentFormVisible;
+            StateHasChanged();
+        }
+
+        private async Task HandleStudentNameInput(ChangeEventArgs e)
+        {
+            searchNameAsProfessorToFindStudent = e.Value?.ToString() ?? "";
+            if (!string.IsNullOrWhiteSpace(searchNameAsProfessorToFindStudent) && searchNameAsProfessorToFindStudent.Length >= 2)
+            {
+                studentNameSuggestions = (await ProfessorDashboardService.SearchStudentsAsync(new StudentSearchFilter
+                {
+                    Name = searchNameAsProfessorToFindStudent,
+                    MaxResults = 50
+                }))
+                .Select(s => s.Name)
+                .Where(n => !string.IsNullOrWhiteSpace(n))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Take(10)
+                .ToList();
+            }
+            else
+            {
+                studentNameSuggestions.Clear();
+            }
+            StateHasChanged();
+        }
+
+        private void SelectStudentNameSuggestion(string suggestion)
+        {
+            searchNameAsProfessorToFindStudent = suggestion;
+            studentNameSuggestions.Clear();
+            StateHasChanged();
+        }
+
+        private async Task HandleStudentSurnameInput(ChangeEventArgs e)
+        {
+            searchSurnameAsProfessorToFindStudent = e.Value?.ToString() ?? "";
+            if (!string.IsNullOrWhiteSpace(searchSurnameAsProfessorToFindStudent) && searchSurnameAsProfessorToFindStudent.Length >= 2)
+            {
+                studentSurnameSuggestions = (await ProfessorDashboardService.SearchStudentsAsync(new StudentSearchFilter
+                {
+                    Surname = searchSurnameAsProfessorToFindStudent,
+                    MaxResults = 50
+                }))
+                .Select(s => s.Surname)
+                .Where(n => !string.IsNullOrWhiteSpace(n))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Take(10)
+                .ToList();
+            }
+            else
+            {
+                studentSurnameSuggestions.Clear();
+            }
+            StateHasChanged();
+        }
+
+        private void SelectStudentSurnameSuggestion(string suggestion)
+        {
+            searchSurnameAsProfessorToFindStudent = suggestion;
+            studentSurnameSuggestions.Clear();
+            StateHasChanged();
+        }
+
+        private void OnStudentSchoolChangedAsProfessor(ChangeEventArgs e)
+        {
+            searchSchoolAsProfessorToFindStudent = e.Value?.ToString() ?? "";
+            // Clear department selection when school changes
+            searchDepartmentAsProfessorToFindStudent = "";
+            StateHasChanged();
+        }
+
+        private List<string> GetAllStudentDepartments()
+        {
+            return new List<string>(); // Deprecated; using service lookups instead
+        }
+
+        private async Task SearchStudentsAsProfessorToFindStudent()
+        {
+            var combinedSearchAreas = new List<string>();
+
+            if (selectedAreasOfExpertise != null && selectedAreasOfExpertise.Any())
+                combinedSearchAreas.AddRange(selectedAreasOfExpertise);
+
+            if (!string.IsNullOrEmpty(searchAreasOfExpertiseAsProfessorToFindStudent))
+                combinedSearchAreas.Add(searchAreasOfExpertiseAsProfessorToFindStudent);
+
+            // Use NormalizeAreas method for search terms
+            var normalizedSearchAreas = combinedSearchAreas
+                .SelectMany(area => NormalizeAreas(area))
+                .Distinct()
+                .ToList();
+
+            var filter = new StudentSearchFilter
+            {
+                Name = searchNameAsProfessorToFindStudent,
+                Surname = searchSurnameAsProfessorToFindStudent,
+                RegistrationNumber = searchRegNumberAsProfessorToFindStudent,
+                School = searchSchoolAsProfessorToFindStudent,
+                Department = searchDepartmentAsProfessorToFindStudent,
+                AreasOfExpertise = string.Join(',', normalizedSearchAreas),
+                Keywords = searchKeywordsAsProfessorToFindStudent,
+                MaxResults = 500
+            };
+
+            var students = await ProfessorDashboardService.SearchStudentsAsync(filter);
+
+            searchResultsAsProfessorToFindStudent = students.ToList();
+            currentStudentPage_SearchForStudentsAsProfessor = 1;
+            UpdateTotalPages();
+            StateHasChanged();
+        }
+
+        private IEnumerable<QuizManager.Models.Student> GetPaginatedStudentResults()
+        {
+            if (searchResultsAsProfessorToFindStudent == null || !searchResultsAsProfessorToFindStudent.Any())
+                return Enumerable.Empty<QuizManager.Models.Student>();
+
+            return searchResultsAsProfessorToFindStudent
+                .Skip((currentStudentPage_SearchForStudentsAsProfessor - 1) * StudentsPerPage_SearchForStudentsAsProfessor)
+                .Take(StudentsPerPage_SearchForStudentsAsProfessor);
+        }
+
+        private IEnumerable<QuizManager.Models.Student> GetPaginatedStudentSearchResults()
+        {
+            return GetPaginatedStudentResults();
+        }
+
+        private void OnPageSizeChange_SearchForStudentsAsProfessor(ChangeEventArgs e)
+        {
+            if (int.TryParse(e.Value?.ToString(), out int newSize) && newSize > 0)
+            {
+                StudentsPerPage_SearchForStudentsAsProfessor = newSize;
+                currentStudentPage_SearchForStudentsAsProfessor = 1;
+                UpdateTotalPages();
+                StateHasChanged();
+            }
+        }
+
+        private void UpdateTotalPages()
+        {
+            if (searchResultsAsProfessorToFindStudent == null || !searchResultsAsProfessorToFindStudent.Any())
+            {
+                totalStudentPages_SearchForStudentsAsProfessor = 0;
+                return;
+            }
+
+            totalStudentPages_SearchForStudentsAsProfessor = (int)Math.Ceiling((double)searchResultsAsProfessorToFindStudent.Count / StudentsPerPage_SearchForStudentsAsProfessor);
+        }
+
+        private void GoToFirstStudentPage()
+        {
+            currentStudentPage_SearchForStudentsAsProfessor = 1;
+            StateHasChanged();
+        }
+
+        private void PreviousStudentPage()
+        {
+            if (currentStudentPage_SearchForStudentsAsProfessor > 1)
+            {
+                currentStudentPage_SearchForStudentsAsProfessor--;
+                StateHasChanged();
+            }
+        }
+
+        private void GoToStudentPage(int page)
+        {
+            if (page >= 1 && page <= totalStudentPages_SearchForStudentsAsProfessor)
+            {
+                currentStudentPage_SearchForStudentsAsProfessor = page;
+                StateHasChanged();
+            }
+        }
+
+        private void NextStudentPage()
+        {
+            if (currentStudentPage_SearchForStudentsAsProfessor < totalStudentPages_SearchForStudentsAsProfessor)
+            {
+                currentStudentPage_SearchForStudentsAsProfessor++;
+                StateHasChanged();
+            }
+        }
+
+        private void GoToLastStudentPage()
+        {
+            currentStudentPage_SearchForStudentsAsProfessor = totalStudentPages_SearchForStudentsAsProfessor;
+            StateHasChanged();
+        }
+
+        private List<int> GetVisibleStudentPages()
+        {
+            var pages = new List<int>();
+            int current = currentStudentPage_SearchForStudentsAsProfessor;
+            int total = totalStudentPages_SearchForStudentsAsProfessor;
+
+            if (total == 0) return pages;
+
+            pages.Add(1);
+            if (current > 3) pages.Add(-1); // Placeholder for ellipsis
+
+            int start = Math.Max(2, current - 1);
+            int end = Math.Min(total - 1, current + 1);
+
+            for (int i = start; i <= end; i++) pages.Add(i);
+            if (current < total - 2) pages.Add(-1); // Placeholder for ellipsis
+
+            if (total > 1) pages.Add(total);
+            return pages;
+        }
+
+        // Helper methods
+        private IEnumerable<string> NormalizeAreas(string areas)
+        {
+            if (string.IsNullOrWhiteSpace(areas))
+                return Array.Empty<string>();
+
+            return areas
+                .Split(new string[] { ",", "/", ", ", " / ", " ," }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(area => area.Trim().ToLower())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Where(area => !string.IsNullOrEmpty(area));
+        }
+
+        private List<string> ExpandAreasWithSubfields(List<string> normalizedAreas)
+        {
+            var expandedAreas = new List<string>();
+
+            foreach (var area in normalizedAreas)
+            {
+                // Add the original area
+                expandedAreas.Add(area);
+
+                // If the area contains a subfield (has '/'), expand it
+                if (area.Contains('/'))
+                {
+                    var parts = area.Split('/', StringSplitOptions.RemoveEmptyEntries)
+                                .Select(part => part.Trim().ToLower())
+                                .Where(part => !string.IsNullOrEmpty(part))
+                                .ToList();
+
+                    if (parts.Count >= 2)
+                    {
+                        // Add main area only (first part)
+                        expandedAreas.Add(parts[0]);
+
+                        // Add subfield only (second part)
+                        expandedAreas.Add(parts[1]);
+
+                        // Add all individual parts
+                        expandedAreas.AddRange(parts);
+                    }
+                }
+            }
+
+            return expandedAreas.Distinct().ToList();
+        }
+
+        private IEnumerable<string> NormalizeKeywords(string keywords)
+        {
+            if (string.IsNullOrWhiteSpace(keywords))
+                return Array.Empty<string>();
+
+            return keywords
+                .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+                .Select(keyword => keyword.Trim().ToLower())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Where(keyword => !string.IsNullOrEmpty(keyword));
+        }
+
+        // HandleAreasOfExpertiseInput (from backup MainLayout)
+        private async Task HandleAreasOfExpertiseInput(ChangeEventArgs e)
+        {
+            searchAreasOfExpertiseAsProfessorToFindStudent = e.Value?.ToString().Trim() ?? string.Empty;
+            areasOfExpertiseSuggestions = new List<string>();
+
+            if (searchAreasOfExpertiseAsProfessorToFindStudent.Length >= 1)
+            {
+                try
+                {
+                    var areas = await ProfessorDashboardService.SearchAreasAsync(searchAreasOfExpertiseAsProfessorToFindStudent);
+                    areasOfExpertiseSuggestions = areas
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .Take(10)
+                        .ToList();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error retrieving Areas of Expertise: {ex.Message}");
+                    areasOfExpertiseSuggestions = new List<string>();
+                }
+            }
+            else
+            {
+                areasOfExpertiseSuggestions.Clear();
+            }
+
+            StateHasChanged();
+        }
+
+        // SelectAreasOfExpertiseSuggestion (from backup MainLayout)
+        private void SelectAreasOfExpertiseSuggestion(string suggestion)
+        {
+            if (!string.IsNullOrWhiteSpace(suggestion) && !selectedAreasOfExpertise.Contains(suggestion))
+            {
+                selectedAreasOfExpertise.Add(suggestion);
+                areasOfExpertiseSuggestions.Clear();
+                searchAreasOfExpertiseAsProfessorToFindStudent = string.Empty;
+            }
+        }
+
+        // RemoveSelectedAreaOfExpertise (from backup MainLayout)
+        private void RemoveSelectedAreaOfExpertise(string area)
+        {
+            selectedAreasOfExpertise.Remove(area);
+            StateHasChanged();
+        }
+
+        // HandleKeywordsInput (from backup MainLayout)
+        private async Task HandleKeywordsInput(ChangeEventArgs e)
+        {
+            searchKeywordsAsProfessorToFindStudent = e.Value?.ToString().Trim() ?? string.Empty;
+            keywordsSuggestions = new List<string>();
+
+            if (searchKeywordsAsProfessorToFindStudent.Length >= 1)
+            {
+                try
+                {
+                    var students = await ProfessorDashboardService.SearchStudentsAsync(new StudentSearchFilter
+                    {
+                        Keywords = searchKeywordsAsProfessorToFindStudent,
+                        MaxResults = 200
+                    });
+
+                    keywordsSuggestions = students
+                        .SelectMany(s => (s.Keywords ?? string.Empty)
+                            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                            .Select(k => k.Trim()))
+                        .Where(k => !string.IsNullOrWhiteSpace(k) && k.Contains(searchKeywordsAsProfessorToFindStudent, StringComparison.OrdinalIgnoreCase))
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .Take(10)
+                        .ToList();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error retrieving keywords: {ex.Message}");
+                    keywordsSuggestions = new List<string>();
+                }
+            }
+            else
+            {
+                keywordsSuggestions.Clear();
+            }
+
+            StateHasChanged();
+        }
+
+        // SelectKeywordsSuggestion (from backup MainLayout)
+        private void SelectKeywordsSuggestion(string suggestion)
+        {
+            if (!string.IsNullOrWhiteSpace(suggestion) && !selectedKeywords.Contains(suggestion))
+            {
+                selectedKeywords.Add(suggestion);
+                keywordsSuggestions.Clear();
+                searchKeywordsAsProfessorToFindStudent = string.Empty;
+            }
+        }
+
+        // RemoveKeyword (from backup MainLayout)
+        private void RemoveKeyword(string keyword)
+        {
+            selectedKeywords.Remove(keyword);
+            StateHasChanged();
+        }
+
+        // ClearSearchFieldsAsProfessorToFindStudent (from backup MainLayout)
+        private void ClearSearchFieldsAsProfessorToFindStudent()
+        {
+            searchEmailAsProfessorToFindStudent = string.Empty;
+            searchNameAsProfessorToFindStudent = string.Empty;
+            searchSurnameAsProfessorToFindStudent = string.Empty;
+            searchRegNumberAsProfessorToFindStudent = string.Empty;
+            searchSchoolAsProfessorToFindStudent = string.Empty;
+            searchDepartmentAsProfessorToFindStudent = string.Empty;
+            searchAreasOfExpertiseAsProfessorToFindStudent = string.Empty;
+            searchKeywordsAsProfessorToFindStudent = string.Empty;
+
+            searchResultsAsProfessorToFindStudent = null;
+
+            studentNameSuggestions.Clear();
+            studentSurnameSuggestions.Clear();
+            areasOfExpertiseSuggestions.Clear();
+            keywordsSuggestions.Clear();
+
+            selectedAreasOfExpertise.Clear();
+            selectedKeywords.Clear();
+
+            StateHasChanged();
+        }
+
+        // Additional Missing Properties
+        private QuizManager.Models.Student selectedStudent;
+        private bool showStudentDetailsModal = false;
+        private int[] studentSearchPageSizeOptions = new[] { 10, 50, 100 };
+        private int StudentSearchPerPage = 10;
+        private int currentPage_StudentSearch = 1;
+        private int totalPages_StudentSearch = 1;
+
+        // Methods
+        private void ShowStudentDetailsWhenSearchAsProfessor(QuizManager.Models.Student student)
+        {
+            selectedStudent = student;
+            showStudentDetailsModal = true;
+            StateHasChanged();
+        }
+
+        private void CloseStudentDetailsModalWhenSearchAsProfessor()
+        {
+            showStudentDetailsModal = false;
+            selectedStudent = null;
+            StateHasChanged();
+        }
+
+        // Pagination Methods
+        private void GoToFirstPage_StudentSearch()
+        {
+            currentPage_StudentSearch = 1;
+            StateHasChanged();
+        }
+
+        private void PreviousPage_StudentSearch()
+        {
+            if (currentPage_StudentSearch > 1)
+            {
+                currentPage_StudentSearch--;
+                StateHasChanged();
+            }
+        }
+
+        private void NextPage_StudentSearch()
+        {
+            if (currentPage_StudentSearch < totalPages_StudentSearch)
+            {
+                currentPage_StudentSearch++;
+                StateHasChanged();
+            }
+        }
+
+        private void GoToLastPage_StudentSearch()
+        {
+            currentPage_StudentSearch = totalPages_StudentSearch;
+            StateHasChanged();
+        }
+
+        private void GoToPage_StudentSearch(int page)
+        {
+            if (page >= 1 && page <= totalPages_StudentSearch)
+            {
+                currentPage_StudentSearch = page;
+                StateHasChanged();
+            }
+        }
+
+        private List<int> GetVisiblePages_StudentSearch()
+        {
+            var pages = new List<int>();
+            int current = currentPage_StudentSearch;
+            int total = totalPages_StudentSearch;
+
+            if (total == 0) return pages;
+
+            if (total <= 7)
+            {
+                for (int i = 1; i <= total; i++)
+                    pages.Add(i);
+            }
+            else
+            {
+                pages.Add(1);
+                if (current > 4) pages.Add(-1);
+
+                int start = Math.Max(2, current - 1);
+                int end = Math.Min(total - 1, current + 1);
+
+                for (int i = start; i <= end; i++)
+                    pages.Add(i);
+
+                if (current < total - 2) pages.Add(-1);
+                if (total > 1) pages.Add(total);
+            }
+
+            return pages;
+        }
+
+        private void OnPageSizeChangeForStudentSearch(ChangeEventArgs e)
+        {
+            if (int.TryParse(e.Value?.ToString(), out int newSize) && newSize > 0)
+            {
+                StudentSearchPerPage = newSize;
+                currentPage_StudentSearch = 1;
+                totalPages_StudentSearch = (int)Math.Ceiling((double)searchResultsAsProfessorToFindStudent.Count / StudentSearchPerPage);
+                StateHasChanged();
+            }
+        }
+    }
+}

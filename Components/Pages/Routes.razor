@@ -1,0 +1,51 @@
+@using QuizManager.Components.Helpers
+@using QuizManager.Components.Layout
+@inject NavigationManager Navigation
+
+<CascadingAuthenticationState>
+    <Router AppAssembly="typeof(Program).Assembly">
+        <Found Context="routeData">
+            <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(MainLayout)">
+                <Authorizing>
+                    <p>Determining session state, please wait...</p>
+                </Authorizing>
+                <NotAuthorized>
+                    @{
+                        // Check if this is the Index page route
+                        var isIndexPage = routeData.PageType?.FullName == "QuizManager.Pages.Index";
+                        
+                        // Check current path - if empty or "/", it's the root route
+                        var currentPath = Navigation.ToBaseRelativePath(Navigation.Uri);
+                        var isRootPath = string.IsNullOrEmpty(currentPath) || 
+                                       currentPath == "/" || 
+                                       currentPath.Trim('/') == "";
+                        
+                        // Show LandingPage for Index page or root path
+                        var showLandingPage = isIndexPage || isRootPath;
+                    }
+                    @if (showLandingPage)
+                    {
+                        <LayoutView Layout="typeof(FullScreenLayout)">
+                            <LandingPage />
+                        </LayoutView>
+                    }
+                    else
+                    {
+                        <LayoutView Layout="typeof(FullScreenLayout)">
+                            <RedirectToLogin />
+                        </LayoutView>
+                    }
+                </NotAuthorized>
+            </AuthorizeRouteView>
+            <FocusOnNavigate RouteData="routeData" Selector="h1" />
+        </Found>
+
+        <NotFound>
+            <PageTitle>Not found</PageTitle>
+            <LayoutView Layout="typeof(MainLayout)">
+                <NotFoundContent />
+            </LayoutView>
+        </NotFound>
+    </Router>
+</CascadingAuthenticationState>
+

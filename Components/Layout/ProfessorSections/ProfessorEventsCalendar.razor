@@ -1,0 +1,118 @@
+@using System.Globalization
+
+<div class="mb-3 row-dark-gray">
+    <div class="calendar-section">
+        <strong> - Ημερολόγιο Εκδηλώσεων - </strong>
+        <div>
+            <div class="calendar">
+                <div class="calendar-header">
+                    <h2>@CurrentMonth.ToString("MMMM yyyy", CultureInfo.GetCultureInfo("el-GR"))</h2>
+                </div>
+                <div class="calendar-grid">
+                    <div class="day-header">Δ</div>
+                    <div class="day-header">Τ</div>
+                    <div class="day-header">Τ</div>
+                    <div class="day-header">Π</div>
+                    <div class="day-header">Π</div>
+                    <div class="day-header">Σ</div>
+                    <div class="day-header">Κ</div>
+
+                    @for (int i = 0; i < AdjustedFirstDayOfMonth; i++)
+                    {
+                        <div class="day-cell empty-cell"></div>
+                    }
+
+                    @for (int i = 1; i <= DaysInCurrentMonth; i++)
+                    {
+                        DateTime dayDate = new DateTime(CurrentMonth.Year, CurrentMonth.Month, i);
+    
+                        // Filter events by status "Δημοσιευμένη"
+                        var companyEvents = EventsForDate.ContainsKey(i) 
+                            ? EventsForDate[i].Where(e => e.CompanyEventStatus == "Δημοσιευμένη").ToList()
+                            : new List<CompanyEvent>();
+    
+                        var professorEvents = EventsForDateForProfessors.ContainsKey(i)
+                            ? EventsForDateForProfessors[i].Where(e => e.ProfessorEventStatus == "Δημοσιευμένη").ToList()
+                            : new List<ProfessorEvent>();
+    
+                        bool hasPublishedEvent = companyEvents.Any() || professorEvents.Any();
+
+                        string dayCellClass = "day-cell";
+
+                        // Check if this day is today's date
+                        if (dayDate.Date == DateTime.Today.Date)
+                        {
+                            dayCellClass += " today";
+                        }
+
+                        // Check if this day should be highlighted
+                        if (i == HighlightedDay)
+                        {
+                            dayCellClass += " highlighted";
+                        }
+
+                        // Add event-day class if this day has published events
+                        if (hasPublishedEvent)
+                        {
+                            dayCellClass += " event-day";
+                        }
+
+                        <div class="@dayCellClass" @onclick="() => OnDateClicked.InvokeAsync(dayDate)">
+                            <span>@i</span>
+                            @if (hasPublishedEvent)
+                            {
+                                <div class="event-indicators">
+                                    @if (companyEvents.Any())
+                                    {
+                                        <span class="indicator-pill pill-company">
+                                            @companyEvents.Count Εταιρ.
+                                        </span>
+                                    }
+                                    @if (professorEvents.Any())
+                                    {
+                                        <span class="indicator-pill pill-professor">
+                                            @professorEvents.Count Καθ.
+                                        </span>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+
+                <div class="pagination">
+                    <button @onclick="OnPreviousMonth" class="btn">◀ Προηγ.</button>
+                    <button @onclick="OnNextMonth" class="btn">Επομ. ▶</button>
+                </div>
+
+                <div class="calendar-legend">
+                    <div class="legend-item">
+                        <span class="legend-color today-legend"></span>
+                        <span>Σήμερα</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="indicator-pill pill-company" style="width: 12px; height: 12px; padding:0; display:inline-block; margin-right:5px; vertical-align: middle;"></span>
+                        <span>Εταιρείες</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="indicator-pill pill-professor" style="width: 12px; height: 12px; padding:0; display:inline-block; margin-right:5px; vertical-align: middle;"></span>
+                        <span>Καθηγητές</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public DateTime CurrentMonth { get; set; }
+    [Parameter] public int DaysInCurrentMonth { get; set; }
+    [Parameter] public int AdjustedFirstDayOfMonth { get; set; }
+    [Parameter] public int HighlightedDay { get; set; }
+    [Parameter] public Dictionary<int, List<CompanyEvent>> EventsForDate { get; set; } = new();
+    [Parameter] public Dictionary<int, List<ProfessorEvent>> EventsForDateForProfessors { get; set; } = new();
+    
+    [Parameter] public EventCallback<DateTime> OnDateClicked { get; set; }
+    [Parameter] public EventCallback OnPreviousMonth { get; set; }
+    [Parameter] public EventCallback OnNextMonth { get; set; }
+}

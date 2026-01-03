@@ -1,0 +1,21 @@
+# Enable automatic normalization of text files
+* text=auto
+
+# Keep LF for scripts and shell files
+*.sh text eol=lf
+
+# Ensure common source files are normalized
+*.cs text
+*.razor text
+*.html text
+*.css text
+*.js text
+
+# Keep binary files as-is
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+
+# End of file

@@ -1,0 +1,632 @@
+                                            <div class="tab-pane fade show active" id="announcements" role="tabpanel" aria-labelledby="announcements-tab">
+                                                    <div class="mb-3 row-dark-gray">
+                                                        <div class="d-flex justify-content-between align-items-center" @onclick="ToggleFormVisibilityToShowGeneralAnnouncementsAndEventsAsCompany" style="cursor: pointer;">
+                                                            <label class="form-label" style="color: #FFF8DC;">• Πρόσφατες Ανακοινώσεις •</label>
+                                                            <button class="btn btn-link" @onclick="ToggleFormVisibilityToShowGeneralAnnouncementsAndEventsAsCompany" @onclick:stopPropagation="true">
+                                                                @if (isAnnouncementsFormVisibleToShowGeneralAnnouncementsAndEventsAsCompany)
+                                                                {
+                                                                    <span>&#8722;</span> <!-- Minus sign -->
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span>&#43;</span> <!-- Plus sign -->
+                                                                }
+                                                            </button>
+                                                        </div>
+                                                    </div>
+
+                                                    @if (isAnnouncementsFormVisibleToShowGeneralAnnouncementsAndEventsAsCompany)
+                                                    {
+
+                                                            <!-- University News Section -->
+                                                            <div class="mb-3" style="background-color: #e6f2ff; border: 1px solid #b3c6e0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                                                <div class="d-flex justify-content-between align-items-center p-3" 
+                                                                     style="border-bottom: 1px solid #b3c6e0; cursor: pointer;"
+                                                                     @onclick="ToggleUniversityNewsVisibility">
+                                                                    <h1 class="news-heading form-label m-0">
+                                                                        <span class="black-text">
+                                                                            <span style="color: #b399d4; margin-left: 10px; margin-right: 5px;">
+                                                                                <i class="fas fa-rss"></i>
+                                                                            </span>
+                                                                            Πανεπιστήμιο Αθηνών
+                                                                            <span style="color: black; margin-left: 5px;">
+                                                                                <i class="fas fa-university"></i>
+                                                                            </span>
+                                                                        </span>
+                                                                    </h1>
+                                                                    <button class="btn" 
+                                                                            style="width: 30px; height: 30px; border-radius: 50%; background-color: #0d47a1; color: white; border: none; padding: 0; display: flex; align-items: center; justify-content: center; margin-right: 10px;" 
+                                                                            @onclick="ToggleUniversityNewsVisibility">
+                                                                        @if (isUniversityNewsVisible)
+                                                                        {
+                                                                            <span>&#8722;</span> 
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <span>&#43;</span> 
+                                                                        }
+                                                                    </button>
+                                                                </div>
+    
+                                                                @if (isUniversityNewsVisible)
+                                                                {
+                                                                    <div id="university-news-content" class="p-3" style="border-top: 1px solid #e6f2ff;">
+                                                                        @if (newsArticles != null && newsArticles.Any())
+                                                                        {
+                                                                            @foreach (var article in newsArticles)
+                                                                            {
+                                                                                <div class="news-article mb-2 pb-2" style="border-bottom: 1px dashed #ccc;">
+                                                                                    <a href="@article.Url" target="_blank" style="color: #0d47a1; text-decoration: none;">
+                                                                                        <i class="fa fa-external-link me-2" style="font-size: 0.8em;"></i>@article.Title
+                                                                                    </a>
+                                                                                </div>
+                                                                            }
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <p class="mb-0 text-muted">Καμία Ανακοίνωση από το Πανεπιστήμιο Αθηνών ακόμη....</p>
+                                                                        }
+                                                                    </div>
+                                                                }
+                                                            </div>
+
+                                                            <!-- SVSE News Section -->
+                                                            <div class="mb-3" style="background-color: #e6f2ff; border: 1px solid #b3c6e0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                                                <div class="d-flex justify-content-between align-items-center p-3" 
+                                                                     style="border-bottom: 1px solid #b3c6e0; cursor: pointer;"
+                                                                     @onclick="ToggleSvseNewsVisibility">
+                                                                    <h1 class="news-heading form-label m-0">
+                                                                        <span class="black-text">
+                                                                            <span style="color: #b399d4; margin-left: 10px; margin-right: 5px;">
+                                                                                <i class="fas fa-rss"></i>
+                                                                            </span>
+                                                                            Σύνδεσμος Βιομηχανιών Στερεάς Ελλάδας
+                                                                            <span style="color: black; margin-left: 5px;">
+                                                                                <i class="fas fa-industry"></i>
+                                                                            </span>
+                                                                        </span>
+                                                                    </h1>
+                                                                    <button class="btn" 
+                                                                            style="width: 30px; height: 30px; border-radius: 50%; background-color: #0d47a1; color: white; border: none; padding: 0; display: flex; align-items: center; justify-content: center; margin-right: 10px;" 
+                                                                            @onclick="ToggleSvseNewsVisibility">
+                                                                        @if (isSvseNewsVisible)
+                                                                        {
+                                                                            <span>&#8722;</span> <!-- Minus sign -->
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <span>&#43;</span> <!-- Plus sign -->
+                                                                        }
+                                                                    </button>
+                                                                </div>
+    
+                                                                @if (isSvseNewsVisible)
+                                                                {
+                                                                    <div id="svse-news-content" class="p-3" style="border-top: 1px solid #e6f2ff;">
+                                                                        @if (svseNewsArticles != null && svseNewsArticles.Any())
+                                                                        {
+                                                                            @foreach (var article in svseNewsArticles)
+                                                                            {
+                                                                                <div class="news-article mb-2 pb-2" style="border-bottom: 1px dashed #ccc;">
+                                                                                    <a href="@article.Url" target="_blank" style="color: #0d47a1; text-decoration: none;">
+                                                                                        <i class="fa fa-external-link me-2" style="font-size: 0.8em;"></i>@article.Title
+                                                                                    </a>
+                                                                                </div>
+                                                                            }
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <p class="mb-0 text-muted">Καμία Ανακοίνωση από τον ΣΒΣΕ ακόμη....</p>
+                                                                        }
+                                                                    </div>
+                                                                }
+                                                            </div>
+
+                                                            <!-- Platform company announcements -->
+                                                            <div class="mb-3" style="background-color: #e6f2ff; border: 1px solid #b3c6e0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                                                <div class="d-flex justify-content-between align-items-center p-3" 
+                                                                     style="border-bottom: 1px solid #b3c6e0; cursor: pointer;"
+                                                                     @onclick="ToggleCompanyAnnouncementsVisibility">
+                                                                    <h1 class="news-heading form-label m-0">
+                                                                        <span class="black-text">
+                                                                            <span style="color: #b399d4; margin-left: 10px; margin-right: 5px;">
+                                                                                <i class="fas fa-list"></i>
+                                                                            </span>
+                                                                            Ανακοινώσεις Εταιρειών
+                                                                            <span style="color: black; margin-left: 5px;">
+                                                                                <i class="fas fa-building"></i>
+                                                                            </span>
+                                                                        </span>
+                                                                    </h1>
+                                                                    <button class="btn" 
+                                                                            style="width: 30px; height: 30px; border-radius: 50%; background-color: #0d47a1; color: white; border: none; padding: 0; display: flex; align-items: center; justify-content: center; margin-right: 10px;" 
+                                                                            @onclick="ToggleCompanyAnnouncementsVisibility">
+                                                                        @if (isCompanyAnnouncementsVisible)
+                                                                        {
+                                                                            <span>&#8722;</span> <!-- Minus sign -->
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <span>&#43;</span> <!-- Plus sign -->
+                                                                        }
+                                                                    </button>
+                                                                </div>
+    
+                                                                @if (isCompanyAnnouncementsVisible)
+                                                                {
+                                                                    <div class="p-3" style="border-top: 1px solid #e6f2ff;">
+                                                                        @if (Announcements != null && Announcements.Any(announcement => announcement.CompanyAnnouncementStatus == "Δημοσιευμένη"))
+                                                                        {
+                                                                            <!-- Display paginated announcements sorted by upload date descending -->
+                                                                            @foreach (var announcement in Announcements
+                                                                               .Where(a => a.CompanyAnnouncementStatus == "Δημοσιευμένη")
+                                                                               .OrderByDescending(a => a.CompanyAnnouncementUploadDate)
+                                                                               .Skip((currentPageForCompanyAnnouncements - 1) * pageSize)
+                                                                               .Take(pageSize))
+                                                                            {
+                                                                                <div class="news-article mb-3 pb-2" style="border-bottom: 1px dashed #ccc;">
+                                                                                    <!-- Clicking on title toggles description -->
+                                                                                    <a href="javascript:void(0);"
+                                                                                       @onclick="() => ToggleDescription(announcement.Id)"
+                                                                                       style="display: block; max-width: 100%; overflow-wrap: break-word; color: #0d47a1; text-decoration: none; cursor: pointer;"
+                                                                                       title="Κάντε Κλικ εδώ για να δείτε την περιγραφή της ανακοίνωσης">
+                                                                                        <span class="black-text">• <strong>@(announcement.Company?.CompanyName ?? "Άγνωστη Εταιρεία")</strong></span> - @announcement.CompanyAnnouncementTitle
+                                                                                        <span class="text-muted">(@announcement.CompanyAnnouncementUploadDate.ToString("dd/MM/yyyy"))</span>
+                                                                                    </a>
+
+                                                                                    <!-- Show description based on toggle state -->
+                                                                                    <div class="announcement-description mt-2 @(expandedAnnouncementId == announcement.Id ? "expanded" : "collapsed")">
+                                                                                        @if (expandedAnnouncementId == announcement.Id)
+                                                                                        {
+                                                                                            <p style="color: #333;">@announcement.CompanyAnnouncementDescription</p>
+                                
+                                                                                            @if (announcement.CompanyAnnouncementAttachmentFile != null && announcement.CompanyAnnouncementAttachmentFile.Length > 0)
+                                                                                            {
+                                                                                                <p class="announcement-attachment mt-2">
+                                                                                                    <a href="#"
+                                                                                                       @onclick="() => DownloadAnnouncementAttachmentFrontPage(announcement.CompanyAnnouncementAttachmentFile, announcement.CompanyAnnouncementTitle)"
+                                                                                                       style="color: #c62828; text-decoration: none;"
+                                                                                                       title="Κάντε Κλικ εδώ για να κατεβάσετε το αρχείο">
+                                                                                                        <i class="fa fa-download me-1"></i> 
+                                                                                                        Συννημένο Αρχείο Ανακοίνωσης
+                                                                                                    </a>
+                                                                                                </p>
+                                                                                            }
+                                                                                        }
+                                                                                    </div>
+                                                                                </div>
+                                                                            }
+                                                                        
+                                                                                <!-- Pagination Controls for Company Announcements -->
+                                                                                <div class="d-flex justify-content-center align-items-center mt-3 gap-1">
+                                                                                    <!-- First Page (<<) -->
+                                                                                    <span class="pagination-item @(currentPageForCompanyAnnouncements == 1 ? "disabled" : "")"
+                                                                                          @onclick="GoToFirstPageForCompanyAnnouncements">
+                                                                                        &lt;&lt;
+                                                                                    </span>
+
+                                                                                    <!-- Previous Page (<) -->
+                                                                                    <span class="pagination-item @(currentPageForCompanyAnnouncements == 1 ? "disabled" : "")"
+                                                                                          @onclick="PreviousPageForCompanyAnnouncements">
+                                                                                        &lt;
+                                                                                    </span>
+
+                                                                                    <!-- Page Numbers -->
+                                                                                    @foreach (var pageNumber in GetVisiblePagesForCompanyAnnouncements())
+                                                                                    {
+                                                                                        if (pageNumber == -1)
+                                                                                        {
+                                                                                            <span class="pagination-ellipsis">...</span>
+                                                                                        }
+                                                                                        else
+                                                                                        {
+                                                                                            <span class="pagination-item @(pageNumber == currentPageForCompanyAnnouncements ? "active" : "")"
+                                                                                                  @onclick="() => GoToPageForCompanyAnnouncements(pageNumber)">
+                                                                                                @pageNumber
+                                                                                            </span>
+                                                                                        }
+                                                                                    }
+
+                                                                                    <!-- Next Page (>) -->
+                                                                                    <span class="pagination-item @(currentPageForCompanyAnnouncements == totalPagesForCompanyAnnouncements ? "disabled" : "")"
+                                                                                          @onclick="NextPageForCompanyAnnouncements">
+                                                                                        &gt;
+                                                                                    </span>
+
+                                                                                    <!-- Last Page (>>) -->
+                                                                                    <span class="pagination-item @(currentPageForCompanyAnnouncements == totalPagesForCompanyAnnouncements ? "disabled" : "")"
+                                                                                          @onclick="GoToLastPageForCompanyAnnouncements">
+                                                                                        &gt;&gt;
+                                                                                    </span>
+
+                                                                                    <span class="ms-3">Σελίδα @currentPageForCompanyAnnouncements από @totalPagesForCompanyAnnouncements</span>
+                                                                                </div>
+
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <p class="mb-0 text-muted">Καμία Ανακοίνωση από Εταιρείες ακόμη......</p>
+                                                                        }
+                                                                    </div>
+                                                                }
+                                                            </div>
+
+                                                            <!-- Platform professor announcements -->
+                                                            <div class="mb-3" style="background-color: #e6f2ff; border: 1px solid #b3c6e0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                                                <div class="d-flex justify-content-between align-items-center p-3" 
+                                                                     style="border-bottom: 1px solid #b3c6e0; cursor: pointer;"
+                                                                     @onclick="ToggleProfessorAnnouncementsVisibility">
+                                                                    <h1 class="news-heading form-label m-0">
+                                                                        <span class="black-text">
+                                                                            <span style="color: #b399d4; margin-left: 10px; margin-right: 5px;">
+                                                                                <i class="fas fa-list"></i>
+                                                                            </span>
+                                                                            Ανακοινώσεις Καθηγητών
+                                                                            <span style="color: black; margin-left: 5px;">
+                                                                                <i class="fas fa-user-tie"></i>
+                                                                            </span>
+                                                                        </span>
+                                                                    </h1>
+                                                                    <button class="btn" 
+                                                                            style="width: 30px; height: 30px; border-radius: 50%; background-color: #0d47a1; color: white; border: none; padding: 0; display: flex; align-items: center; justify-content: center; margin-right: 10px; cursor: pointer;"
+                                                                            @onclick="ToggleProfessorAnnouncementsVisibility">
+                                                                        @if (isProfessorAnnouncementsVisible)
+                                                                        {
+                                                                            <span>&#8722;</span> <!-- Minus sign -->
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <span>&#43;</span> <!-- Plus sign -->
+                                                                        }
+                                                                    </button>
+                                                                </div>
+    
+                                                                @if (isProfessorAnnouncementsVisible)
+                                                                {
+                                                                    <div class="p-3" style="border-top: 1px solid #e6f2ff;">
+                                                                        @if (ProfessorAnnouncements != null && ProfessorAnnouncements.Any(announcement => announcement.ProfessorAnnouncementStatus == "Δημοσιευμένη"))
+                                                                        {
+                                                                            <!-- Display paginated announcements sorted by upload date descending -->
+                                                                            @foreach (var announcement in ProfessorAnnouncements
+                                                                           .Where(a => a.ProfessorAnnouncementStatus == "Δημοσιευμένη")
+                                                                           .OrderByDescending(a => a.ProfessorAnnouncementUploadDate)
+                                                                           .Skip((currentPageForProfessorAnnouncements - 1) * pageSize)
+                                                                           .Take(pageSize))
+                                                                           {
+                                                                                <div class="news-article mb-3 pb-2" style="border-bottom: 1px dashed #ccc;">
+                                                                                    <!-- Clicking on title toggles description -->
+                                                                                    <a href="javascript:void(0);"
+                                                                                       @onclick="() => ToggleDescriptionForProfessorAnnouncements(announcement.Id)"
+                                                                                       style="display: block; max-width: 100%; overflow-wrap: break-word; color: #0d47a1; text-decoration: none; cursor: pointer;"
+                                                                                       title="Κάντε Κλικ εδώ για να δείτε την περιγραφή της ανακοίνωσης">
+                                                                                        <span class="black-text">• 
+                                                                                            <strong>@(announcement.Professor?.ProfName ?? "N/A")</strong> 
+                                                                                            <strong>@(announcement.Professor?.ProfSurname ?? "N/A")</strong>
+                                                                                        </span> - @announcement.ProfessorAnnouncementTitle
+                                                                                        <span class="text-muted">(@announcement.ProfessorAnnouncementUploadDate.ToString("dd/MM/yyyy"))</span>
+                                                                                    </a>
+                                                                                    <!-- Show description based on toggle state -->
+                                                                                    <div class="announcement-description mt-2 @(expandedProfessorAnnouncementId == announcement.Id ? "expanded" : "collapsed")">
+                                                                                        @if (expandedProfessorAnnouncementId == announcement.Id)
+                                                                                        {
+                                                                                            <p style="color: #333;">@announcement.ProfessorAnnouncementDescription</p>
+                                
+                                                                                            @if (announcement.ProfessorAnnouncementAttachmentFile != null && announcement.ProfessorAnnouncementAttachmentFile.Length > 0)
+                                                                                            {
+                                                                                                <p class="announcement-attachment mt-2">
+                                                                                                    <a href="#"
+                                                                                                       @onclick="() => DownloadProfessorAnnouncementAttachmentFrontPage(announcement.ProfessorAnnouncementAttachmentFile, announcement.ProfessorAnnouncementTitle)"
+                                                                                                       style="color: #c62828; text-decoration: none;"
+                                                                                                       title="Κάντε Κλικ εδώ για να κατεβάσετε το αρχείο">
+                                                                                                        <i class="fa fa-download me-1"></i>
+                                                                                                        Συννημένο Αρχείο Ανακοίνωσης
+                                                                                                    </a>
+                                                                                                </p>
+                                                                                            }
+                                                                                        }
+                                                                                    </div>
+                                                                                </div>
+                                                                           }
+                                                                                <!-- Pagination Controls for Professor Announcements -->
+                                                                                <div class="d-flex justify-content-center align-items-center mt-3 gap-1">
+                                                                                    <!-- First Page (<<) -->
+                                                                                    <span class="pagination-item @(currentPageForProfessorAnnouncements == 1 ? "disabled" : "")"
+                                                                                          @onclick="GoToFirstPageForProfessorAnnouncements">
+                                                                                        &lt;&lt;
+                                                                                    </span>
+
+                                                                                    <!-- Previous Page (<) -->
+                                                                                    <span class="pagination-item @(currentPageForProfessorAnnouncements == 1 ? "disabled" : "")"
+                                                                                          @onclick="PreviousPageForProfessorAnnouncements">
+                                                                                        &lt;
+                                                                                    </span>
+
+                                                                                    <!-- Page Numbers -->
+                                                                                    @foreach (var pageNumber in GetVisiblePagesForProfessorAnnouncements())
+                                                                                    {
+                                                                                        if (pageNumber == -1)
+                                                                                        {
+                                                                                            <span class="pagination-ellipsis">...</span>
+                                                                                        }
+                                                                                        else
+                                                                                        {
+                                                                                            <span class="pagination-item @(pageNumber == currentPageForProfessorAnnouncements ? "active" : "")"
+                                                                                                  @onclick="() => GoToPageForProfessorAnnouncements(pageNumber)">
+                                                                                                @pageNumber
+                                                                                            </span>
+                                                                                        }
+                                                                                    }
+
+                                                                                    <!-- Next Page (>) -->
+                                                                                    <span class="pagination-item @(currentPageForProfessorAnnouncements == totalPagesForProfessorAnnouncements ? "disabled" : "")"
+                                                                                          @onclick="NextPageForProfessorAnnouncements">
+                                                                                        &gt;
+                                                                                    </span>
+
+                                                                                    <!-- Last Page (>>) -->
+                                                                                    <span class="pagination-item @(currentPageForProfessorAnnouncements == totalPagesForProfessorAnnouncements ? "disabled" : "")"
+                                                                                          @onclick="GoToLastPageForProfessorAnnouncements">
+                                                                                        &gt;&gt;
+                                                                                    </span>
+
+                                                                                    <span class="ms-3">Σελίδα @currentPageForProfessorAnnouncements από @totalPagesForProfessorAnnouncements</span>
+                                                                                </div>
+
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <p class="mb-0 text-muted">Καμία Ανακοίνωση από Καθηγητές ακόμη......</p>
+                                                                        }
+                                                                    </div>
+                                                                }
+                                                            </div>                                                          
+                                                            <!-- Platform research group announcements -->
+                                                            <div class="mb-3" style="background-color: #e6f2ff; border: 1px solid #b3c6e0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                                                <div class="d-flex justify-content-between align-items-center p-3" 
+                                                                     style="border-bottom: 1px solid #b3c6e0; cursor: pointer;"
+                                                                     @onclick="ToggleResearchGroupPublicAnnouncementsVisibility">
+                                                                    <h1 class="news-heading form-label m-0">
+                                                                        <span class="black-text">
+                                                                            <span style="color: #b399d4; margin-left: 10px; margin-right: 5px;">
+                                                                                <i class="fas fa-list"></i>
+                                                                            </span>
+                                                                            Ανακοινώσεις Ερευνητικών Ομάδων
+                                                                            <span style="color: black; margin-left: 5px;">
+                                                                                <i class="fa-solid fa-flask"></i>
+                                                                            </span>
+                                                                        </span>
+                                                                    </h1>
+                                                                    <button class="btn" 
+                                                                            style="width: 30px; height: 30px; border-radius: 50%; background-color: #0d47a1; color: white; border: none; padding: 0; display: flex; align-items: center; justify-content: center; margin-right: 10px; cursor: pointer;"
+                                                                            @onclick="ToggleResearchGroupPublicAnnouncementsVisibility">
+                                                                        @if (isResearchGroupPublicAnnouncementsVisible)
+                                                                        {
+                                                                            <span>&#8722;</span> <!-- Minus sign -->
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <span>&#43;</span> <!-- Plus sign -->
+                                                                        }
+                                                                    </button>
+                                                                </div>
+    
+                                                                @if (isResearchGroupPublicAnnouncementsVisible)
+                                                                {
+                                                                    <div class="p-3" style="border-top: 1px solid #e6f2ff;">
+                                                                        @if (ResearchGroupAnnouncements != null && ResearchGroupAnnouncements.Any(announcement => announcement.ResearchGroupAnnouncementStatus == "Δημοσιευμένη"))
+                                                                        {
+                                                                            <!-- Display paginated announcements sorted by upload date descending -->
+                                                                            @foreach (var announcement in ResearchGroupAnnouncements
+                                                                           .Where(a => a.ResearchGroupAnnouncementStatus == "Δημοσιευμένη")
+                                                                           .OrderByDescending(a => a.ResearchGroupAnnouncementUploadDate)
+                                                                           .Skip((currentPageForResearchGroupPublicAnnouncements - 1) * pageSize)
+                                                                           .Take(pageSize))
+                                                                           {
+                                                                                <div class="news-article mb-3 pb-2" style="border-bottom: 1px dashed #ccc;">
+                                                                                    <!-- Clicking on title toggles description -->
+                                                                                    <a href="javascript:void(0);"
+                                                                                       @onclick="() => ToggleDescriptionForResearchGroupPublicAnnouncements(announcement.Id)"
+                                                                                       style="display: block; max-width: 100%; overflow-wrap: break-word; color: #0d47a1; text-decoration: none; cursor: pointer;"
+                                                                                       title="Κάντε Κλικ εδώ για να δείτε την περιγραφή της ανακοίνωσης">
+                                                                                        <span class="black-text">• 
+                                                                                            <strong>@(announcement.ResearchGroup?.ResearchGroupName ?? "Άγνωστη Ερευνητική Ομάδα")</strong>
+                                                                                        </span> - @announcement.ResearchGroupAnnouncementTitle
+                                                                                        <span class="text-muted">(@announcement.ResearchGroupAnnouncementUploadDate.ToString("dd/MM/yyyy"))</span>
+                                                                                    </a>
+                                                                                    <!-- Show description based on toggle state -->
+                                                                                    <div class="announcement-description mt-2 @(expandedResearchGroupPublicAnnouncementId == announcement.Id ? "expanded" : "collapsed")">
+                                                                                        @if (expandedResearchGroupPublicAnnouncementId == announcement.Id)
+                                                                                        {
+                                                                                            <p style="color: #333;">@announcement.ResearchGroupAnnouncementDescription</p>
+                                
+                                                                                            @if (announcement.ResearchGroupAnnouncementAttachmentFile != null && announcement.ResearchGroupAnnouncementAttachmentFile.Length > 0)
+                                                                                            {
+                                                                                                <p class="announcement-attachment mt-2">
+                                                                                                    <a href="#"
+                                                                                                       @onclick="() => DownloadResearchGroupPublicAnnouncementAttachmentFrontPage(announcement.ResearchGroupAnnouncementAttachmentFile, announcement.ResearchGroupAnnouncementTitle)"
+                                                                                                       style="color: #c62828; text-decoration: none;"
+                                                                                                       title="Κάντε Κλικ εδώ για να κατεβάσετε το αρχείο">
+                                                                                                        <i class="fa fa-download me-1"></i>
+                                                                                                        Συννημένο Αρχείο Ανακοίνωσης
+                                                                                                    </a>
+                                                                                                </p>
+                                                                                            }
+                                                                                        }
+                                                                                    </div>
+                                                                                </div>
+                                                                           }
+                                                                            <!-- Pagination Controls for Research Group Announcements -->
+                                                                            <div class="d-flex justify-content-center align-items-center mt-3 gap-1">
+                                                                                <!-- First Page (<<) -->
+                                                                                <span class="pagination-item @(currentPageForResearchGroupPublicAnnouncements == 1 ? "disabled" : "")"
+                                                                                      @onclick="GoToFirstPageForResearchGroupPublicAnnouncements">
+                                                                                    &lt;&lt;
+                                                                                </span>
+
+                                                                                <!-- Previous Page (<) -->
+                                                                                <span class="pagination-item @(currentPageForResearchGroupPublicAnnouncements == 1 ? "disabled" : "")"
+                                                                                      @onclick="PreviousPageForResearchGroupPublicAnnouncements">
+                                                                                    &lt;
+                                                                                </span>
+
+                                                                                <!-- Page Numbers -->
+                                                                                @foreach (var pageNumber in GetVisiblePagesForResearchGroupPublicAnnouncements())
+                                                                                {
+                                                                                    if (pageNumber == -1)
+                                                                                    {
+                                                                                        <span class="pagination-ellipsis">...</span>
+                                                                                    }
+                                                                                    else
+                                                                                    {
+                                                                                        <span class="pagination-item @(pageNumber == currentPageForResearchGroupPublicAnnouncements ? "active" : "")"
+                                                                                              @onclick="() => GoToPageForResearchGroupPublicAnnouncements(pageNumber)">
+                                                                                            @pageNumber
+                                                                                        </span>
+                                                                                    }
+                                                                                }
+
+                                                                                <!-- Next Page (>) -->
+                                                                                <span class="pagination-item @(currentPageForResearchGroupPublicAnnouncements == totalPagesForResearchGroupPublicAnnouncements ? "disabled" : "")"
+                                                                                      @onclick="NextPageForResearchGroupPublicAnnouncements">
+                                                                                    &gt;
+                                                                                </span>
+
+                                                                                <!-- Last Page (>>) -->
+                                                                                <span class="pagination-item @(currentPageForResearchGroupPublicAnnouncements == totalPagesForResearchGroupPublicAnnouncements ? "disabled" : "")"
+                                                                                      @onclick="GoToLastPageForResearchGroupPublicAnnouncements">
+                                                                                    &gt;&gt;
+                                                                                </span>
+
+                                                                                <span class="ms-3">Σελίδα @currentPageForResearchGroupPublicAnnouncements από @totalPagesForResearchGroupPublicAnnouncements</span>
+                                                                            </div>
+
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <p class="mb-0 text-muted">Καμία Ανακοίνωση από Ερευνητικές Ομάδες ακόμη......</p>
+                                                                        }
+                                                                    </div>
+                                                                }
+                                                            </div>
+                                                        
+                                                    }
+
+                                                @*iNPUT FIELDS SHOULD BE HERE FOR UPLOAD ANNOUNCEMENT AS COMPANY*@
+                                                <!-- Announcement Form -->
+                                                <div class="mb-3 row-dark-gray">
+                                                    <div class="d-flex justify-content-between align-items-center" @onclick="ToggleFormVisibilityForUploadCompanyAnnouncements" style="cursor: pointer;">
+                                                        <label class="form-label" style="color: #FFF8DC;">• Δημιουργία Ανακοίνωσης •</label>
+                                                        <button class="btn btn-link" @onclick="ToggleFormVisibilityForUploadCompanyAnnouncements" @onclick:stopPropagation="true">
+                                                            @if (isAnnouncementsFormVisible)
+                                                            {
+                                                                <span>&#8722;</span> <!-- Minus sign -->
+                                                            }
+                                                            else
+                                                            {
+                                                                <span>&#43;</span> <!-- Plus sign -->
+                                                            }
+                                                        </button>
+                                                    </div>
+                                                </div>
+   
+                                                @if (isAnnouncementsFormVisible)
+                                                {
+                                                        <div class="row mb-3">
+                                                            <div class="col-md-4 position-relative">
+                                                                <label for="announcementTitle">
+                                                                    <strong>Τίτλος Ανακοίνωσης</strong>
+                                                                    <span style="color: red;">*</span>
+                                                                </label>
+                                                                <input type="text" id="announcementTitle" class="form-control @(showErrorMessageforUploadingannouncementsAsCompany && string.IsNullOrWhiteSpace(announcement.CompanyAnnouncementTitle) ? "shake error" : "")" 
+                                                                       @bind="announcement.CompanyAnnouncementTitle" 
+                                                                       @oninput="CheckCharacterLimitInAnnouncementFieldUploadAsCompany" maxlength="120" />
+                                                                <small class="character-limit light-cadetblue-text">@remainingCharactersInAnnouncementFieldUploadAsCompany/120</small>
+                                                            </div>
+                                                            @if (showErrorMessageforUploadingannouncementsAsCompany && string.IsNullOrWhiteSpace(announcement.CompanyAnnouncementTitle))
+                                                            {
+                                                                <div class="text-danger mt-1">Απαιτείται Tίτλος Ανακοίνωσης!</div>
+                                                            }
+                                                        </div>
+
+                                                        <div class="row mb-3">
+                                                            <div class="col-md-4 position-relative">
+                                                                <label for="CompanyAnnouncementDescription"><strong>Περιγραφή Ανακοίνωσης</strong> <span style="color: red;"> *</span></label>
+                                                                <textarea id="CompanyAnnouncementDescription" class="form-control @(showErrorMessageforUploadingannouncementsAsCompany && string.IsNullOrWhiteSpace(announcement.CompanyAnnouncementDescription) ? "shake error" : "")"
+                                                                          @bind="announcement.CompanyAnnouncementDescription"
+                                                                          @oninput="CheckCharacterLimitInAnnouncementDescriptionUploadAsCompany"
+                                                                          maxlength="1000"
+                                                                          placeholder="Πληκτρολογείστε την Ανακοίνωσή σας"></textarea>
+                                                                <small class="character-limit light-cadetblue-text">@remainingCharactersInAnnouncementDescriptionUploadAsCompany/1000</small>
+                                                            </div>
+                                                            @if (showErrorMessageforUploadingannouncementsAsCompany && string.IsNullOrWhiteSpace(announcement.CompanyAnnouncementDescription))
+                                                            {
+                                                                <div class="text-danger mt-1">Απαιτείται Περιγραφή της Ανακοίνωσης!</div>
+                                                            }
+                                                        </div>
+
+                                                        <div class="row mb-3">
+                                                            <div class="col-md-4 position-relative">
+                                                                <label for="CompanyAnnouncementTimeToBeActive"><strong>Ημερομηνία Λήξης Ανακοίνωσης</strong> <span style="color: red;"> *</span></label>
+                                                                <input type="date" id="CompanyAnnouncementTimeToBeActive" class="form-control @(showErrorMessageforUploadingannouncementsAsCompany && announcement.CompanyAnnouncementTimeToBeActive.Date == DateTime.Today ? "shake error" : "")" 
+                                                                       @bind="announcement.CompanyAnnouncementTimeToBeActive" />
+                                                            </div>
+                                                            @if (showErrorMessageforUploadingannouncementsAsCompany && announcement.CompanyAnnouncementTimeToBeActive.Date <= DateTime.Today)
+                                                            {
+                                                                <div class="text-danger mt-1">Η ημερομηνία πρέπει να είναι μεταγενέστερη της σημερινής ημερομηνίας.</div>
+                                                            }
+                                                        </div>
+
+
+                                                        <div class="row mb-3">
+                                                            <div class="col-md-4 position-relative">
+                                                                <label for="announcementAttachment">Συνημμένο Αρχείο Ανακοίνωσης<span style="font-style: italic; color: gray;"> (Προαιρετικό)</span></label>
+                                                                <InputFile id="announcementAttachment" class="form-control" OnChange="HandleFileSelectedForAnnouncementAttachment" />
+                                                                <small class="form-text text-muted">Όριο 10MB - Μόνο αρχεία PDF</small>
+                                                                @if (!string.IsNullOrEmpty(AnnouncementAttachmentErrorMessage))
+                                                                {
+                                                                    <div class="text-danger mt-2">@AnnouncementAttachmentErrorMessage</div>
+                                                                }
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Save Buttons -->
+                                                        <div class="row mb-3">
+                                                            <div class="col-md-12">
+                                                                <button class="modern-button" style="background-color: #818589; color: white; display: inline-flex; align-items: center;" @onclick="SaveAnnouncementAsUnpublished">
+                                                                    <i class="fa-regular fa-floppy-disk" style="margin-right: 8px;"></i>Προσωρινή Αποθήκευση Ανακοίνωσης
+                                                                </button>
+                                                                <button class="modern-button" style="background-color: #2d3748; color: white; display: inline-flex; align-items: center;" @onclick="SaveAnnouncementAsPublished">
+                                                                    <i class="fa-solid fa-floppy-disk" style="margin-right: 8px;"></i>Δημοσίευση Ανακοίνωσης
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                        <!-- Loading Modal -->
+                                                        @if (showLoadingModal)
+                                                        {
+                                                            <div class="loading-modal">
+                                                                <div class="loading-modal-content">
+                                                                    <div class="loading-spinner"></div>
+                                                                    <p>Αποθήκευση Ανακοίνωσης...</p>
+                                                                    <div class="progress-bar">
+                                                                        <div class="progress-bar-fill" style="width: @loadingProgress%"></div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        }
+
+                                                        <!-- Error message if required fields are not filled -->
+                                                        @if (!isFormValidToSaveAnnouncementAsCompany)
+                                                        {
+                                                            <div class="alert alert-danger" role="alert">
+                                                                Συμπληρώστε Όλα Τα Υποχρεωτικά Πεδία και Προσπαθήστε Ξανά
+                                                            </div>
+                                                        }
+
+                                                        @if (!string.IsNullOrEmpty(saveAnnouncementAsCompanyMessage))
+                                                        {
+                                                            <div class="alert @(isSaveAnnouncementAsCompanySuccessful ? "alert-success" : "alert-danger")" role="alert">
+                                                                @saveAnnouncementAsCompanyMessage
+                                                            </div>
+                                                        }
+                                                }
+                                            </div>

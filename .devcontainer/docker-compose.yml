@@ -1,0 +1,56 @@
+
+
+services:
+  app:
+    image: mcr.microsoft.com/devcontainers/dotnet:1-8.0
+    security_opt:
+      - seccomp:unconfined
+    
+    volumes:
+      - ../..:/workspaces:cached
+    
+    # Overrides default command so things don't shut down after the process ends
+    command: sleep infinity
+    
+    # Environment variables for the app
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - DOTNET_CLI_TELEMETRY_OPTOUT=1
+      # Connection string pointing to db service (not localhost)
+      - ConnectionStrings__DbConnectionString=Server=db,1433;Database=JobFinder;User Id=SA;Password=Root1234!;TrustServerCertificate=True;MultipleActiveResultSets=true;
+    
+    ports:
+      - "5168:5168"
+      - "7290:7290"
+    
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    restart: unless-stopped
+    
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: "Root1234!"
+      MSSQL_PID: "Developer"
+    
+    ports:
+      - "1433:1433"
+    
+    volumes:
+      # Use named volume for SQL Server data (works with WSL2 permissions)
+      - mssql_data:/var/opt/mssql
+    
+    healthcheck:
+      test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U SA -P 'Root1234!' -C -Q 'SELECT 1' || exit 1
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  mssql_data:
+    name: mssql_data
+network_mode: host

@@ -1,0 +1,825 @@
+@using QuizManager.Services.ProfessorDashboard
+@using Microsoft.JSInterop
+@using QuizManager.Models
+
+<!-- Calendar Section -->
+<ProfessorEventsCalendar 
+                                                                                                                                                                                                                                                                                                                                                                                                            CurrentMonth="@currentMonth"
+                                                            DaysInCurrentMonth="@daysInCurrentMonth"
+                                                            AdjustedFirstDayOfMonth="@adjustedFirstDayOfMonth"
+                                                            HighlightedDay="@highlightedDay"
+                                                            EventsForDate="@eventsForDate"
+                                                            EventsForDateForProfessors="@eventsForDateForProfessors"
+                                                            OnDateClicked="@OnDateClicked"
+                                                            OnPreviousMonth="@ShowPreviousMonth"
+                                                            OnNextMonth="@ShowNextMonth" />
+
+
+
+@if (isModalVisibleToShowEventsOnCalendarForEachClickedDay)
+{
+                                                                                    <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0, 0, 0, 0.5);">
+                                                                                        <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
+                                                                                            <div class="modal-content"  style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); width: 100vw; max-width: none; margin: 0;">
+                                                                                                <div class="modal-header" style="border-bottom: 1px solid #e9ecef; border-radius: 12px 12px 0 0; background-color: #f8f9fa;">
+                                                                                                    <h5 class="modal-title" style="color: #2d3748; font-weight: 600; font-size: 1.25rem;">
+                                                                                                        <strong>Λεπτομέρειες Εκδήλωσης/σεων</strong>: 
+                                                                                                        <span style="color: #2d3748;">
+                            @selectedDate?.ToString("dd MMMM yyyy", new System.Globalization.CultureInfo("el-GR"))
+                                                                                                        </span>
+                                                                                                    </h5>
+                                                                                                    <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" 
+                    @onclick="CloseModalForCompanyAndProfessorEventTitles"
+                                                                                                            onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                                                            onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                                                        <span style="font-size: 1.2rem; line-height: 1;">×</span>
+                                                                                                    </button>
+                                                                                                </div>
+                                                                                                <div class="modal-body" style="max-height: 80vh; overflow-y: auto;">
+                                                                                                    <!-- Filter Section -->
+                    @if (selectedEvent == null)
+                    {
+                                                                                                                            <div class="form-group">
+                                                                                                                                <label style="font-weight: bold;">Φιλτράρισμα Εκδηλώσεων</label>
+                                                                                                                                <div class="input-group custom-width">
+                                                                                                                                    <select class=".form-control-calendarEventModal" style="border-radius: 8px; background-color: #f8f9fa;" @bind="selectedEventFilter">
+                                                                                                                                        <option value="All">Όλες οι Εκδηλώσεις</option>
+                                                                                                                                        <option value="Company">Εκδηλώσεις Εταιρειών</option>
+                                                                                                                                        <option value="Professor">Εκδηλώσεις Καθηγητών</option>
+                                                                                                                                    </select>
+                                                                                                                                    <div class="input-group-append">
+                                                                                                                                        <span class="input-group-text"></span>
+                                                                                                                                    </div>
+                                                                                                                                </div>
+                                                                                                                            </div>
+                                                                                                                            <br/>
+                        @if (selectedEvent == null)
+                        {
+                            @if (filteredCompanyEvents.Count == 0 && filteredProfessorEvents.Count == 0)
+                            {
+                                                                                                                                                                            <p>
+                                                                                                                                                                                "Δεν βρέθηκε καμία Εκδήλωση για αυτήν τη μέρα"
+                                                                                                                                                                            </p>
+                                                                                                                                                                            <p>
+                                                                                                                                                                                Η σημερινή ημερομηνία είναι: <strong>@DateTime.Today.ToString("dd MMMM , yyyy", new System.Globalization.CultureInfo("el-GR"))</strong>
+                                                                                                                                                                            </p>
+                            }
+                            else
+                            {
+                                                                                                                                                                            <ul class="list-group">
+                                    @if (selectedEventFilter == "All" || selectedEventFilter == "Company" || selectedEventFilter == "Professor")
+                                    {
+                                                                                                                                                                                                        <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                                                                                                                                                                                                            <table class="table table-responsive" style="width: 100%; table-layout: auto; border-radius: 8px; overflow: hidden;">
+                                                                                                                                                                                                                <thead>
+                                                                                                                                                                                                                    <tr>
+                                                                                                                                                                                                                        <th class="text-center" style="max-width: auto; overflow: hidden; text-overflow: ellipsis;">Διοργανωτής</th>
+                                                                                                                                                                                                                        <th class="text-center" style="max-width: auto; overflow: hidden; text-overflow: ellipsis;">Ημερομηνία</th>
+                                                                                                                                                                                                                        <th class="text-center" style="max-width: auto; overflow: hidden; text-overflow: ellipsis;">Ώρα</th>                                                                                                          
+                                                                                                                                                                                                                        <th class="text-center" style="max-width: auto; overflow: hidden; text-overflow: ellipsis;">Τίτλος</th>                                                                                                 
+                                                                                                                                                                                                                        <th class="text-center" style="max-width: auto; overflow: hidden; text-overflow: ellipsis;">Λεπτομέρειες</th>
+                                                        @if (selectedEventFilter != "Professor")
+                                                        {
+                                                                                                                                                                                                                                                <th class="text-center" style="max-width: auto; overflow: hidden; text-overflow: ellipsis;">Ένδειξη Ενδιαφέροντος</th>
+                                                        }
+                                                                                                                                                                                                                    </tr>
+                                                                                                                                                                                                                </thead>
+                                                                                                                                                                                                                <tbody>
+                                                    @if (selectedEventFilter == "All" || selectedEventFilter == "Company")
+                                                    {
+                                                        @foreach (var companyEvent in filteredCompanyEvents)
+                                                        {
+                                                            bool hasAlreadyExpressedInterest = HasAlreadyExpressedInterest(companyEvent);
+
+                                                                                                                                                                                                                                                                    <tr style="cursor:pointer; text-align: center; background-color: @(hasAlreadyExpressedInterest ? "lightgreen" : "transparent");">
+                                                                                                                                                                                                                                                                        <td style="max-width: auto; overflow: hidden; text-overflow: ellipsis;">@(companyEvent.Company?.CompanyName ?? "Άγνωστη Εταιρεία")</td>
+                                                                                                                                                                                                                                                                        <td style="max-width: auto; overflow: hidden; text-overflow: ellipsis;">
+                                                                    @companyEvent.CompanyEventActiveDate.Date.ToString("dd MMMM", new System.Globalization.CultureInfo("el-GR"))
+                                                                                                                                                                                                                                                                        </td>
+                                                                                                                                                                                                                                                                        <td style="max-width: auto; overflow: hidden; text-overflow: ellipsis;">@companyEvent.CompanyEventTime</td>
+                                                                                                                                                                                                                                                                        <td style="max-width: auto; overflow: hidden; text-overflow: ellipsis;">@companyEvent.CompanyEventTitle</td>
+                                                                                                                                                                                                                                                                        <td style="max-width: auto; overflow: hidden; text-overflow: ellipsis; justify-content: center; align-items: center; height: 100%; vertical-align: middle;">
+                                                                                                                                                                                                                                                                            <i class="fas fa-eye" @onclick="() => ShowEventDetails(companyEvent)" style="cursor: pointer; font-size: 20px;"></i>
+                                                                                                                                                                                                                                                                        </td>
+                                                                @if (selectedEventFilter != "Professor")
+                                                                {
+                                                                                                                                                                                                                                                                                                <td style="max-width: 250px; text-align: center; vertical-align: middle;">
+                                                                        @if (hasAlreadyExpressedInterest)
+                                                                        {
+                                                                                                                                                                                                                                                                                                                            <span style="color: black; font-weight: bold;">Έχετε Εκδηλώσει Ενδιαφέρον</span>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                                                                                                                                                                                                                                                                            <i class="fas fa-heart" @onclick="() => ShowInterestInCompanyEventAsProfessor(companyEvent)" 
+                                                                                                                                                                                                                                                                                                                               style="cursor: pointer; font-size: 20px; color: goldenrod;"></i>
+                                                                        }
+                                                                                                                                                                                                                                                                                                </td>
+                                                                }
+                                                                                                                                                                                                                                                                    </tr>
+                                                        }
+                                                    }
+
+                                                    @if (selectedEventFilter == "All" || selectedEventFilter == "Professor")
+                                                    {
+                                                        @foreach (var professorEvent in filteredProfessorEvents)
+                                                        {
+                                                                                                                                                                                                                                                                    <tr style="cursor:pointer; text-align: center;">
+                                                                                                                                                                                                                                                                        <td style="max-width: auto; overflow: hidden; text-overflow: ellipsis;">
+                                                                    @professorEvent.Professor?.ProfName @professorEvent.Professor?.ProfSurname
+                                                                                                                                                                                                                                                                        </td>
+                                                                                                                                                                                                                                                                        <td style="max-width: auto; overflow: hidden; text-overflow: ellipsis;">@professorEvent.ProfessorEventActiveDate.Date.ToString("dd MMMM", new System.Globalization.CultureInfo("el-GR"))</td>
+                                                                                                                                                                                                                                                                        <td style="max-width: auto; overflow: hidden; text-overflow: ellipsis;">@professorEvent.ProfessorEventTime</td>
+                                                                                                                                                                                                                                                                        <td style="max-width: auto; overflow: hidden; text-overflow: ellipsis;">@professorEvent.ProfessorEventTitle</td>
+                                                                                                                                                                                                                                                                        <td style="max-width: auto; overflow: hidden; text-overflow: ellipsis; justify-content: center; align-items: center; height: 100%; vertical-align: middle;">
+                                                                                                                                                                                                                                                                            <i class="fas fa-eye" @onclick="() => ShowEventDetails(professorEvent)" style="cursor: pointer; font-size: 20px;"></i>
+                                                                                                                                                                                                                                                                        </td>
+                                                                @if (selectedEventFilter != "Professor")
+                                                                {
+                                                                                                                                                                                                                                                                                                <td style="max-width: auto; overflow: hidden; text-overflow: ellipsis;"> - </td>
+                                                                }
+                                                                                                                                                                                                                                                                    </tr>
+                                                        }
+                                                    }
+                                                                                                                                                                                                                </tbody>
+                                                                                                                                                                                                            </table>
+                                                                                                                                                                                                        </div>
+                                    }
+                                                                                                                                                                            </ul>
+                            }
+                        }
+
+                                                                                                                            <div class="text-center mt-3">
+                                                                                                                                <button class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; padding: 8px 20px; transition: all 0.2s;" 
+                            @onclick="CloseModalForCompanyAndProfessorEventTitles"
+                                                                                                                                        onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                                                                                        onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                                                                                    <i class="fas fa-times me-2"></i> Κλείσιμο
+                                                                                                                                </button>
+                                                                                                                            </div>
+                    }
+                    else
+                    {
+                                                                                                                            <!-- Display full details of the selected event -->
+                        @if (selectedEvent is CompanyEvent companyEventDetails)
+                        {
+                                                                                                                                                    <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0, 0, 0, 0.5);">
+                                                                                                                                                        <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+                                                                                                                                                            <div class="modal-content" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);">
+                                                                                                                                                                <div class="modal-header" style="border-bottom: 1px solid #e9ecef; border-radius: 12px 12px 0 0; background-color: #f8f9fa;">
+                                                                                                                                                                    <h5 class="modal-title" style="color: #4682B4; font-weight: 600; font-size: 1.25rem;">@companyEventDetails.CompanyEventTitle</h5>
+                                                                                                                                                                    <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" 
+                                            @onclick="CloseEventDetails"
+                                                                                                                                                                            onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                                                                                                                            onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                                                                                                                        <span style="font-size: 1.2rem; line-height: 1;">×</span>
+                                                                                                                                                                    </button>
+                                                                                                                                                                </div>
+                                                                                                                                                                <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                                            @if (companyEventDetails.Company.CompanyLogo != null)
+                                            {
+                                                                                                                                                                                            <div class="form-group text-center">
+                                                                                                                                                                                                <img src="data:image/png;base64,@Convert.ToBase64String(companyEventDetails.Company.CompanyLogo)" 
+                                                                                                                                                                                                     class="rounded-circle img-fluid" 
+                                                                                                                                                                                                     style="width: 150px; height: 150px; object-fit: cover;" 
+                                                                                                                                                                                                     alt="Company Logo" />
+                                                                                                                                                                                            </div>
+                                            }
+
+                                                                                                                                                                    <div class="list-group">
+                                                                                                                                                                        <div class="form-group">
+                                                                                                                                                                            <label style="font-weight: bold;">Όνομα Εταιρίας</label>
+                                                                                                                                                                            <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                                                                                                                                                                                <i class="fas fa-industry" style="color: #5F9EA0; margin-right: 8px;"></i>
+                                                                                                                                                                                <span>@companyEventDetails.Company.CompanyName</span>
+                                                                                                                                                                            </div>
+                                                                                                                                                                        </div>
+
+                                                                                                                                                                        <div class="form-group">
+                                                                                                                                                                            <label style="font-weight: bold;">Τίτλος Εκδήλωσης</label>
+                                                                                                                                                                            <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" value="@companyEventDetails.CompanyEventTitle" readonly />
+                                                                                                                                                                        </div>
+
+                                                                                                                                                                        <div class="form-group">
+                                                                                                                                                                            <label style="font-weight: bold;">Περιγραφή</label>
+                                                                                                                                                                            <textarea class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" rows="3" readonly>@companyEventDetails.CompanyEventDescription</textarea>
+                                                                                                                                                                        </div>
+
+                                                                                                                                                                        <div class="form-group">
+                                                                                                                                                                            <label style="font-weight: bold;">Ημερομηνία</label>
+                                                                                                                                                                            <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                                                                                                                                                                                <i class="far fa-calendar-alt" style="color: #5F9EA0; margin-right: 8px;"></i>
+                                                                                                                                                                                <span>@companyEventDetails.CompanyEventActiveDate.ToString("yyyy-MM-dd", new System.Globalization.CultureInfo("el-GR"))</span>
+                                                                                                                                                                            </div>
+                                                                                                                                                                        </div>
+
+                                                                                                                                                                        <div class="form-group">
+                                                                                                                                                                            <label style="font-weight: bold;">Ώρα Εκδήλωσης</label>
+                                                                                                                                                                            <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                                                                                                                                                                                <i class="far fa-clock" style="color: #5F9EA0; margin-right: 8px;"></i>
+                                                                                                                                                                                <span>@companyEventDetails.CompanyEventTime.ToString(@"hh\:mm")</span>
+                                                                                                                                                                            </div>
+                                                                                                                                                                        </div>
+
+                                                                                                                                                                        <div class="form-group">
+                                                                                                                                                                            <label style="font-weight: bold;">Τύπος Εκδήλωσης</label>
+                                                                                                                                                                            <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" value="@companyEventDetails.CompanyEventType" readonly />
+                                                                                                                                                                        </div>
+
+                                                @if (companyEventDetails.CompanyEventOtherOrganizerToBeVisible)
+                                                {
+                                                                                                                                                                                                <div class="form-group">
+                                                                                                                                                                                                    <label style="font-weight: bold;">Άλλος Διοργανωτής</label>
+                                                                                                                                                                                                    <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" value="@companyEventDetails.CompanyEventOtherOrganizer" readonly />
+                                                                                                                                                                                                </div>
+                                                }
+
+                                                                                                                                                                        <div class="form-group">
+                                                                                                                                                                            <label style="font-weight: bold;">Περιοχές Ενδιαφέροντος</label>
+                                                                                                                                                                            <textarea class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" rows="3" readonly>@companyEventDetails.CompanyEventAreasOfInterest</textarea>
+                                                                                                                                                                        </div>
+
+                                                                                                                                                                        <div class="form-group">
+                                                                                                                                                                            <label style="font-weight: bold;">Κατάσταση Εκδήλωσης</label>
+                                                                                                                                                                            <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" value="@companyEventDetails.CompanyEventStatus" readonly />
+                                                                                                                                                                        </div>
+
+                                                                                                                                                                        <div class="form-group">
+                                                                                                                                                                            <label style="font-weight: bold;">Υπεύθυνος Εκδήλωσης</label>
+                                                                                                                                                                            <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" value="@companyEventDetails.CompanyEventResponsiblePerson" readonly />
+                                                                                                                                                                        </div>
+
+                                                                                                                                                                        <div class="form-group">
+                                                                                                                                                                            <label style="font-weight: bold;">Email Υπεύθυνου</label>
+                                                                                                                                                                            <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                                                                                                                                                                                <i class="fas fa-envelope" style="color: #4682B4; margin-right: 8px;"></i>
+                                                        @if (!string.IsNullOrEmpty(companyEventDetails.CompanyEventResponsiblePersonEmail))
+                                                        {
+                                                                                                                                                                                                        <a href="mailto:@companyEventDetails.CompanyEventResponsiblePersonEmail" 
+                                                                                                                                                                                                           style="color: #007bff; text-decoration: underline; word-break: break-all;">
+                                                                @companyEventDetails.CompanyEventResponsiblePersonEmail
+                                                                                                                                                                                                        </a>
+                                                        }
+                                                        else
+                                                        {
+                                                                                                                                                                                                        <span style="color: #6c757d;">Δεν υπάρχει email</span>
+                                                        }
+                                                                                                                                                                            </div>
+                                                                                                                                                                        </div>
+
+                                                                                                                                                                        <div class="form-group">
+                                                                                                                                                                            <label style="font-weight: bold;">Τηλέφωνο Υπεύθυνου</label>
+                                                                                                                                                                            <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" value="@companyEventDetails.CompanyEventResponsiblePersonTelephone" readonly />
+                                                                                                                                                                        </div>
+
+                                                                                                                                                                        <div class="form-group">
+                                                                                                                                                                            <label style="font-weight: bold;">Τμήμα Εταιρίας</label>
+                                                                                                                                                                            <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" value="@companyEventDetails.CompanyEventCompanyDepartment" readonly />
+                                                                                                                                                                        </div>
+
+                                                                                                                                                                        <div class="form-group">
+                                                                                                                                                                            <label style="font-weight: bold;">Διεύθυνση Email Εταιρίας</label>
+                                                                                                                                                                            <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                                                                                                                                                                                <i class="fas fa-envelope" style="color: #4682B4; margin-right: 8px;"></i>
+                                                        @if (!string.IsNullOrEmpty(companyEventDetails.CompanyEmailUsedToUploadEvent))
+                                                        {
+                                                                                                                                                                                                        <a href="mailto:@companyEventDetails.CompanyEmailUsedToUploadEvent" 
+                                                                                                                                                                                                           style="color: #007bff; text-decoration: underline; word-break: break-all;">
+                                                                @companyEventDetails.CompanyEmailUsedToUploadEvent
+                                                                                                                                                                                                        </a>
+                                                        }
+                                                        else
+                                                        {
+                                                                                                                                                                                                        <span style="color: #6c757d;">Δεν υπάρχει email</span>
+                                                        }
+                                                                                                                                                                            </div>
+                                                                                                                                                                        </div>
+
+                                                                                                                                                                        <div class="form-group">
+                                                                                                                                                                            <label style="font-weight: bold;">Ημερομηνία Ανάρτησης Εκδήλωσης</label>
+                                                                                                                                                                            <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;"
+                                                                                                                                                                                   value="@companyEventDetails.CompanyEventUploadedDate.ToString("yyyy-MM-dd", new System.Globalization.CultureInfo("el-GR"))" 
+                                                                                                                                                                                   readonly />
+                                                                                                                                                                        </div>
+
+                                                                                                                                                                        <div class="form-group">
+                                                                                                                                                                            <label style="font-weight: bold;">Περιοχή Εκδήλωσης</label>
+                                                                                                                                                                            <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" value="@companyEventDetails.CompanyEventPerifereiaLocation" readonly />
+                                                                                                                                                                        </div>
+
+                                                                                                                                                                        <div class="form-group">
+                                                                                                                                                                            <label style="font-weight: bold;">Δήμος Εκδήλωσης</label>
+                                                                                                                                                                            <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" value="@companyEventDetails.CompanyEventDimosLocation" readonly />
+                                                                                                                                                                        </div>
+
+                                                                                                                                                                        <div class="form-group">
+                                                                                                                                                                            <label style="font-weight: bold;">Τοποθεσία Εκδήλωσης</label>
+                                                                                                                                                                            <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                                                                                                                                                                                <i class="fas fa-map-marker-alt" style="color: #dc3545; margin-right: 8px;"></i>
+                                                        @if (!string.IsNullOrEmpty(companyEventDetails.CompanyEventPlaceLocation))
+                                                        {
+                                                                                                                                                                                                        <a href="https://www.google.com/maps/search/?api=1&query=@Uri.EscapeDataString(companyEventDetails.CompanyEventPlaceLocation)" 
+                                                                                                                                                                                                           target="_blank"
+                                                                                                                                                                                                           style="color: #007bff; text-decoration: underline; word-break: break-word;">
+                                                                @companyEventDetails.CompanyEventPlaceLocation
+                                                                                                                                                                                                        </a>
+                                                        }
+                                                        else
+                                                        {
+                                                                                                                                                                                                        <span style="color: #6c757d;">Δεν έχει οριστεί τοποθεσία Εκδήλωσης ακόμη..</span>
+                                                        }
+                                                                                                                                                                            </div>
+                                                                                                                                                                        </div>
+
+                                                                                                                                                                        <div class="form-group">
+                                                                                                                                                                            <label style="font-weight: bold;">Ταχυδρομικός Κώδικας Εκδήλωσης</label>
+                                                                                                                                                                            <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" value="@companyEventDetails.CompanyEventPostalCodeLocation" readonly />
+                                                                                                                                                                        </div>
+
+                                                                                                                                                                        <div class="form-group">
+                                                                                                                                                                            <label style="font-weight: bold;">Μεταφορά Στον Χώρο Εκδήλωσης</label>
+                                                                                                                                                                            <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa; 
+                                                                                                                     @(companyEventDetails.CompanyEventOfferingTransportToEventLocation.GetValueOrDefault() ? "color: #28a745;" : "color: #dc3545;")">
+                                                                                                                                                                                <i class="fas fa-car" style="margin-right: 8px;"></i>
+                                                                                                                                                                                <span>@(companyEventDetails.CompanyEventOfferingTransportToEventLocation.GetValueOrDefault() ? "Ναι" : "Όχι")</span>
+                                                                                                                                                                            </div>
+                                                                                                                                                                        </div>
+
+                                                @if (companyEventDetails.CompanyEventOfferingTransportToEventLocation ?? false)
+                                                {
+                                                                                                                                                                                                <div class="form-group">
+                                                                                                                                                                                                    <label style="font-weight: bold;">Σημεία Εκκίνησης για Μεταφορά</label>
+                                                        @if (!string.IsNullOrWhiteSpace(companyEventDetails.CompanyEventStartingPointLocationToTransportPeopleToEvent1))
+                                                        {
+                                                                                                                                                                                                                            <div class="form-group">
+                                                                                                                                                                                                                                <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                                                                                                                                                                                                                                    <i class="fas fa-map-marker-alt" style="color: #dc3545; margin-right: 8px;"></i>
+                                                                                                                                                                                                                                    <a href="https://www.google.com/maps/search/@Uri.EscapeDataString(companyEventDetails.CompanyEventStartingPointLocationToTransportPeopleToEvent1)"
+                                                                                                                                                                                                                                       target="_blank"
+                                                                                                                                                                                                                                       style="color: #007bff; text-decoration: underline; word-break: break-word;">
+                                                                        @companyEventDetails.CompanyEventStartingPointLocationToTransportPeopleToEvent1
+                                                                                                                                                                                                                                    </a>
+                                                                                                                                                                                                                                </div>
+                                                                                                                                                                                                                            </div>
+                                                        }
+                                                        @if (!string.IsNullOrWhiteSpace(companyEventDetails.CompanyEventStartingPointLocationToTransportPeopleToEvent2))
+                                                        {
+                                                                                                                                                                                                                            <div class="form-group">
+                                                                                                                                                                                                                                <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                                                                                                                                                                                                                                    <i class="fas fa-map-marker-alt" style="color: #dc3545; margin-right: 8px;"></i>
+                                                                                                                                                                                                                                    <a href="https://www.google.com/maps/search/@Uri.EscapeDataString(companyEventDetails.CompanyEventStartingPointLocationToTransportPeopleToEvent2)"
+                                                                                                                                                                                                                                       target="_blank"
+                                                                                                                                                                                                                                       style="color: #007bff; text-decoration: underline; word-break: break-word;">
+                                                                        @companyEventDetails.CompanyEventStartingPointLocationToTransportPeopleToEvent2
+                                                                                                                                                                                                                                    </a>
+                                                                                                                                                                                                                                </div>
+                                                                                                                                                                                                                            </div>
+                                                        }
+                                                        @if (!string.IsNullOrWhiteSpace(companyEventDetails.CompanyEventStartingPointLocationToTransportPeopleToEvent3))
+                                                        {
+                                                                                                                                                                                                                            <div class="form-group">
+                                                                                                                                                                                                                                <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                                                                                                                                                                                                                                    <i class="fas fa-map-marker-alt" style="color: #dc3545; margin-right: 8px;"></i>
+                                                                                                                                                                                                                                    <a href="https://www.google.com/maps/search/@Uri.EscapeDataString(companyEventDetails.CompanyEventStartingPointLocationToTransportPeopleToEvent3)"
+                                                                                                                                                                                                                                       target="_blank"
+                                                                                                                                                                                                                                       style="color: #007bff; text-decoration: underline; word-break: break-word;">
+                                                                        @companyEventDetails.CompanyEventStartingPointLocationToTransportPeopleToEvent3
+                                                                                                                                                                                                                                    </a>
+                                                                                                                                                                                                                                </div>
+                                                                                                                                                                                                                            </div>
+                                                        }
+                                                                                                                                                                                                </div>
+                                                }
+                                                                                                                                                                        <div class="text-center mt-4">
+                                                                                                                                                                            <button class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; padding: 8px 20px; transition: all 0.2s;" 
+                                                    @onclick="CloseEventDetails"
+                                                                                                                                                                                    onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                                                                                                                                    onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                                                                                                                                <i class="fas fa-arrow-left me-2"></i> Πίσω
+                                                                                                                                                                            </button>
+                                                                                                                                                                        </div>
+                                                                                                                                                                    </div>
+                                                                                                                                                                </div>
+                                                                                                                                                            </div>
+                                                                                                                                                        </div>
+                                                                                                                                                    </div>
+                        }
+                        else if (selectedEvent is ProfessorEvent professorEventDetails)
+                        {
+                                                                                                                                                    <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0, 0, 0, 0.5);">
+                                                                                                                                                        <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+                                                                                                                                                            <div class="modal-content" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);">
+                                                                                                                                                                <div class="modal-header" style="border-bottom: 1px solid #e9ecef; border-radius: 12px 12px 0 0; background-color: #f8f9fa;">
+                                                                                                                                                                    <h5 class="modal-title" style="color: #4682B4; font-weight: 600; font-size: 1.25rem;">@professorEventDetails.ProfessorEventTitle</h5>
+                                                                                                                                                                    <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" 
+                                            @onclick="CloseEventDetails"
+                                                                                                                                                                            onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                                                                                                                            onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                                                                                                                        <span style="font-size: 1.2rem; line-height: 1;">×</span>
+                                                                                                                                                                    </button>
+                                                                                                                                                                </div>
+                                                                                                                                                                <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                                            @if (professorEventDetails.Professor.ProfImage != null)
+                                            {
+                                                                                                                                                                                            <div class="form-group text-center">
+                                                                                                                                                                                                <img src="data:image/png;base64,@Convert.ToBase64String(professorEventDetails.Professor.ProfImage)" 
+                                                                                                                                                                                                     class="rounded-circle img-fluid" 
+                                                                                                                                                                                                     style="width: 150px; height: 150px; object-fit: cover;" 
+                                                                                                                                                                                                     alt="Professor Image" />
+                                                                                                                                                                                            </div>
+                                            }
+
+                                                                                                                                                                    <div class="list-group">
+                                                                                                                                                                        <div class="form-group">
+                                                                                                                                                                            <label style="font-weight: bold;">Ονοματεπώνυμο Διοργανωτή</label>
+                                                                                                                                                                            <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                                                                                                                                                                                <i class="fas fa-user" style="color: #5F9EA0; margin-right: 8px;"></i>
+                                                                                                                                                                                <span>@professorEventDetails.Professor.ProfName @professorEventDetails.Professor.ProfSurname</span>
+                                                                                                                                                                            </div>
+                                                                                                                                                                        </div>
+
+                                                                                                                                                                        <div class="form-group">
+                                                                                                                                                                            <label style="font-weight: bold;">Τίτλος Εκδήλωσης</label>
+                                                                                                                                                                            <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" value="@professorEventDetails.ProfessorEventTitle" readonly />
+                                                                                                                                                                        </div>
+
+                                                                                                                                                                        <div class="form-group">
+                                                                                                                                                                            <label style="font-weight: bold;">Περιγραφή</label>
+                                                                                                                                                                            <textarea class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" rows="3" readonly>@professorEventDetails.ProfessorEventDescription</textarea>
+                                                                                                                                                                        </div>
+
+                                                                                                                                                                        <div class="form-group">
+                                                                                                                                                                            <label style="font-weight: bold;">Ημερομηνία</label>
+                                                                                                                                                                            <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                                                                                                                                                                                <i class="far fa-calendar-alt" style="color: #5F9EA0; margin-right: 8px;"></i>
+                                                                                                                                                                                <span>@professorEventDetails.ProfessorEventActiveDate.ToString("yyyy-MM-dd")</span>
+                                                                                                                                                                            </div>
+                                                                                                                                                                        </div>
+
+                                                                                                                                                                        <div class="form-group">
+                                                                                                                                                                            <label style="font-weight: bold;">Ώρα Εκδήλωσης</label>
+                                                                                                                                                                            <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                                                                                                                                                                                <i class="far fa-clock" style="color: #5F9EA0; margin-right: 8px;"></i>
+                                                                                                                                                                                <span>@professorEventDetails.ProfessorEventTimeOnly.ToString("HH:mm")</span>
+                                                                                                                                                                            </div>
+                                                                                                                                                                        </div>
+
+                                                                                                                                                                        <div class="form-group">
+                                                                                                                                                                            <label style="font-weight: bold;">Τύπος Εκδήλωσης</label>
+                                                                                                                                                                            <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" value="@professorEventDetails.ProfessorEventType" readonly />
+                                                                                                                                                                        </div>
+
+                                                @if (professorEventDetails.ProfessorEventOtherOrganizerToBeVisible)
+                                                {
+                                                                                                                                                                                                <div class="form-group">
+                                                                                                                                                                                                    <label style="font-weight: bold;">Άλλος Διοργανωτής</label>
+                                                                                                                                                                                                    <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" value="@professorEventDetails.ProfessorEventOtherOrganizer" readonly />
+                                                                                                                                                                                                </div>
+                                                }
+
+                                                                                                                                                                        <div class="form-group">
+                                                                                                                                                                            <label style="font-weight: bold;">Περιοχές Ενδιαφέροντος</label>
+                                                                                                                                                                            <textarea class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" rows="3" readonly>@professorEventDetails.ProfessorEventAreasOfInterest</textarea>
+                                                                                                                                                                        </div>
+
+                                                                                                                                                                        <div class="form-group">
+                                                                                                                                                                            <label style="font-weight: bold;">Κατάσταση Εκδήλωσης</label>
+                                                                                                                                                                            <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" value="@professorEventDetails.ProfessorEventStatus" readonly />
+                                                                                                                                                                        </div>
+
+                                                                                                                                                                        <div class="form-group">
+                                                                                                                                                                            <label style="font-weight: bold;">Ονοματεπώνυμο Υπεύθυνου</label>
+                                                                                                                                                                            <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" value="@professorEventDetails.ProfessorEventResponsiblePerson" readonly />
+                                                                                                                                                                        </div>
+
+                                                                                                                                                                        <div class="form-group">
+                                                                                                                                                                            <label style="font-weight: bold;">Email Υπεύθυνου</label>
+                                                                                                                                                                            <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                                                                                                                                                                                <i class="fas fa-envelope" style="color: #4682B4; margin-right: 8px;"></i>
+                                                        @if (!string.IsNullOrEmpty(professorEventDetails.ProfessorEventResponsiblePersonEmail))
+                                                        {
+                                                                                                                                                                                                        <a href="mailto:@professorEventDetails.ProfessorEventResponsiblePersonEmail" 
+                                                                                                                                                                                                           style="color: #007bff; text-decoration: underline; word-break: break-all;">
+                                                                @professorEventDetails.ProfessorEventResponsiblePersonEmail
+                                                                                                                                                                                                        </a>
+                                                        }
+                                                        else
+                                                        {
+                                                                                                                                                                                                        <span style="color: #6c757d;">Δεν υπάρχει email</span>
+                                                        }
+                                                                                                                                                                            </div>
+                                                                                                                                                                        </div>
+
+                                                                                                                                                                        <div class="form-group">
+                                                                                                                                                                            <label style="font-weight: bold;">Τηλέφωνο Υπεύθυνου</label>
+                                                                                                                                                                            <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" value="@professorEventDetails.ProfessorEventResponsiblePersonTelephone" readonly />
+                                                                                                                                                                        </div>
+
+                                                                                                                                                                        <div class="form-group">
+                                                                                                                                                                            <label style="font-weight: bold;">Πανεπιστήμιο</label>
+                                                                                                                                                                            <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                                                                                                                                                                                <i class="fas fa-university" style="color: #5F9EA0; margin-right: 8px;"></i>
+                                                                                                                                                                                <span>@professorEventDetails.Professor.ProfUniversity</span>
+                                                                                                                                                                            </div>
+                                                                                                                                                                        </div>
+
+                                                                                                                                                                        <div class="form-group">
+                                                                                                                                                                            <label style="font-weight: bold;">Τμήμα Πανεπιστημίου</label>
+                                                                                                                                                                            <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" value="@professorEventDetails.ProfessorEventUniversityDepartment" readonly />
+                                                                                                                                                                        </div>
+
+                                                                                                                                                                        <div class="form-group">
+                                                                                                                                                                            <label style="font-weight: bold;">Email Καθηγητή</label>
+                                                                                                                                                                            <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                                                                                                                                                                                <i class="fas fa-envelope" style="color: #4682B4; margin-right: 8px;"></i>
+                                                        @if (!string.IsNullOrEmpty(professorEventDetails.Professor.ProfEmail))
+                                                        {
+                                                                                                                                                                                                        <a href="mailto:@professorEventDetails.Professor.ProfEmail" 
+                                                                                                                                                                                                           style="color: #007bff; text-decoration: underline; word-break: break-all;">
+                                                                @professorEventDetails.Professor.ProfEmail
+                                                                                                                                                                                                        </a>
+                                                        }
+                                                        else
+                                                        {
+                                                                                                                                                                                                        <span style="color: #6c757d;">Δεν υπάρχει email</span>
+                                                        }
+                                                                                                                                                                            </div>
+                                                                                                                                                                        </div>
+
+                                                                                                                                                                        <div class="form-group">
+                                                                                                                                                                            <label style="font-weight: bold;">Περιφέρεια</label>
+                                                                                                                                                                            <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" value="@professorEventDetails.ProfessorEventPerifereiaLocation" readonly />
+                                                                                                                                                                        </div>
+
+                                                                                                                                                                        <div class="form-group">
+                                                                                                                                                                            <label style="font-weight: bold;">Δήμος</label>
+                                                                                                                                                                            <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" value="@professorEventDetails.ProfessorEventDimosLocation" readonly />
+                                                                                                                                                                        </div>
+
+                                                                                                                                                                        <div class="form-group">
+                                                                                                                                                                            <label style="font-weight: bold;">Τοποθεσία Εκδήλωσης</label>
+                                                                                                                                                                            <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                                                                                                                                                                                <i class="fas fa-map-marker-alt" style="color: #dc3545; margin-right: 8px;"></i>
+                                                        @if (!string.IsNullOrEmpty(professorEventDetails.ProfessorEventPlaceLocation))
+                                                        {
+                                                                                                                                                                                                        <a href="https://www.google.com/maps/search/?api=1&query=@Uri.EscapeDataString(professorEventDetails.ProfessorEventPlaceLocation)"
+                                                                                                                                                                                                           target="_blank"
+                                                                                                                                                                                                           style="color: #007bff; text-decoration: underline; word-break: break-word;">
+                                                                @professorEventDetails.ProfessorEventPlaceLocation
+                                                                                                                                                                                                        </a>
+                                                        }
+                                                        else
+                                                        {
+                                                                                                                                                                                                        <span style="color: #6c757d;">Δεν έχει οριστεί τοποθεσία Εκδήλωσης ακόμη..</span>
+                                                        }
+                                                                                                                                                                            </div>
+                                                                                                                                                                        </div>
+
+                                                                                                                                                                        <div class="form-group">
+                                                                                                                                                                            <label style="font-weight: bold;">Ταχυδρομικός Κώδικας Τοποθεσίας</label>
+                                                                                                                                                                            <input type="text" class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" value="@professorEventDetails.ProfessorEventPostalCodeLocation" readonly />
+                                                                                                                                                                        </div>
+
+                                                                                                                                                                        <div class="form-group">
+                                                                                                                                                                            <label style="font-weight: bold;">Μεταφορά Στον Χώρο Εκδήλωσης</label>
+                                                                                                                                                                            <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa; 
+                                                                                                                     @(professorEventDetails.ProfessorEventOfferingTransportToEventLocation.GetValueOrDefault() ? "color: #28a745;" : "color: #dc3545;")">
+                                                                                                                                                                                <i class="fas fa-car" style="margin-right: 8px;"></i>
+                                                                                                                                                                                <span>@(professorEventDetails.ProfessorEventOfferingTransportToEventLocation.GetValueOrDefault() ? "Ναι" : "Όχι")</span>
+                                                                                                                                                                            </div>
+                                                                                                                                                                        </div>
+
+                                                @if (professorEventDetails.ProfessorEventOfferingTransportToEventLocation ?? false)
+                                                {
+                                                                                                                                                                                                <div class="form-group">
+                                                                                                                                                                                                    <label style="font-weight: bold;">Σημεία Εκκίνησης για Μεταφορά</label>
+                                                        @if (!string.IsNullOrWhiteSpace(professorEventDetails.ProfessorEventStartingPointLocationToTransportPeopleToEvent1))
+                                                        {
+                                                                                                                                                                                                                            <div class="form-group">
+                                                                                                                                                                                                                                <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                                                                                                                                                                                                                                    <i class="fas fa-map-marker-alt" style="color: #dc3545; margin-right: 8px;"></i>
+                                                                                                                                                                                                                                    <a href="https://www.google.com/maps/search/@Uri.EscapeDataString(professorEventDetails.ProfessorEventStartingPointLocationToTransportPeopleToEvent1)"
+                                                                                                                                                                                                                                       target="_blank"
+                                                                                                                                                                                                                                       style="color: #007bff; text-decoration: underline; word-break: break-word;">
+                                                                        @professorEventDetails.ProfessorEventStartingPointLocationToTransportPeopleToEvent1
+                                                                                                                                                                                                                                    </a>
+                                                                                                                                                                                                                                </div>
+                                                                                                                                                                                                                            </div>
+                                                        }
+                                                        @if (!string.IsNullOrWhiteSpace(professorEventDetails.ProfessorEventStartingPointLocationToTransportPeopleToEvent2))
+                                                        {
+                                                                                                                                                                                                                            <div class="form-group">
+                                                                                                                                                                                                                                <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                                                                                                                                                                                                                                    <i class="fas fa-map-marker-alt" style="color: #dc3545; margin-right: 8px;"></i>
+                                                                                                                                                                                                                                    <a href="https://www.google.com/maps/search/@Uri.EscapeDataString(professorEventDetails.ProfessorEventStartingPointLocationToTransportPeopleToEvent2)"
+                                                                                                                                                                                                                                       target="_blank"
+                                                                                                                                                                                                                                       style="color: #007bff; text-decoration: underline; word-break: break-word;">
+                                                                        @professorEventDetails.ProfessorEventStartingPointLocationToTransportPeopleToEvent2
+                                                                                                                                                                                                                                    </a>
+                                                                                                                                                                                                                                </div>
+                                                                                                                                                                                                                            </div>
+                                                        }
+                                                        @if (!string.IsNullOrWhiteSpace(professorEventDetails.ProfessorEventStartingPointLocationToTransportPeopleToEvent3))
+                                                        {
+                                                                                                                                                                                                                            <div class="form-group">
+                                                                                                                                                                                                                                <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                                                                                                                                                                                                                                    <i class="fas fa-map-marker-alt" style="color: #dc3545; margin-right: 8px;"></i>
+                                                                                                                                                                                                                                    <a href="https://www.google.com/maps/search/@Uri.EscapeDataString(professorEventDetails.ProfessorEventStartingPointLocationToTransportPeopleToEvent3)"
+                                                                                                                                                                                                                                       target="_blank"
+                                                                                                                                                                                                                                       style="color: #007bff; text-decoration: underline; word-break: break-word;">
+                                                                        @professorEventDetails.ProfessorEventStartingPointLocationToTransportPeopleToEvent3
+                                                                                                                                                                                                                                    </a>
+                                                                                                                                                                                                                                </div>
+                                                                                                                                                                                                                            </div>
+                                                        }
+                                                                                                                                                                                                </div>
+                                                }
+                                                                                                                                                                        <div class="text-center mt-4">
+                                                                                                                                                                            <button class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; padding: 8px 20px; transition: all 0.2s;" 
+                                                    @onclick="CloseEventDetails"
+                                                                                                                                                                                    onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                                                                                                                                    onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                                                                                                                                <i class="fas fa-arrow-left me-2"></i> Πίσω
+                                                                                                                                                                            </button>
+                                                                                                                                                                        </div>
+                                                                                                                                                                    </div>
+                                                                                                                                                                </div>
+                                                                                                                                                            </div>
+                                                                                                                                                        </div>
+                                                                                                                                                    </div>
+                        }
+                    }
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </div>
+}
+
+<!-- Event Creation and Management Section -->
+
+
+
+
+
+
+
+
+
+<!-- Create Form -->
+<!-- Create Event Section Header -->
+<div class="mb-3 row-dark-gray">
+    <div class="d-flex justify-content-between align-items-center" @onclick="ToggleCreateEventFormVisibility" style="cursor: pointer;">
+        <label class="form-label" style="color: #FFF8DC;">• Δημιουργία Εκδήλωσης •</label>
+        <button class="btn btn-link" @onclick="ToggleCreateEventFormVisibility" @onclick:stopPropagation="true">
+            @if (isCreateEventFormVisible)
+            {
+                <span>&#8722;</span>
+            }
+            else
+            {
+                <span>&#43;</span>
+            }
+        </button>
+    </div>
+</div>
+
+@if (isCreateEventFormVisible)
+{
+    <ProfessorEventCreateForm 
+        IsVisible="true"
+        Regions="@Regions" 
+        RegionToTownsMap="@RegionToTownsMap" 
+        Areas="@Areas" 
+        OnEventCreated="@RefreshProfessorEvents" />
+}
+
+<!-- Edit Form (Hidden by default, triggered by Table) -->
+<ProfessorEventCreateForm 
+@bind-IsVisible="isEditFormVisible"
+    EventModel="selectedEventToEdit"
+    ShowCreateButton="false"
+    Regions="@Regions" 
+    RegionToTownsMap="@RegionToTownsMap" 
+    Areas="@Areas" 
+    OnEventCreated="@RefreshProfessorEvents" />
+
+<!-- My Events Section Header -->
+<div class="mb-3 row-dark-gray mt-4">
+    <div class="d-flex justify-content-between align-items-center" @onclick="ToggleMyEventsVisibility" style="cursor: pointer;">
+        <label class="form-label" style="color: #FFF8DC;">•  Εκδηλώσεις μου •</label>
+        <button class="btn btn-link" @onclick="ToggleMyEventsVisibility" @onclick:stopPropagation="true">
+            @if (isMyEventsVisible)
+            {
+                <span>&#8722;</span>
+            }
+            else
+            {
+                <span>&#43;</span>
+            }
+        </button>
+    </div>
+</div>
+
+@if (isMyEventsVisible)
+{
+    <ProfessorEventsTable 
+                AllEvents="@professorEvents"
+                Regions="@Regions"
+                RegionToTownsMap="@RegionToTownsMap"
+                OnDeleteEvent="@HandleDeleteEvent"
+                OnEditEvent="@HandleEditEvent"
+                OnToggleEventStatus="@HandleToggleEventStatus"
+                OnShowStudentDetails="@ShowStudentDetailsAtProfessorEventInterest"
+                OnShowCompanyDetails="@ShowCompanyDetailsAtProfessorEventInterest" />
+}
+
+<!-- Details Modals (Shared for Calendar and Table) -->
+<ProfessorEventsDetailModals 
+    Company="@currentCompanyDetails"
+    IsCompanyModalVisible="@(isModalVisibleToShowCompanyDetailsAtProfessorThesisInterest || isExpandedModalVisibleToSeeCompanyDetailsAsProfessor)"
+    OnCloseCompanyModal="@OnCloseCompanyModal"
+    Student="@currentStudentDetails"
+    IsStudentModalVisible="@isModalVisibleToShowStudentDetailsInNameAsHyperlinkForProfessorThesis"
+    OnCloseStudentModal="@OnCloseStudentModal"
+    OnDownloadCV="@HandleDownloadCV" />
+
+@code {
+    // Toggle states for collapsible sections
+    private bool isCreateEventFormVisible = false;
+    private bool isMyEventsVisible = true; // Default to visible
+    
+    // New UI State for Edit Logic
+    private bool isEditFormVisible;
+    private ProfessorEvent selectedEventToEdit;
+    private List<ProfessorEvent> professorEvents = new();
+
+    // Toggle methods
+    private void ToggleCreateEventFormVisibility()
+    {
+        isCreateEventFormVisible = !isCreateEventFormVisible;
+    }
+
+    private void ToggleMyEventsVisibility()
+    {
+        isMyEventsVisible = !isMyEventsVisible;
+    }
+
+
+    private async Task RefreshProfessorEvents()
+    {
+        try
+        {
+            var data = await ProfessorDashboardService.LoadDashboardDataAsync();
+            if (data != null)
+            {
+                dashboardData = data;
+                professorEvents = data.Events.ToList();
+                FilteredProfessorEvents = professorEvents;
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error refreshing events: {ex.Message}");
+        }
+    }
+
+    private void HandleEditEvent(ProfessorEvent evt)
+    {
+        selectedEventToEdit = evt;
+        isEditFormVisible = true;
+    }
+
+    private async Task HandleDeleteEvent(ProfessorEvent evt)
+    {
+        if (evt.RNGForEventUploadedAsProfessor != 0)
+        {
+            await DeleteProfessorEvent((int)evt.RNGForEventUploadedAsProfessor);
+        }
+    }
+
+    private async Task HandleToggleEventStatus(ProfessorEvent evt)
+    {
+        string statusToSet = (evt.ProfessorEventStatus == "Active") ? "Inactive" : "Active";
+        await ChangeProfessorEventStatus((int)evt.RNGForEventUploadedAsProfessor, statusToSet);
+    }
+
+    private void OnCloseCompanyModal()
+    {
+        isModalVisibleToShowCompanyDetailsAtProfessorThesisInterest = false;
+        isExpandedModalVisibleToSeeCompanyDetailsAsProfessor = false;
+        StateHasChanged();
+    }
+
+    private void OnCloseStudentModal()
+    {
+        isModalVisibleToShowStudentDetailsInNameAsHyperlinkForProfessorThesis = false;
+        StateHasChanged();
+    }
+
+    private void HandleDownloadCV(string email)
+    {
+        DownloadStudentCVForProfessorThesis(email);
+    }
+}
+
+

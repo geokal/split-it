@@ -1,0 +1,669 @@
+<div id="company-student-search-start"></div>
+
+
+                                            <!-- Toggle Search Visibility -->
+                                                <div class="mb-3 row-dark-gray mt-4">
+                                                    <div class="d-flex justify-content-between align-items-center" @onclick="ToggleCompanySearchStudentVisible" style="cursor: pointer;">
+                                                        <label class="form-label" style="color: #FFF8DC;">• Αναζήτηση Φοιτητή •</label>
+                                                        <button class="btn btn-link" @onclick="ToggleCompanySearchStudentVisible" @onclick:stopPropagation="true">
+                                                            @if (isCompanySearchStudentVisible)
+                                                            {
+                                                                <span>&#8722;</span> <!-- Minus sign -->
+                                                            }
+                                                            else
+                                                            {
+                                                                <span>&#43;</span> <!-- Plus sign -->
+                                                            }
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                @if (isCompanySearchStudentVisible)
+                                                {
+                                                    <!-- Search Form -->
+                                                    <div class="row">
+                                                        <!-- Name/Surname Field with Autocomplete -->
+                                                        <div class="col-md-4 position-relative">
+                                                            <label for="searchNameOrSurname" style="font-weight: bold;">Όνομα/Επώνυμο Φοιτητή</label>
+                                                            <input 
+                                                                type="text" 
+                                                                id="searchNameOrSurname"
+                                                                class="form-control" 
+                                                                placeholder="Αναζήτηση με όνομα ή επώνυμο" 
+                                                                @bind="searchNameOrSurname" 
+                                                                @oninput="HandleInput" />
+    
+                                                            <!-- Suggestions Dropdown -->
+                                                            <ul class="list-group position-absolute" 
+                                                                style="z-index: 100; width: 100%; max-height: 150px; overflow-y: auto;" 
+                                                                hidden="@(!nameSurnameSuggestions.Any())">
+                                                                @foreach (var suggestion in nameSurnameSuggestions)
+                                                                {
+                                                                    <li class="list-group-item list-group-item-action" 
+                                                                        @onclick="() => SelectNameSurnameSuggestion(suggestion)">
+                                                                        @suggestion
+                                                                    </li>
+                                                                }
+                                                            </ul>
+                                                        </div>
+
+                                                        <div class="col-md-4">
+                                                            <label for="degreeLevel" style="font-weight: bold;">Κατηγορία Σπουδών</label>
+                                                            <div class="input-group">
+                                                                <select id="degreeLevel" class="form-control" @bind="selectedDegreeLevel">
+                                                                    <option value="">-- Επιλέξτε Κατηγορία --</option>
+                                                                    @foreach (var degree in DegreeLevel)
+                                                                    {
+                                                                        <option value="@degree">@degree</option>
+                                                                    }
+                                                                </select>
+                                                                <div class="input-group-append">
+                                                                    <span class="input-group-text">
+                                                                        <i class="fas fa-chevron-down"></i>
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Registration Number Field -->
+                                                        <div class="col-md-4">
+                                                            <label for="searchRegNumberAsCompanyToFindStudent" style="font-weight: bold;">Αριθμός Μητρώου</label>
+                                                            <input 
+                                                                type="text" 
+                                                                id="searchRegNumberAsCompanyToFindStudent" 
+                                                                class="form-control" 
+                                                                placeholder="Αναζήτηση με αριθμό μητρώου" 
+                                                                @bind="searchRegNumberAsCompanyToFindStudent" />
+                                                        </div>
+
+
+                                                        <!-- Search Student by School -->
+                                                        <div class="col-md-4">
+                                                            <label for="searchSchoolAsCompanyToFindStudent" style="font-weight: bold;">Σχολή</label>
+                                                            <div class="input-group">
+                                                                <select class="form-control" 
+                                                                        value="@searchSchoolAsCompanyToFindStudent"
+                                                                        @onchange="OnStudentSchoolChanged">
+                                                                    <option value=""> - Επιλέξτε Σχολή - </option>
+                                                                    @foreach (var school in researchGroupSchools)
+                                                                    {
+                                                                        <option value="@school">@school</option>
+                                                                    }
+                                                                </select>
+                                                                <div class="input-group-append">
+                                                                    <span class="input-group-text">
+                                                                        <i class="fas fa-chevron-down"></i>
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Search Student by Department -->
+                                                        <div class="col-md-4">
+                                                            <label for="searchDepartmentAsCompanyToFindStudent" style="font-weight: bold;">Τμήμα Πανεπιστημίου</label>
+                                                            <div class="input-group">
+                                                                <select class="form-control" 
+                                                                        @bind="searchDepartmentAsCompanyToFindStudent"
+                                                                        disabled="@string.IsNullOrEmpty(searchSchoolAsCompanyToFindStudent)">
+                                                                    <option value=""> - Επιλέξτε Τμήμα - </option>
+                                                                    @if (string.IsNullOrEmpty(searchSchoolAsCompanyToFindStudent))
+                                                                    {
+                                                                        <!-- Show all departments when no school is selected -->
+                                                                        @foreach (var department in GetAllStudentDepartments())
+                                                                        {
+                                                                            <option value="@department">@department</option>
+                                                                        }
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <!-- Show only departments from selected school -->
+                                                                        @foreach (var department in filteredStudentDepartments)
+                                                                        {
+                                                                            <option value="@department">@department</option>
+                                                                        }
+                                                                    }
+                                                                </select>
+                                                                <div class="input-group-append">
+                                                                    <span class="input-group-text">
+                                                                        <i class="fas fa-chevron-down"></i>
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Internship Status Dropdown -->
+                                                        <div class="col-md-4">
+                                                            <label for="internshipStatus" style="font-weight: bold;">Κατάσταση Πρακτικής Άσκησης</label>
+                                                            <div class="input-group">
+                                                                <select id="internshipStatus" class="form-control" @bind="InternshipStatus">
+                                                                    <option value="">-- Καμία Επιλογή --</option>
+                                                                    <option value="Ενδιαφέρομαι για θέση Πρακτικής Άσκησης">Ενδιαφέρεται για θέση Πρακτικής Άσκησης</option>
+                                                                    <option value="Έχω ήδη αναλάβει Πρακτική Άσκηση">Έχει ήδη αναλάβει Πρακτική Άσκηση</option>
+                                                                    <option value="Δεν ενδιαφέρομαι για ανάληψη Πρακτικής Άσκησης προς το παρόν">Δεν ενδιαφέρεται για ανάληψη Πρακτικής Άσκησης προς το παρόν</option>
+                                                                </select>
+                                                                <div class="input-group-append">
+                                                                    <span class="input-group-text">
+                                                                        <i class="fas fa-chevron-down"></i>
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Thesis Status Dropdown -->
+                                                        <div class="col-md-4">
+                                                            <label for="thesisStatus" style="font-weight: bold;">Κατάσταση Διπλωματικής Εργασίας</label>
+                                                            <div class="input-group">
+                                                                <select id="thesisStatus" class="form-control" @bind="ThesisStatus">
+                                                                    <option value="">-- Καμία Επιλογή --</option>
+                                                                    <option value="Ενδιαφέρομαι για ανάληψη Διπλωματικής Εργασίας">Ενδιαφέρεται για ανάληψη Διπλωματικής Εργασίας</option>
+                                                                    <option value="Έχω ήδη αναλάβει Διπλωματικής Εργασία">Έχει ήδη αναλάβει Διπλωματικής Εργασία</option>
+                                                                    <option value="Δεν ενδιαφέρομαι για ανάληψη Διπλωματικής Εργασίας προς το παρόν">Δεν ενδιαφέρεται για ανάληψη Διπλωματικής Εργασίας προς το παρόν</option>
+                                                                </select>
+                                                                <div class="input-group-append">
+                                                                    <span class="input-group-text">
+                                                                        <i class="fas fa-chevron-down"></i>
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Areas of Expertise Container -->
+                                                        <div class="col-md-4 position-relative">
+                                                            <label for="searchAreasOfExpertise" style="font-weight: bold;">Περιοχές Εξειδίκευσης</label>
+                                                            <input 
+                                                                type="text" 
+                                                                id="searchAreasOfExpertise"
+                                                                class="form-control" 
+                                                                placeholder="Αναζήτηση με περιοχές εξειδίκευσης" 
+                                                                @bind="searchAreasOfExpertise" 
+                                                                @oninput="HandleAreasOfExpertiseInput" />
+
+                                                            <ul class="list-group position-absolute" 
+                                                                style="z-index: 100; width: 100%; max-height: 150px; overflow-y: auto;" 
+                                                                hidden="@(!areasOfExpertiseSuggestions.Any())">
+                                                                @foreach (var suggestion in areasOfExpertiseSuggestions)
+                                                                {
+                                                                    <li class="list-group-item list-group-item-action" 
+                                                                        @onclick="() => SelectAreasOfExpertiseSuggestion(suggestion)">
+                                                                        @if (suggestion.Contains(" - "))
+                                                                        {
+                                                                            var parts = suggestion.Split(new[] { " - " }, StringSplitOptions.None);
+                                                                            <div>
+                                                                                <span class="text-muted">@parts[0] - </span>
+                                                                                <span class="fw-bold">@parts[1]</span>
+                                                                            </div>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <div>@suggestion</div>
+                                                                        }
+                                                                    </li>
+                                                                }
+                                                            </ul>
+
+                                                            <div class="mt-3 selected-areas-container">
+                                                                @if (selectedAreasOfExpertise.Any())
+                                                                {
+                                                                    <ul class="list-group selected-areas-list">
+                                                                        @foreach (var area in selectedAreasOfExpertise)
+                                                                        {
+                                                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                                                @if (area.Contains(" - "))
+                                                                                {
+                                                                                    var parts = area.Split(new[] { " - " }, StringSplitOptions.None);
+                                                                                    <span>
+                                                                                        <span class="text-muted">@parts[0] - </span>
+                                                                                        <span class="fw-bold">@parts[1]</span>
+                                                                                    </span>
+                                                                                }
+                                                                                else
+                                                                                {
+                                                                                    <span>@area</span>
+                                                                                }
+                                                                                <button class="btn btn-danger btn-sm" @onclick="() => RemoveSelectedAreaOfExpertise(area)">
+                                                                                    <i class="fas fa-times"></i>
+                                                                                </button>
+                                                                            </li>
+                                                                        }
+                                                                    </ul>
+                                                                }
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Keywords (Skills) Container -->
+                                                        <div class="col-md-4 position-relative">
+                                                            <label for="searchKeywords" style="font-weight: bold;">Δεξιότητες</label>
+                                                            <input 
+                                                                type="text" 
+                                                                id="searchKeywords"
+                                                                class="form-control" 
+                                                                placeholder="Αναζήτηση με λέξεις κλειδιά ή δεξιότητες" 
+                                                                @bind="searchKeywords" 
+                                                                @oninput="HandleKeywordsInput" />
+
+                                                            <ul class="list-group position-absolute" 
+                                                                style="z-index: 100; width: 100%; max-height: 150px; overflow-y: auto;" 
+                                                                hidden="@(!keywordsSuggestions.Any())">
+                                                                @foreach (var suggestion in keywordsSuggestions)
+                                                                {
+                                                                    <li class="list-group-item list-group-item-action" 
+                                                                        @onclick="() => SelectKeywordsSuggestion(suggestion)">
+                                                                        @suggestion
+                                                                    </li>
+                                                                }
+                                                            </ul>
+
+                                                            <div class="mt-3 selected-keywords-container">
+                                                                @if (selectedKeywords.Any())
+                                                                {
+                                                                    <ul class="list-group selected-keywords-list">
+                                                                        @foreach (var keyword in selectedKeywords)
+                                                                        {
+                                                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                                                @keyword
+                                                                                <button class="btn btn-danger btn-sm" @onclick="() => RemoveKeyword(keyword)">
+                                                                                    <i class="fas fa-times"></i>
+                                                                                </button>
+                                                                            </li>
+                                                                        }
+                                                                    </ul>
+                                                                }
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <br/>
+                                                    <br/>
+                                                    <div class="row mb-3">
+                                                        <div class="col-md-12">
+                                                            <button class="modern-button" style="background-color: #2d3748; color: white; display: inline-flex; align-items: center;" @onclick="SearchStudentsAsCompanyToFindStudent">
+                                                                <i class="fa-brands fa-searchengin" style="margin-right: 8px;"></i>Αναζήτηση
+                                                            </button>
+                                                            <button class="modern-button" style="background-color: #2d3748; color: white; display: inline-flex; align-items: center;" @onclick="ClearSearchFieldsAsCompanyToFindStudent">
+                                                                <i class="fa-solid fa-broom" style="margin-right: 8px;"></i>Εκκαθάριση
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    <br/>
+                                                    <br/>
+
+
+
+                                                    @if (searchResultsAsCompanyToFindStudent != null && searchResultsAsCompanyToFindStudent.Any())
+                                                    {
+                                                        <div class="col-md-2">
+                                                            <label style="color: #2d3748; font-weight: bold; font-size: 15px; display: block;">Αποτελέσματα ανά Σελίδα</label>
+                                                            <div class="input-group" style="max-width: 65px;">
+                                                                <select class="form-control form-control-sm" @onchange="OnPageSizeChange_SearchForStudentsAsCompany" aria-label="Items per page">
+                                                                    @foreach (var option in pageSizeOptions_SearchForStudentsAsCompany)
+                                                                    {
+                                                                        <option value="@option" selected="@(StudentsPerPage_SearchForStudentsAsCompany == option)">@option</option>
+                                                                    }
+                                                                </select>
+                                                                <div class="input-group-append">
+                                                                    <span class="input-group-text">
+                                                                        <i class="fas fa-chevron-down"></i>
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <table class="table mt-4">
+                                                            <thead>
+                                                                <tr>
+                                                                    <td colspan="8" style="padding: 0;">
+                                                                        <div style="display: flex; justify-content: space-between; align-items: center; height: 24px; line-height: 24px; width: 100%;">
+                                                                            <i class="fa-solid fa-magnifying-glass" style="font-size: 18px; color: #0d6efd;"></i>
+                                                                            <label class="form-label" style="color: #0d6efd; font-weight: bold; font-size: 18px; margin: 0;">Αποτέλεσμα Αναζήτησης</label>
+                                                                            <i class="fa-solid fa-magnifying-glass" style="font-size: 18px; color: #0d6efd;"></i>
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
+                                                                <tr style="border: 2px solid black; background-color: lightgray;">
+                                                                    <th style="border: 2px solid black;">
+                                                                        <i class="fa-solid fa-user fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                        Ονοματεπώνυμο
+                                                                    </th>
+                                                                    <th style="border: 2px solid black;">
+                                                                        <i class="fa-solid fa-building fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                        Τμήμα
+                                                                    </th>
+                                                                    <th style="border: 2px solid black;">
+                                                                        <i class="fa-solid fa-envelope fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                        Ηλ. Ταχυδρομείο
+                                                                    </th>
+                                                                    <th style="border: 2px solid black;">
+                                                                        <i class="fa-solid fa-phone fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                        Τηλέφωνο
+                                                                    </th>
+                                                                    <th style="border: 2px solid black;">
+                                                                        <i class="fa-solid fa-file-user fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                        Βιογραφικό
+                                                                    </th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                @foreach (var student in GetPaginatedStudents_SearchForStudentsAsCompany())
+                                                                {
+                                                                    <tr>
+                                                                        <td>
+                                                                            <a href="#" style="text-decoration: none; color: #0d6efd; font-weight: 500;" 
+                                                                               @onclick="() => ShowStudentDetailsOnEyeIconWhenSearchForStudentsAsCompany(student)" 
+                                                                               title="Αναλυτική Επισκόπηση">
+                                                                                @student.Name @student.Surname
+                                                                            </a>
+                                                                        </td>
+                                                                        <td>@student.Department</td>
+                                                                        <td>
+                                                                            @student.Email
+                                                                            <a href="mailto:@student.Email" title="Αποστολή Email">
+                                                                                <i class="fas fa-envelope"></i>
+                                                                            </a>
+                                                                        </td>
+                                                                        <td>
+                                                                            @(student.PhoneVisibility ? student.Telephone : "Μη Ορατό")
+                                                                            <span class="ml-2">
+                                                                                <i class="fas fa-phone"></i>
+                                                                            </span>
+                                                                        </td>
+                                                                        <td>
+                                                                            @if (student.Attachment != null)
+                                                                            {
+                                                                                <div class="text-center">
+                                                                                    <i class="fas fa-download" 
+                                                                                       style="cursor: pointer; font-size: 1.5rem;" 
+                                                                                       @onclick="() => DownloadStudentAttachmentAsCompanyInSearchForStudents(student.Id)">
+                                                                                    </i>
+                                                                                </div>
+                                                                            }
+                                                                            else
+                                                                            {
+                                                                                <span style="display: block; text-align: center; font-weight: bold; font-style: italic;">
+                                                                                        Δεν Διατίθεται
+                                                                                </span>
+                                                                            }
+                                                                        </td>
+                                                                    </tr>
+                                                                }
+                                                            </tbody>
+                                                        </table>
+                                                        <br/>
+                                                        <!-- Pagination Controls -->
+                                                        <div class="d-flex justify-content-center align-items-center mt-3 gap-1">
+                                                            <!-- First Page (<<) -->
+                                                            <span class="pagination-item @(currentPageForStudents_SearchForStudentsAsCompany == 1 ? "disabled" : "")" 
+                                                                  @onclick="@(() => GoToFirstPageForStudents_SearchForStudentsAsCompany())">
+                                                                &lt;&lt;
+                                                            </span>
+            
+                                                            <!-- Previous Page (<) -->
+                                                            <span class="pagination-item @(currentPageForStudents_SearchForStudentsAsCompany == 1 ? "disabled" : "")" 
+                                                                  @onclick="@(() => PreviousPageForStudents_SearchForStudentsAsCompany())">
+                                                                &lt;
+                                                            </span>
+            
+                                                            <!-- Page Numbers -->
+                                                            @foreach (var pageNum in GetVisiblePagesForStudents_SearchForStudentsAsCompany())
+                                                            {
+                                                                @if (pageNum == -1)
+                                                                {
+                                                                    <span class="pagination-ellipsis">...</span>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="pagination-item @(pageNum == currentPageForStudents_SearchForStudentsAsCompany ? "active" : "")" 
+                                                                          @onclick="@(() => GoToPageForStudents_SearchForStudentsAsCompany(pageNum))">
+                                                                        @pageNum
+                                                                    </span>
+                                                                }
+                                                            }
+            
+                                                            <!-- Next Page (>) -->
+                                                            <span class="pagination-item @(currentPageForStudents_SearchForStudentsAsCompany == totalPagesForStudents_SearchForStudentsAsCompany ? "disabled" : "")" 
+                                                                  @onclick="@(() => NextPageForStudents_SearchForStudentsAsCompany())">
+                                                                &gt;
+                                                            </span>
+            
+                                                            <!-- Last Page (>>) -->
+                                                            <span class="pagination-item @(currentPageForStudents_SearchForStudentsAsCompany == totalPagesForStudents_SearchForStudentsAsCompany ? "disabled" : "")" 
+                                                                  @onclick="@(() => GoToLastPageForStudents_SearchForStudentsAsCompany())">
+                                                                &gt;&gt;
+                                                            </span>
+            
+                                                            <!-- Page counter -->
+                                                            <span class="ms-3">Σελίδα @currentPageForStudents_SearchForStudentsAsCompany από @totalPagesForStudents_SearchForStudentsAsCompany</span>
+                                                        </div>
+                                                        <br/>
+                                                        <br/>
+                                                    }
+                                                    else if (searchResultsAsCompanyToFindStudent != null)
+                                                    {
+                                                        <div class="alert alert-warning d-flex align-items-center" role="alert">
+                                                          <i class="fas fa-exclamation-triangle me-2"></i>
+                                                          <div>Δεν βρέθηκε κάποιο αποτέλεσμα που να πληρεί τα κριτήρια της Αναζήτησης σας.</div>
+                                                        </div>
+                                                        <br/>
+                                                        <br/>
+                                                    }
+
+                                                }
+                                            <!-- Modal for displaying student details FOR SEARCH AS COMPANY -->
+                                            @if (showStudentDetailsModalWhenSearchForStudentsAsCompany && selectedStudentWhenSearchForStudentsAsCompany != null)
+                                            {
+                                                <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0, 0, 0, 0.5);">
+                                                    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+                                                        <div class="modal-content" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);">
+                                                            <div class="modal-header" style="border-bottom: 1px solid #e9ecef; border-radius: 12px 12px 0 0; background-color: #f8f9fa;">
+                                                                <h5 class="modal-title" style="color: #4682B4; font-weight: 600; font-size: 1.25rem;">
+                                                                    @selectedStudentWhenSearchForStudentsAsCompany.Name @selectedStudentWhenSearchForStudentsAsCompany.Surname
+                                                                </h5>
+                                                                <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" 
+                                                                        @onclick="CloseModalStudentDetailsOnEyeIconWhenSearchForStudentsAsCompany"
+                                                                        onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                        onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                    <span style="font-size: 1.2rem; line-height: 1;">×</span>
+                                                                </button>
+                                                            </div>
+                                                            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                                                                <!-- Profile Picture -->
+                                                                <div class="text-center mb-4">
+                                                                    @if (selectedStudentWhenSearchForStudentsAsCompany.Image != null && selectedStudentWhenSearchForStudentsAsCompany.Image.Length > 0)
+                                                                    {
+                                                                        var base64Image = Convert.ToBase64String(selectedStudentWhenSearchForStudentsAsCompany.Image);
+                                                                        <img src="data:image/jpeg;base64,@base64Image" alt="Φωτογραφία Προφίλ Σπουδαστή" 
+                                                                             style="max-width: 150px; max-height: 150px; border-radius: 50%; object-fit: cover; border: 3px solid #ddd;" />
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <div style="width: 150px; height: 150px; border-radius: 50%; background-color: #f8f9fa; display: flex; align-items: center; justify-content: center; margin: 0 auto; border: 3px solid #ddd;">
+                                                                            <i class="fas fa-user" style="font-size: 3rem; color: #6c757d;"></i>
+                                                                        </div>
+                                                                    }
+                                                                </div>
+
+                                                                <!-- Student Details -->
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Αριθμός Μητρώου</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-id-card mr-2 text-info"></i>
+                                                                        <span>@selectedStudentWhenSearchForStudentsAsCompany.RegNumber</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Πανεπιστήμιο</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-university mr-2 text-primary"></i>
+                                                                        <span>@selectedStudentWhenSearchForStudentsAsCompany.University</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Τμήμα</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-building mr-2"></i>
+                                                                        <span>@selectedStudentWhenSearchForStudentsAsCompany.Department</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Επίπεδο Σπουδών</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-graduation-cap mr-2"></i>
+                                                                        <span>@selectedStudentWhenSearchForStudentsAsCompany.LevelOfDegree</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Τεχνικές Ικανότητες</label>
+                                                                    <textarea class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" readonly rows="3">@selectedStudentWhenSearchForStudentsAsCompany.Keywords</textarea>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Περιοχές Εξειδίκευσης</label>
+                                                                    <textarea class="form-control" style="border-radius: 8px; background-color: #f8f9fa;" readonly rows="3">@selectedStudentWhenSearchForStudentsAsCompany.AreasOfExpertise</textarea>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Επικοινωνία</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-envelope mr-2 text-primary"></i>
+                                                                        <span>@selectedStudentWhenSearchForStudentsAsCompany.Email</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Τηλέφωνο</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-phone mr-2 text-success"></i>
+                                                                        <span>@(selectedStudentWhenSearchForStudentsAsCompany.PhoneVisibility ? selectedStudentWhenSearchForStudentsAsCompany.Telephone : "N/A")</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Περιφέρεια (Μόνιμης Διαμονής)</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-map-marked-alt mr-2"></i>
+                                                                        <span>@selectedStudentWhenSearchForStudentsAsCompany.PermanentRegion</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Πόλη (Μόνιμης Διαμονής)</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-city mr-2"></i>
+                                                                        <span>@selectedStudentWhenSearchForStudentsAsCompany.PermanentTown</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Διεύθυνση</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-map-marker-alt mr-2 text-danger"></i>
+                                                                        @if (!string.IsNullOrEmpty(selectedStudentWhenSearchForStudentsAsCompany.PermanentAddress))
+                                                                        {
+                                                                            <a href="https://www.google.com/maps/search/?api=1&query=@Uri.EscapeDataString(selectedStudentWhenSearchForStudentsAsCompany.PermanentAddress)"
+                                                                               target="_blank"
+                                                                               class="text-primary text-decoration-underline">
+                                                                                @selectedStudentWhenSearchForStudentsAsCompany.PermanentAddress
+                                                                            </a>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <span style="color: #6c757d;">Δεν έχει οριστεί διεύθυνση</span>
+                                                                        }
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Προτιμώμενη Περιφέρεια</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-map-marked-alt mr-2"></i>
+                                                                        <span>@selectedStudentWhenSearchForStudentsAsCompany.PreferedRegions</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Προτιμώμενη Πόλη</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-map-marker mr-2"></i>
+                                                                        <span>@selectedStudentWhenSearchForStudentsAsCompany.PreferredTowns</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Διαθέτει Μέσο Μεταφοράς</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;
+                                                                         @(selectedStudentWhenSearchForStudentsAsCompany.Transport == true ? "color: #28a745;" : "color: #dc3545;")">
+                                                                        <i class="fas fa-car mr-2"></i>
+                                                                        <span>@(selectedStudentWhenSearchForStudentsAsCompany.Transport == true ? "Ναι" : "Όχι")</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Κατάσταση Πρακτικής</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-briefcase mr-2"></i>
+                                                                        <span>@selectedStudentWhenSearchForStudentsAsCompany.InternshipStatus</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Κατάσταση Διπλωματικής</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-file-alt mr-2"></i>
+                                                                        <span>@selectedStudentWhenSearchForStudentsAsCompany.ThesisStatus</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">LinkedIn Προφίλ</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fab fa-linkedin mr-2" style="color: #0077b5;"></i>
+                                                                        @if (!string.IsNullOrEmpty(selectedStudentWhenSearchForStudentsAsCompany.LinkedInProfile))
+                                                                        {
+                                                                            <a href="@selectedStudentWhenSearchForStudentsAsCompany.LinkedInProfile" target="_blank" 
+                                                                               class="text-decoration-underline" style="color: #0077b5;">
+                                                                                @selectedStudentWhenSearchForStudentsAsCompany.LinkedInProfile
+                                                                            </a>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <span style="color: #6c757d;">Δεν έχει οριστεί προφίλ LinkedIn ακόμη..</span>
+                                                                        }
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label style="font-weight: bold;">Προσωπική Ιστοσελίδα</label>
+                                                                    <div class="form-control d-flex align-items-center" style="border-radius: 8px; background-color: #f8f9fa;">
+                                                                        <i class="fas fa-globe mr-2 text-info"></i>
+                                                                        @if (!string.IsNullOrEmpty(selectedStudentWhenSearchForStudentsAsCompany.PersonalWebsite))
+                                                                        {
+                                                                            <a href="@selectedStudentWhenSearchForStudentsAsCompany.PersonalWebsite" target="_blank" 
+                                                                               class="text-primary text-decoration-underline">
+                                                                                @selectedStudentWhenSearchForStudentsAsCompany.PersonalWebsite
+                                                                            </a>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <span style="color: #6c757d;">Δεν έχει οριστεί ιστοσελίδα ακόμη..</span>
+                                                                        }
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div class="modal-footer">
+                                                                <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; padding: 8px 20px; transition: all 0.2s;" 
+                                                                        @onclick="CloseModalStudentDetailsOnEyeIconWhenSearchForStudentsAsCompany"
+                                                                        onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                        onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                    <i class="fas fa-arrow-left me-2"></i> Κλείσιμο
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            }
+
+
+                                        
+<div id="company-student-search-end">                                            </div>

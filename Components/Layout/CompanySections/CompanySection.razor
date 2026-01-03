@@ -1,0 +1,131 @@
+<div id="companies-start"></div>
+
+@using Microsoft.AspNetCore.Components
+
+@code {
+    [CascadingParameter(Name = "UserRole")]
+    public string UserRole { get; set; } = "";
+    
+    [CascadingParameter(Name = "isCompanyRegistered")]
+    public bool isCompanyRegistered { get; set; }
+    
+    [CascadingParameter(Name = "isInitializedAsCompanyUser")]
+    public bool isInitializedAsCompanyUser { get; set; }
+}
+
+@if (UserRole == "Company")
+{
+    @if (!isInitializedAsCompanyUser)
+    {
+        <div class="professional-loading">
+            <div class="loading-content">
+                <div class="loading-spinner">
+                    <div class="spinner-circle"></div>
+                    <div class="spinner-circle"></div>
+                    <div class="spinner-circle"></div>
+                </div>
+                <div class="loading-text">
+                    <span class="loading-title">Φορτώνει, Παρακαλώ Περιμένετε...</span>
+                    <span class="loading-subtitle">Γίνεται προετοιμασία του περιεχομένου</span>
+                </div>
+            </div>
+            <div class="loading-progress">
+                <div class="progress-bar">
+                    <div class="progress-fill"></div>
+                </div>
+            </div>
+        </div>
+    }
+    else if (!isCompanyRegistered)
+    {
+        <div style="display: flex; justify-content: flex-start; padding: 20px; flex-direction: column;">
+            <div style="width: 300px; border: none; border-radius: 12px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); transition: transform 0.3s ease, box-shadow 0.3s ease; background: linear-gradient(135deg, #f9f9f9, #e0e0e0);">
+                <div style="padding: 20px; text-align: center;">
+                    <h5 style="font-size: 1.5rem; font-weight: bold; color: #333; margin-bottom: 20px;">Προφίλ Εταιρείας</h5>
+                    <a style="background-color: #007bff; border: none; border-radius: 25px; padding: 10px 20px; font-size: 1rem; color: white; text-decoration: none; transition: background-color 0.3s ease, transform 0.2s ease;" href="companyRegistration" onmouseover="this.style.backgroundColor='#0056b3'; this.style.transform='scale(1.05)'" onmouseout="this.style.backgroundColor='#007bff'; this.style.transform='scale(1)'">Εγγραφή</a>
+                </div>
+            </div>
+            <p style="font-size: 0.9rem; color: #000; margin-top: 7px; text-align: center; font-weight: bold;">
+                <span style="color: #ff0000;">**</span> <span style="color: #ff0000;">Προσοχή</span>: Για εμφάνιση του περιεχομένου της σελίδας είναι <span style="color: #ff0000;">Υποχρεωτική</span> η Εγγραφή σας
+            </p>                                      
+        </div>
+    }
+    else
+    {
+        <div class="content-area position-relative">
+            <div class="table-bordered position-relative">
+                <!-- Tabs navigation -->
+                <ul class="nav nav-tabs" id="myTab" role="tablist">
+                    <li class="nav-item position-relative" role="presentation">
+                        <button class="nav-link fade show active" id="announcements-tab" data-bs-toggle="tab" data-bs-target="#announcements" type="button" role="tab" aria-controls="announcements" aria-selected="true">Ανακοινώσεις</button>
+                    </li>
+                    <li class="nav-item position-relative" role="presentation">
+                        <button class="nav-link" id="events-tab" data-bs-toggle="tab" data-bs-target="#events" type="button" role="tab" aria-controls="events" aria-selected="false">Εκδηλώσεις</button>
+                    </li>
+                    <li class="nav-item position-relative" role="presentation">
+                        <button class="nav-link" id="jobs-tab" data-bs-toggle="tab" data-bs-target="#jobs" type="button" role="tab" aria-controls="jobs" aria-selected="false">Θέσεις Εργασίας</button>
+                    </li>
+                    <li class="nav-item position-relative" role="presentation">
+                        <button class="nav-link" id="internships-tab" data-bs-toggle="tab" data-bs-target="#internships" type="button" role="tab" aria-controls="internships" aria-selected="false">Θέσεις Πρακτικής Άσκησης</button>
+                    </li>
+                    <li class="nav-item position-relative" role="presentation">
+                        <button class="nav-link" id="thesis-tab" data-bs-toggle="tab" data-bs-target="#thesis" type="button" role="tab" aria-controls="thesis" aria-selected="false">Διπλωματικές Εργασίες</button>
+                    </li>
+                    <li class="nav-item position-relative" role="presentation">
+                        <button class="nav-link" id="student-search-tab" data-bs-toggle="tab" data-bs-target="#student-search" type="button" role="tab" aria-controls="student-search" aria-selected="false">Αναζήτηση Φοιτητή</button>
+                    </li>
+                    <li class="nav-item position-relative" role="presentation">
+                        <button class="nav-link" id="professor-search-tab" data-bs-toggle="tab" data-bs-target="#professor-search" type="button" role="tab" aria-controls="professor-search" aria-selected="false">Αναζήτηση Καθηγητή</button>
+                    </li>
+                    <li class="nav-item position-relative" role="presentation">
+                        <button class="nav-link" id="researchgroup-search-tab" data-bs-toggle="tab" data-bs-target="#researchgroup-search" type="button" role="tab" aria-controls="researchgroup-search" aria-selected="false">Αναζήτηση Ερευνητικής Ομάδας</button>
+                    </li>
+                </ul>
+
+                <!-- Tab panes -->
+                <div class="tab-content mt-3" id="myTabContent">
+                    <!-- Announcements Tab -->
+                    <div class="tab-pane fade show active" id="announcements" role="tabpanel" aria-labelledby="announcements-tab">
+                        <CompanyAnnouncementsManagementSection />
+                        <CompanyAnnouncementsSection />
+                    </div>
+
+                    <!-- Jobs Tab -->
+                    <div class="tab-pane fade" id="jobs" role="tabpanel" aria-labelledby="jobs-tab">
+                        <CompanyJobsSection />
+                    </div>
+
+                    <!-- Internships Tab -->
+                    <div class="tab-pane fade" id="internships" role="tabpanel" aria-labelledby="internships-tab">
+                        <CompanyInternshipsSection />
+                    </div>
+
+                    <!-- Thesis Tab -->
+                    <div class="tab-pane fade" id="thesis" role="tabpanel" aria-labelledby="thesis-tab">
+                        <CompanyThesesSection />
+                    </div>
+
+                    <!-- Events Tab -->
+                    <div class="tab-pane fade" id="events" role="tabpanel" aria-labelledby="events-tab">
+                        <CompanyEventsSection />
+                    </div>
+
+                    <!-- Student Search Tab -->
+                    <div class="tab-pane fade" id="student-search" role="tabpanel" aria-labelledby="student-search-tab">
+                        <CompanyStudentSearchSection />
+                    </div>
+
+                    <!-- Professor Search Tab -->
+                    <div class="tab-pane fade" id="professor-search" role="tabpanel" aria-labelledby="professor-search-tab">
+                        <CompanyProfessorSearchSection />
+                    </div>
+
+                    <!-- Research Group Search Tab -->
+                    <div class="tab-pane fade" id="researchgroup-search" role="tabpanel" aria-labelledby="researchgroup-search-tab">
+                        <CompanyResearchGroupSearchSection />
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+}

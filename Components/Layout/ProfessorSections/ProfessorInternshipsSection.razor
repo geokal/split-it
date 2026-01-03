@@ -1,0 +1,933 @@
+                                                    <div id="show-my-uploaded-internships-as-professor"></div>
+
+                                                                    <!-- VIEW UPLOADED INTERNSHIPS AS PROFESSOR -->
+                                                                    <div class="mb-3 row-dark-gray">
+                                                                        <div class="d-flex justify-content-between align-items-center" @onclick="ToggleFormVisibilityToShowMyActiveInternshipsAsProfessor" style="cursor: pointer;">
+                                                                            <label class="form-label" style="color: #FFF8DC;">
+                                                                                @if (isLoadingInternshipsHistoryAsProfessor)
+                                                                                {
+                                                                                    <span>
+                                                                                        <i class="fas fa-spinner fa-spin me-2"></i>
+                                                                                        Φόρτωση Ιστορικού...
+                                                                                    </span>
+                                                                                }
+                                                                                else
+                                                                                {
+                                                                                    <span>• Ιστορικό Θέσεων Πρακτικής Άσκησης •</span>
+                                                                                }
+                                                                            </label>
+                                                                            <button class="btn btn-link" @onclick="ToggleFormVisibilityToShowMyActiveInternshipsAsProfessor" @onclick:stopPropagation="true">
+                                                                                @if (isShowActiveInternshipsAsProfessorFormVisible && !isLoadingInternshipsHistoryAsProfessor)
+                                                                                {
+                                                                                    <span>&#8722;</span> <!-- Minus sign -->
+                                                                                }
+                                                                                else if (!isLoadingInternshipsHistoryAsProfessor)
+                                                                                {
+                                                                                    <span>&#43;</span> <!-- Plus sign -->
+                                                                                }
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    @if (isShowActiveInternshipsAsProfessorFormVisible)
+                                                                    {
+                                                                        <div class="row mb-3">
+                                                                            <div class="col-md-2">
+                                                                                <label for="statusFilterProfessor" style="color: #2d3748;"><strong>Φίλτρο Εμφάνισης</strong></label>
+                                                                                <div class="input-group">
+                                                                                    <select id="statusFilterProfessor" class="form-control form-control-sm" 
+                                                                                            @onchange="HandleStatusFilterChangeForProfessorInternships">
+                                                                                        <option value="Όλα">Όλες</option>
+                                                                                        <option value="Δημοσιευμένη">Δημοσιευμένες</option>
+                                                                                        <option value="Μη Δημοσιευμένη">Μη Δημοσιευμένες</option>
+                                                                                        <option value="Αποσυρμένη">Αποσυρμένες</option>
+                                                                                    </select>
+                                                                                    <div class="input-group-append">
+                                                                                        <span class="input-group-text">
+                                                                                            <i class="fas fa-chevron-down"></i>
+                                                                                        </span>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                            <div class="col-md-2">
+                                                                                <label style="color: #2d3748;"><strong>Αποτελέσματα ανά Σελίδα</strong></label>
+                                                                                <div class="input-group" style="max-width: 65px;">
+                                                                                    <select class="form-control form-control-sm" 
+                                                                                            @onchange="OnPageSizeChange_SeeMyUploadedInternshipsAsProfessor" 
+                                                                                            aria-label="Items per page">
+                                                                                        @foreach (var option in pageSizeOptions_SeeMyUploadedInternshipsAsProfessor)
+                                                                                        {
+                                                                                            <option value="@option" selected="@(professorInternshipsPerPage == option)">@option</option>
+                                                                                        }
+                                                                                    </select>
+                                                                                    <div class="input-group-append">
+                                                                                        <span class="input-group-text">
+                                                                                            <i class="fas fa-chevron-down"></i>
+                                                                                        </span>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                            <div class="col-md-2">
+                                                                                @if (selectedStatusFilterForProfessorInternships == "Όλα")
+                                                                                {
+                                                                                    <span><strong>Σύνολο: </strong>@totalCountInternshipsAsProfessor</span>
+                                                                                }
+                                                                                @if (selectedStatusFilterForProfessorInternships == "Δημοσιευμένη")
+                                                                                {
+                                                                                    <span><strong>Σύνολο: </strong>@publishedCountInternshipsAsProfessor</span>
+                                                                                }
+                                                                                else if (selectedStatusFilterForProfessorInternships == "Μη Δημοσιευμένη")
+                                                                                {
+                                                                                    <span><strong>Σύνολο: </strong>@unpublishedProfessorInternshipsCount</span>
+                                                                                }
+                                                                                else if (selectedStatusFilterForProfessorInternships == "Αποσυρμένη")
+                                                                                {
+                                                                                    <span><strong>Σύνολο: </strong>@withdrawnProfessorInternshipsCount</span>
+                                                                                }
+                                                                            </div>
+                                                                        </div>
+
+                                                                        <!-- Bulk Edit Section for Professor Internships - Only show when there are internships -->
+                                                                        @if (professorInternships != null && professorInternships.Any())
+                                                                        {
+                                                                            <div class="row mb-3">
+                                                                                <div class="col-md-12">
+                                                                                    <!-- Bulk Edit Button - Show when NOT in bulk edit mode -->
+                                                                                    @if (!isBulkEditModeForProfessorInternships)
+                                                                                    {
+                                                                                        <div class="mb-2" style="margin-left: -10px;">
+                                                                                            <button class="modern-button" style="background-color: #2d3748; color: white; display: inline-flex; align-items: center;" 
+                                                                                                    @onclick="EnableBulkEditModeForProfessorInternships"
+                                                                                                    onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                                                    onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                                                <i class="fas fa-edit" style="margin-right: 8px;"></i>Μαζική Επεξεργασία Θέσεων Πρακτικής
+                                                                                            </button>
+                                                                                        </div>
+                                                                                    }
+
+                                                                                    <!-- Bulk Action Controls - Show when in bulk edit mode -->
+                                                                                    @if (isBulkEditModeForProfessorInternships)
+                                                                                    {
+                                                                                        <div class="mb-2" style="margin-left: -10px;">
+                                                                                            <div class="d-flex gap-2 align-items-center flex-wrap">
+                                                                                                <button class="modern-button" style="background-color: #2d3748; color: white; display: inline-flex; align-items: center;" 
+                                                                                                        @onclick='() => ExecuteBulkStatusChangeForProfessorInternships("Δημοσιευμένη")'
+                                                                                                        disabled="@(selectedProfessorInternshipIds.Count == 0)"
+                                                                                                        onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                                                        onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                                                    <i class="fas fa-arrow-up me-2"></i>Αλλαγή σε Δημοσιευμένη
+                                                                                                </button>
+                                                                                                <button class="modern-button" style="background-color: #2d3748; color: white; display: inline-flex; align-items: center;" 
+                                                                                                        @onclick='() => ExecuteBulkStatusChangeForProfessorInternships("Μη Δημοσιευμένη")'
+                                                                                                        disabled="@(selectedProfessorInternshipIds.Count == 0)"
+                                                                                                        onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                                                        onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                                                    <i class="fas fa-arrow-down me-2"></i>Αλλαγή σε Μη Δημοσιευμένη
+                                                                                                </button>
+                                                                                                <button class="modern-button" style="background-color: #2d3748; color: white; display: inline-flex; align-items: center;" 
+                                                                                                        @onclick='() => ExecuteBulkStatusChangeForProfessorInternships("Αποσυρμένη")'
+                                                                                                        disabled="@(selectedProfessorInternshipIds.Count == 0)"
+                                                                                                        onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                                                        onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                                                    <i class="fas fa-times me-2"></i>Αλλαγή σε Αποσυρμένη
+                                                                                                </button>
+                                                                                                <button class="modern-button" style="background-color: #2d3748; color: white; display: inline-flex; align-items: center;" 
+                                                                                                        @onclick="ExecuteBulkCopyForProfessorInternships"
+                                                                                                        disabled="@(selectedProfessorInternshipIds.Count == 0)"
+                                                                                                        onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                                                        onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                                                    <i class="fas fa-copy me-2"></i>Κλωνοποίηση
+                                                                                                </button>
+                                                                                                <button class="modern-button" style="background-color: #6c757d; color: white; display: inline-flex; align-items: center;" 
+                                                                                                        @onclick="CancelBulkEditForProfessorInternships"
+                                                                                                        onmouseover="this.style.backgroundColor='#5a6268'" 
+                                                                                                        onmouseout="this.style.backgroundColor='#6c757d'">
+                                                                                                    <i class="fas fa-times me-2"></i>Ακύρωση
+                                                                                                </button>
+                                                                                            </div>
+
+                                                                                            <!-- Selected count badge -->
+                                                                                            @if (selectedProfessorInternshipIds.Count > 0)
+                                                                                            {
+                                                                                                <div class="mt-2">
+                                                                                                    <span class="badge bg-primary">
+                                                                                                        Επιλεγμένες Πρακτικές: @selectedProfessorInternshipIds.Count
+                                                                                                    </span>
+                                                                                                </div>
+                                                                                            }
+
+                                                                                            <!-- Instruction text - ALWAYS show when in bulk edit mode -->
+                                                                                            <div class="mt-2">
+                                                                                                <div class="alert alert-info" style="background-color: #e7f3ff; border: 1px solid #b3d9ff; color: #004085; border-radius: 6px; padding: 8px 12px;">
+                                                                                                    <i class="fas fa-info-circle me-2"></i>
+                                                                                                    <strong>Επιλέξτε Πρακτικές Ασκήσεις στον Πίνακα</strong>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    }
+
+                                                                                    <!-- Add the legend here - right before the table -->
+                                                                                    <div class="d-flex justify-content-end mb-2">
+                                                                                        <div class="status-legend" style="display: flex; align-items: center; gap: 15px; background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; padding: 6px 12px;">
+                                                                                            <div style="display: flex; align-items: center; gap: 8px;">
+                                                                                                <div style="display: flex; align-items: center;">
+                                                                                                    <div style="width: 16px; height: 16px; background-color: lightblue; border: 1px solid #ccc; border-radius: 3px; margin-right: 5px;"></div>
+                                                                                                    <span>Δημοσιευμένη</span>
+                                                                                                </div>
+                                                                                                <div style="display: flex; align-items: center;">
+                                                                                                    <div style="width: 16px; height: 16px; background-color: lightcoral; border: 1px solid #ccc; border-radius: 3px; margin-right: 5px;"></div>
+                                                                                                    <span>Μη Δημοσιευμένη</span>
+                                                                                                </div>
+                                                                                                <div style="display: flex; align-items: center;">
+                                                                                                    <div style="width: 16px; height: 16px; background-color: lightyellow; border: 1px solid #ccc; border-radius: 3px; margin-right: 5px;"></div>
+                                                                                                    <span>Αποσυρμένη</span>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </div>
+
+                                                                                </div>
+                                                                            </div>
+                                                                        }
+
+                                                                        <div style="max-width: auto; margin-left: 0;">
+                                                                            <div class="table-responsive">
+                                                                                <table class="table table-striped">
+                                                                                    <thead>
+                                                                                        <tr style="border: 2px solid black; background-color: lightgray;">
+                                                                                            @if (isBulkEditModeForProfessorInternships && professorInternships != null && professorInternships.Any())
+                                                                                            {
+                                                                                                <th style="border: 2px solid black; width: 40px;">
+                                                                                                    #
+                                                                                                </th>
+                                                                                            }
+                                                                                            <th style="border: 2px solid black;">
+                                                                                                <i class="fa-solid fa-key fa-sm" style="color: #0d6efd; margin-right: 8px;"></i>
+                                                                                                ID
+                                                                                            </th>
+                                                                                            <th style="border: 2px solid black;">
+                                                                                                <i class="fa-solid fa-font fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                                                Τίτλος
+                                                                                            </th>
+                                                                                            <th style="border: 2px solid black;">
+                                                                                                <i class="fa-solid fa-arrows-up-down fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                                                Κατάσταση Θέσης
+                                                                                            </th>
+                                                                                            <th style="border: 2px solid black;">
+                                                                                                <i class="fa-solid fa-calendar-day fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                                                Δημιουργία Θέσης
+                                                                                            </th>
+                                                                                            <th style="border: 2px solid black;">
+                                                                                                <i class="fa-solid fa-location-dot fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                                                Τόπος Άσκησης
+                                                                                            </th>
+                                                                                            <th style="border: 2px solid black;">
+                                                                                                <i class="fa-solid fa-hand fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                                                Ενέργειες
+                                                                                            </th>
+                                                                                        </tr>
+                                                                                    </thead>
+                                                                                    <tbody>
+                                                                                        @if (isLoadingInternshipsHistoryAsProfessor)
+                                                                                        {
+                                                                                            <tr>
+                                                                                                <td colspan="@(isBulkEditModeForProfessorInternships && professorInternships != null && professorInternships.Any() ? "7" : "6")" class="text-center" style="border: 1px solid black;">
+                                                                                                    <div class="empty-state">
+                                                                                                        <i class="fas fa-spinner fa-spin fa-3x mb-3" style="color: #0d6efd;"></i>
+                                                                                                        <h5 style="color: #2d3748; margin-bottom: 10px;">Φόρτωση Πρακτικών Ασκήσεων...</h5>
+                                                                                                    </div>
+                                                                                                </td>
+                                                                                            </tr>
+                                                                                        }
+                                                                                        else if (professorInternships != null && professorInternships.Any())
+                                                                                        {
+                                                                                            @foreach (var internship in GetPaginatedProfessorInternships())
+                                                                                            {
+                                                                                                <!-- Main Internship Row -->
+                                                                                                <tr style="background-color: @(internship.ProfessorUploadedInternshipStatus == "Δημοσιευμένη" ? "lightblue" : (internship.ProfessorUploadedInternshipStatus == "Μη Δημοσιευμένη" ? "lightcoral" : "lightyellow")); border: 2px solid black;">
+                                                                                                    @if (isBulkEditModeForProfessorInternships)
+                                                                                                    {
+                                                                                                        <td style="border: 1px solid black; text-align: center;">
+                                                                                                            <input type="checkbox" 
+                                                                                                                   @onchange="@((e) => ToggleProfessorInternshipSelection(internship.Id, e))" 
+                                                                                                                   checked="@selectedProfessorInternshipIds.Contains(internship.Id)" />
+                                                                                                        </td>
+                                                                                                    }
+                                                                                                    <td style="color: #2d3748; border: 1px solid black;">
+                                                                                                        @internship.RNGForInternshipUploadedAsProfessor_HashedAsUniqueID
+                                                                                                    </td>
+                                                                                                    <td style="border: 1px solid black; cursor: pointer;" 
+                                                                                                        @onclick="() => ToggleProfessorInternshipExpanded(internship.RNGForInternshipUploadedAsProfessor)" 
+                                                                                                        title="Κλικ για εμφάνιση αιτούντων">
+                                                                                                        @internship.ProfessorInternshipTitle
+                                                                                                    </td>
+                                                                                                    <td style="border: 1px solid black;">@internship.ProfessorUploadedInternshipStatus</td>
+                                                                                                    <td style="border: 1px solid black;">@internship.ProfessorInternshipUploadDate</td>
+                                                                                                    <td style="border: 1px solid black;">@internship.ProfessorInternshipDimosLocation</td>
+                                                                                                    <td style="border: 1px solid black; position: relative;" class="actions-cell">
+                                                                                                        <div class="dropdown">
+                                                                                                            <!-- Options menu button with ellipsis-h icon -->
+                                                                                                            <button class="btn btn-action btn-menu" 
+                                                                                                                    @onclick="() => ToggleProfessorInternshipMenu(internship.Id)" 
+                                                                                                                    title="Ενέργειες"
+                                                                                                                    @onclick:stopPropagation="true">
+                                                                                                                <i class="fas fa-ellipsis-h icon-button"></i>
+                                                                                                            </button>
+
+                                                                                                            <!-- Dropdown menu -->
+                                                                                                            @if (activeProfessorInternshipMenuId == internship.Id)
+                                                                                                            {
+                                                                                                                <!-- Invisible backdrop that covers entire screen -->
+                                                                                                                <div class="dropdown-backdrop" @onclick="() => ToggleProfessorInternshipMenu(0)"></div>
+
+                                                                                                                <div class="dropdown-menu show" @onclick:stopPropagation="true">
+                                                                                                                    <!-- Delete option -->
+                                                                                                                    <button class="dropdown-item" @onclick="() => { DeleteProfessorInternship(internship.Id); ToggleProfessorInternshipMenu(0); }">
+                                                                                                                        <i class="fas fa-trash me-2" style="color: #f56565;"></i>
+                                                                                                                        <span>Διαγραφή</span>
+                                                                                                                    </button>
+
+                                                                                                                    <!-- View details option -->
+                                                                                                                    <button class="dropdown-item" @onclick="() => { ShowProfessorInternshipDetails(internship); ToggleProfessorInternshipMenu(0); }">
+                                                                                                                        <i class="fas fa-eye me-2" style="color: #63b3ed;"></i>
+                                                                                                                        <span>Προβολή</span>
+                                                                                                                    </button>
+
+                                                                                                                    <!-- Download attachment option (only if attachment exists) -->
+                                                                                                                    @if (internship.ProfessorInternshipAttachment != null && internship.ProfessorInternshipAttachment.Length > 0)
+                                                                                                                    {
+                                                                                                                        <button class="dropdown-item" @onclick="() => { DownloadAttachmentForProfessorInternships(internship.Id); ToggleProfessorInternshipMenu(0); }">
+                                                                                                                            <i class="fas fa-download me-2" style="color: #48bb78;"></i>
+                                                                                                                            <span>Λήψη Αρχείου</span>
+                                                                                                                        </button>
+                                                                                                                    }
+
+                                                                                                                    <!-- View applicants option -->
+                                                                                                                    <button class="dropdown-item" @onclick="() => { ToggleProfessorInternshipExpanded(internship.RNGForInternshipUploadedAsProfessor); ToggleProfessorInternshipMenu(0); }" 
+                                                                                                                            disabled="@isLoadingProfessorInternshipApplicants">
+                                                                                                                        <i class="fa-solid fa-graduation-cap me-2" style="color: #0d6efd;"></i>
+                                                                                                                        <span>
+                                                                                                                            @if (isLoadingProfessorInternshipApplicants && loadingProfessorInternshipId == internship.RNGForInternshipUploadedAsProfessor)
+                                                                                                                            {
+                                                                                                                                <i class="fas fa-spinner fa-spin"></i>
+                                                                                                                            }
+                                                                                                                            Αιτούντες
+                                                                                                                        </span>
+                                                                                                                    </button>
+
+                                                                                                                    <!-- Status change options -->
+                                                                                                                    @if (internship.ProfessorUploadedInternshipStatus != "Δημοσιευμένη")
+                                                                                                                    {
+                                                                                                                        <!-- Edit option (only for non-published) -->
+                                                                                                                        <button class="dropdown-item" @onclick="() => { EditProfessorInternshipDetails(internship); ToggleProfessorInternshipMenu(0); }">
+                                                                                                                            <i class="fas fa-pencil-alt me-2" style="color: #8b5cf6;"></i>
+                                                                                                                            <span>Επεξεργασία</span>
+                                                                                                                        </button>
+
+                                                                                                                        <!-- Publish option -->
+                                                                                                                        <button class="dropdown-item" @onclick='async () => { await UpdateInternshipStatusAsProfessor(internship.Id, "Δημοσιευμένη"); ToggleProfessorInternshipMenu(0); }'>
+                                                                                                                            <i class="fas fa-arrow-up me-2" style="color: #68d391;"></i>
+                                                                                                                            <span>Δημοσίευση</span>
+                                                                                                                        </button>
+                                                                                                                    }
+                                                                                                                    else
+                                                                                                                    {
+                                                                                                                        <!-- Withdraw option (only for published) -->
+                                                                                                                        <button class="dropdown-item" @onclick='async () => { await UpdateInternshipStatusAsProfessor(internship.Id, "Αποσυρμένη"); ToggleProfessorInternshipMenu(0); }'>
+                                                                                                                            <i class="fas fa-times me-2" style="color: #f56565;"></i>
+                                                                                                                            <span>Απόσυρση</span>
+                                                                                                                        </button>
+                                                                                                                    }
+
+                                                                                                                    @if (internship.ProfessorUploadedInternshipStatus != "Μη Δημοσιευμένη")
+                                                                                                                    {
+                                                                                                                        <!-- Unpublish option -->
+                                                                                                                        <button class="dropdown-item" @onclick='() => { ChangeProfessorInternshipStatusToUnpublished(internship.Id); ToggleProfessorInternshipMenu(0); }'>
+                                                                                                                            <i class="fas fa-arrow-down me-2" style="color: #f6e05e;"></i>
+                                                                                                                            <span>Αποδημοσίευση</span>
+                                                                                                                        </button>
+                                                                                                                    }
+                                                                                                                </div>
+                                                                                                            }
+                                                                                                        </div>
+
+                                                                                                        <!-- Loading Modal for Delete Professor Internship -->
+                                                                                                        @if (showLoadingModalForDeleteProfessorInternship)
+                                                                                                        {
+                                                                                                            <div class="loading-modal">
+                                                                                                                <div class="loading-modal-content">
+                                                                                                                    <div class="loading-spinner"></div>
+                                                                                                                    <p>Διαγραφή Πρακτικής Άσκησης...</p>
+                                                                                                                    <div class="progress-bar">
+                                                                                                                        <div class="progress-bar-fill" style="width: @loadingProgress%"></div>
+                                                                                                                    </div>
+                                                                                                                </div>
+                                                                                                            </div>
+                                                                                                        }
+                                                                                                    </td>
+                                                                                                </tr>
+
+                                                                                                <!-- Applicants Section - Connected to the main row -->
+                                                                                                @if (expandedProfessorInternships.ContainsKey(internship.RNGForInternshipUploadedAsProfessor) && expandedProfessorInternships[internship.RNGForInternshipUploadedAsProfessor])
+                                                                                                {
+                                                                                                    <tr style="background-color: #e8f4f8; border-left: 4px solid #0d6efd;">
+                                                                                                        <td colspan="@(isBulkEditModeForProfessorInternships ? "7" : "6")" style="padding: 0; border: 1px solid #0d6efd;">
+                                                                                                            <div style="background: linear-gradient(135deg, #e8f4f8 0%, #d1ecf1 100%); padding: 15px; border-radius: 0 0 5px 5px;">
+                                                                                                                <!-- Loading State for Applicants -->
+                                                                                                                @if (isLoadingProfessorInternshipApplicants && loadingProfessorInternshipId == internship.RNGForInternshipUploadedAsProfessor)
+                                                                                                                {
+                                                                                                                    <div class="text-center" style="padding: 40px;">
+                                                                                                                        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+                                                                                                                            <span class="sr-only">Φόρτωση...</span>
+                                                                                                                        </div>
+                                                                                                                        <p style="color: #0d6efd; font-weight: bold; margin-top: 15px; font-size: 16px;">
+                                                                                                                            Φόρτωση αιτούντων...
+                                                                                                                        </p>
+                                                                                                                    </div>
+                                                                                                                }
+                                                                                                                else
+                                                                                                                {
+                                                                                                                    <!-- BULK ACTIONS SECTION FOR PROFESSOR INTERNSHIP APPLICANTS -->
+                                                                                                                    @if (professorInternshipApplicantsMap.ContainsKey(internship.RNGForInternshipUploadedAsProfessor) && professorInternshipApplicantsMap[internship.RNGForInternshipUploadedAsProfessor].Any())
+                                                                                                                    {
+                                                                                                                        <div class="row mb-3">
+                                                                                                                            <div class="col-md-12">
+                                                                                                                                <!-- Bulk Edit Button for Professor Internship Applicants - Show when NOT in bulk edit mode -->
+                                                                                                                                @if (!isBulkEditModeForProfessorInternshipApplicants)
+                                                                                                                                {
+                                                                                                                                    <div class="mb-2" style="text-align: left; margin-left: -15px;">
+                                                                                                                                        <button class="modern-button" style="background-color: #2d3748; color: white; display: inline-flex; align-items: center;" 
+                                                                                                                                                @onclick="() => EnableBulkEditModeForProfessorInternshipApplicants(internship.RNGForInternshipUploadedAsProfessor.ToString())"
+                                                                                                                                                onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                                                                                                onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                                                                                            <i class="fas fa-edit" style="margin-right: 8px;"></i>Μαζική Επεξεργασία Αιτούντων Πρακτικής
+                                                                                                                                        </button>
+                                                                                                                                    </div>
+                                                                                                                                }
+
+                                                                                                                                <!-- Bulk Action Controls - Show when in bulk edit mode -->
+                                                                                                                                @if (isBulkEditModeForProfessorInternshipApplicants)
+                                                                                                                                {
+                                                                                                                                    <div class="mb-2" style="text-align: left; margin-left: -15px;">
+                                                                                                                                        <div class="d-flex gap-2 align-items-center flex-wrap">
+                                                                                                                                            <button class="modern-button" style="background-color: #2d3748; color: white; display: inline-flex; align-items: center;" 
+                                                                                                                                                    @onclick='() => ShowEmailConfirmationModalForProfessorInternshipApplicants("accept")'
+                                                                                                                                                    disabled="@(selectedProfessorInternshipApplicantIds.Count == 0)"
+                                                                                                                                                    onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                                                                                                    onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                                                                                                <i class="fas fa-check me-2"></i>Μαζική Αποδοχή
+                                                                                                                                            </button>
+                                                                                                                                            <button class="modern-button" style="background-color: #2d3748; color: white; display: inline-flex; align-items: center;" 
+                                                                                                                                                    @onclick='() => ShowEmailConfirmationModalForProfessorInternshipApplicants("reject")'
+                                                                                                                                                    disabled="@(selectedProfessorInternshipApplicantIds.Count == 0)"
+                                                                                                                                                    onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                                                                                                    onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                                                                                                <i class="fas fa-times me-2"></i>Μαζική Απόρριψη
+                                                                                                                                            </button>
+                                                                                                                                            <button class="modern-button" style="background-color: #6c757d; color: white; display: inline-flex; align-items: center;" 
+                                                                                                                                                    @onclick="CancelBulkEditForProfessorInternshipApplicants"
+                                                                                                                                                    onmouseover="this.style.backgroundColor='#5a6268'" 
+                                                                                                                                                    onmouseout="this.style.backgroundColor='#6c757d'">
+                                                                                                                                                <i class="fas fa-times me-2"></i>Ακύρωση
+                                                                                                                                            </button>
+                                                                                                                                        </div>
+
+                                                                                                                                        <!-- Badges section - All badges together -->
+                                                                                                                                        <div class="mt-2 d-flex gap-2 align-items-center flex-wrap">
+                                                                                                                                            <!-- Selected count badge -->
+                                                                                                                                            @if (selectedProfessorInternshipApplicantIds.Count > 0)
+                                                                                                                                            {
+                                                                                                                                                <span class="badge bg-primary">
+                                                                                                                                                    Επιλεγμένες Αιτήσεις: @selectedProfessorInternshipApplicantIds.Count
+                                                                                                                                                </span>
+                                                                                                                                            }
+
+                                                                                                                                            <!-- Total and Accepted badges -->
+                                                                                                                                            <span class="badge badge-primary" style="background-color: #0d6efd; padding: 5px 10px; border-radius: 15px;">
+                                                                                                                                                Σύνολο Αιτήσεων: @(professorInternshipApplicantsMap.ContainsKey(internship.RNGForInternshipUploadedAsProfessor) ? professorInternshipApplicantsMap[internship.RNGForInternshipUploadedAsProfessor].Count().ToString() : "0")
+                                                                                                                                            </span>
+                                                                                                                                            <span class="badge badge-info" style="background-color: #17a2b8; padding: 5px 10px; border-radius: 15px;">
+                                                                                                                                                Αποδεκτοί: @acceptedApplicantsCountPerProfessorInternship.GetValueOrDefault(internship.RNGForInternshipUploadedAsProfessor, 0)/@availableSlotsPerProfessorInternship.GetValueOrDefault(internship.RNGForInternshipUploadedAsProfessor, internship.OpenSlots_ProfessorInternship)
+                                                                                                                                            </span>
+                                                                                                                                        </div>
+
+                                                                                                                                        <!-- Instruction text - ALWAYS show when in bulk edit mode -->
+                                                                                                                                        <div class="mt-2">
+                                                                                                                                            <div class="alert alert-info" style="background-color: #e7f3ff; border: 1px solid #b3d9ff; color: #004085; border-radius: 6px; padding: 8px 12px;">
+                                                                                                                                                <i class="fas fa-info-circle me-2"></i>
+                                                                                                                                                <strong>Επιλέξτε Αιτήσεις στον Πίνακα</strong>
+                                                                                                                                            </div>
+                                                                                                                                        </div>
+                                                                                                                                    </div>
+                                                                                                                                }
+                                                                                                                            </div>
+                                                                                                                        </div>
+                                                                                                                    }
+                                                                                                                    <!-- END BULK ACTIONS SECTION -->
+
+                                                                                                                    @if (professorInternshipApplicantsMap.ContainsKey(internship.RNGForInternshipUploadedAsProfessor) && professorInternshipApplicantsMap[internship.RNGForInternshipUploadedAsProfessor].Any())
+                                                                                                                    {
+                                                                                                                        <div class="table-responsive">
+                                                                                                                            <table class="table table-striped">
+                                                                                                                                <thead>
+                                                                                                                                    <tr style="background-color: #cce7ff; border: 1px solid #0d6efd;">
+                                                                                                                                        @if (isBulkEditModeForProfessorInternshipApplicants)
+                                                                                                                                        {
+                                                                                                                                            <th style="border: 1px solid #0d6efd; width: 40px;">
+                                                                                                                                                #
+                                                                                                                                            </th>
+                                                                                                                                        }
+                                                                                                                                        <th style="border: 1px solid #0d6efd;">
+                                                                                                                                            <i class="fa-solid fa-user fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                                                                                            Προφίλ
+                                                                                                                                        </th>
+                                                                                                                                        <th style="border: 1px solid #0d6efd;">
+                                                                                                                                            <i class="fa-solid fa-signature fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                                                                                            Όνομα
+                                                                                                                                        </th>
+                                                                                                                                        <th style="border: 1px solid #0d6efd;">
+                                                                                                                                            <i class="fa-solid fa-signature fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                                                                                            Επώνυμο
+                                                                                                                                        </th>
+                                                                                                                                        <th style="border: 1px solid #0d6efd;">
+                                                                                                                                            <i class="fa-solid fa-calendar-plus fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                                                                                            Ημερομηνία Αίτησης
+                                                                                                                                        </th>
+                                                                                                                                        <th style="border: 1px solid #0d6efd;">
+                                                                                                                                            <i class="fa-solid fa-graduation-cap fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                                                                                            Έτος Φοίτησης
+                                                                                                                                        </th>
+                                                                                                                                        <th style="border: 1px solid #0d6efd;">
+                                                                                                                                            <i class="fa-solid fa-phone fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                                                                                            Τηλέφωνο
+                                                                                                                                        </th>
+                                                                                                                                        <th style="border: 1px solid #0d6efd;">
+                                                                                                                                            <i class="fa-solid fa-envelope fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                                                                                            Email
+                                                                                                                                        </th>
+                                                                                                                                        <th style="border: 1px solid #0d6efd;">
+                                                                                                                                            <i class="fa-solid fa-hand fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                                                                                            Ενέργεια
+                                                                                                                                        </th>
+                                                                                                                                        <th style="border: 1px solid #0d6efd;">
+                                                                                                                                            <i class="fa-solid fa-hourglass-half fa-sm" style="color: #4682b4; margin-right: 8px;"></i>
+                                                                                                                                            Κατάσταση Αίτησης
+                                                                                                                                        </th>
+                                                                                                                                    </tr>
+                                                                                                                                </thead>
+                                                                                                                                <tbody>
+                                                                                                                                    @if (studentDataCache == null)
+                                                                                                                                    {
+                                                                                                                                        <tr>
+                                                                                                                                            <td colspan="9" class="text-center" style="border: 1px solid #0d6efd;">
+                                                                                                                                                <div class="spinner-border text-primary" role="status">
+                                                                                                                                                    <span class="sr-only">Φόρτωση...</span>
+                                                                                                                                                </div>
+                                                                                                                                                <p>Φόρτωση δεδομένων φοιτητών...</p>
+                                                                                                                                            </td>
+                                                                                                                                        </tr>
+                                                                                                                                    }
+                                                                                                                                    else
+                                                                                                                                    {
+                                                                                                                                        @foreach (var applicant in professorInternshipApplicantsMap[internship.RNGForInternshipUploadedAsProfessor])
+                                                                                                                                        {
+                                                                                                                                            var student = studentDataCache.TryGetValue(applicant.StudentDetails.StudentEmailAppliedForProfessorInternship, out var s) ? s : null;
+                                                                                                                                            var status = applicant.InternshipStatusAppliedAtTheStudentSide ?? "N/A";
+                                                                                                                                            var professorStatus = applicant.InternshipStatusAppliedAtTheProfessorSide ?? "N/A";
+
+                                                                                                                                            <tr style="background-color: @(professorStatus == "Επιτυχής" ? "lightgreen" :
+                                                                                                                                                                            professorStatus == "Απορρίφθηκε" ? "lightcoral" :
+                                                                                                                                                                            professorStatus == "Απορρίφθηκε (Απόσυρση Θέσεως Από Καθηγητή)" ? "coral" :
+                                                                                                                                                                            professorStatus == "Αποσύρθηκε από τον φοιτητή" ? "lightyellow" : "transparent")">
+                                                                                                                                                @if (isBulkEditModeForProfessorInternshipApplicants)
+                                                                                                                                                {
+                                                                                                                                                    <td style="border: 1px solid #0d6efd; text-align: center;">
+                                                                                                                                                        <div class="disabled-checkbox-container">
+                                                                                                                                                            <input type="checkbox" 
+                                                                                                                                                                   @onchange="@((e) => ToggleProfessorInternshipApplicantSelection(applicant.RNGForProfessorInternshipApplied, applicant.StudentDetails.StudentUniqueIDAppliedForProfessorInternship, e))" 
+                                                                                                                                                                   checked="@selectedProfessorInternshipApplicantIds.Contains((applicant.RNGForProfessorInternshipApplied, applicant.StudentDetails.StudentUniqueIDAppliedForProfessorInternship))"
+                                                                                                                                                                   disabled="@(professorStatus != "Σε Επεξεργασία")"
+                                                                                                                                                                   class="@(professorStatus != "Σε Επεξεργασία" ? "disabled-checkbox" : "")" />
+                                                                                                                                                        </div>
+                                                                                                                                                    </td>
+                                                                                                                                                }
+                                                                                                                                                <td style="border: 1px solid #0d6efd;">
+                                                                                                                                                    <a href="#" @onclick="() => ShowStudentDetailsInNameAsHyperlink_StudentAppliedinternshipsAtProfessor(applicant.StudentDetails.StudentUniqueIDAppliedForProfessorInternship, applicant.Id)" 
+                                                                                                                                                       title="Προφίλ Υποψήφιου Σπουδαστή" style="color: #0d6efd; text-decoration: none;">
+                                                                                                                                                        <i class="fas fa-eye icon-button text-dark"></i>
+                                                                                                                                                        @if (student == null)
+                                                                                                                                                        {
+                                                                                                                                                            <span class="badge badge-warning ml-1">Δε βρέθηκε</span>
+                                                                                                                                                        }
+                                                                                                                                                    </a>
+                                                                                                                                                </td>
+                                                                                                                                                <td style="border: 1px solid #0d6efd;">@(student?.Name ?? "Δε βρέθηκε")</td>
+                                                                                                                                                <td style="border: 1px solid #0d6efd;">@(student?.Surname ?? "Δε βρέθηκε")</td>
+                                                                                                                                                <td style="border: 1px solid #0d6efd;">@applicant.StudentDetails.DateTimeStudentAppliedForProfessorInternship.ToString("dd/MM/yyyy HH:mm")</td>
+                                                                                                                                                <td style="border: 1px solid #0d6efd;">@(student?.StudyYear ?? "-")</td>
+                                                                                                                                                <td style="border: 1px solid #0d6efd;">
+                                                                                                                                                    <i class="fas fa-phone-alt"></i> @(student?.Telephone ?? "-")
+                                                                                                                                                </td>
+                                                                                                                                                <td style="border: 1px solid #0d6efd;">
+                                                                                                                                                    <i class="fas fa-envelope"></i> @applicant.StudentDetails.StudentEmailAppliedForProfessorInternship
+                                                                                                                                                </td>
+                                                                                                                                                <td style="border: 1px solid #0d6efd;">
+                                                                                                                                                    @if (status == "Σε Επεξεργασία")
+                                                                                                                                                    {
+                                                                                                                                                        <div style="display: flex; gap: 10px; justify-content: center;">
+                                                                                                                                                            <span @onclick="() => ConfirmAndAcceptProfessorInternship(applicant.RNGForProfessorInternshipApplied, applicant.StudentDetails.StudentUniqueIDAppliedForProfessorInternship)" 
+                                                                                                                                                                  title="Αποδοχή Αίτησης" style="cursor: pointer;">
+                                                                                                                                                                <i class="fas fa-check action-icon accept-icon"></i>
+                                                                                                                                                            </span>
+
+                                                                                                                                                            <span @onclick="() => ConfirmAndRejectProfessorInternship(applicant.RNGForProfessorInternshipApplied, applicant.StudentDetails.StudentUniqueIDAppliedForProfessorInternship)" 
+                                                                                                                                                                  title="Απόρριψη Αίτησης" style="cursor: pointer;">
+                                                                                                                                                                <i class="fas fa-times action-icon reject-icon"></i>
+                                                                                                                                                            </span>
+                                                                                                                                                        </div>
+                                                                                                                                                    }
+                                                                                                                                                    else
+                                                                                                                                                    {
+                                                                                                                                                        <span class="text">@status</span>
+                                                                                                                                                    }
+                                                                                                                                                </td>
+                                                                                                                                                <td style="border: 1px solid #0d6efd;">
+                                                                                                                                                    @if (professorStatus == "Επιτυχής")
+                                                                                                                                                    {
+                                                                                                                                                        <span style="color: green; font-weight: bold;">Έχει γίνει Αποδοχή</span>
+                                                                                                                                                    }
+                                                                                                                                                    else if (professorStatus == "Απορρίφθηκε")
+                                                                                                                                                    {
+                                                                                                                                                        <span style="color: red; font-weight: bold;">Έχει Απορριφθεί</span>
+                                                                                                                                                    }
+                                                                                                                                                    else
+                                                                                                                                                    {
+                                                                                                                                                        <span>@professorStatus</span>
+                                                                                                                                                    }
+                                                                                                                                                </td>
+                                                                                                                                            </tr>
+                                                                                                                                        }
+                                                                                                                                    }
+                                                                                                                                </tbody>
+                                                                                                                            </table>
+                                                                                                                        </div>
+                                                                                                                    }
+                                                                                                                    else
+                                                                                                                    {
+                                                                                                                        <div class="text-center" style="padding: 20px;">
+                                                                                                                            <i class="fas fa-users fa-2x" style="color: #6c757d; margin-bottom: 10px;"></i>
+                                                                                                                            <p style="color: #6c757d; font-weight: bold; margin: 0;">
+                                                                                                                                Δεν Υπάρχουν Αιτούντες για αυτήν την Πρακτική Άσκηση Ακόμη
+                                                                                                                            </p>
+                                                                                                                        </div>
+                                                                                                                    }
+                                                                                                                }
+                                                                                                            </div>
+                                                                                                        </td>
+                                                                                                    </tr>
+                                                                                                }
+                                                                                            }
+                                                                                        }
+                                                                                        else if (!isLoadingInternshipsHistoryAsProfessor)
+                                                                                        {
+                                                                                            <tr>
+                                                                                                <td colspan="@(isBulkEditModeForProfessorInternships && professorInternships != null && professorInternships.Any() ? "7" : "6")" class="text-center" style="border: 1px solid black;">
+                                                                                                    <div class="empty-state">
+                                                                                                        <i class="fas fa-briefcase fa-3x mb-3" style="color: #6c757d;"></i>
+                                                                                                        <h5 style="color: #2d3748; margin-bottom: 10px;">Δεν υπάρχουν Πρακτικές Ασκήσεις</h5>
+                                                                                                    </div>
+                                                                                                </td>
+                                                                                            </tr>
+                                                                                        }
+                                                                                    </tbody>
+                                                                                </table>
+            
+                                                                                @if (professorInternships != null && professorInternships.Any())
+                                                                                {
+                                                                                    <br/>
+                                                                                    <!-- Pagination Controls -->
+                                                                                    <div class="d-flex justify-content-center align-items-center mt-3 gap-1">
+                                                                                        <span class="pagination-item @(currentPage_ProfessorInternships == 1 ? "disabled" : "")"
+                                                                                              @onclick="GoToFirstPage_ProfessorInternships">
+                                                                                            &lt;&lt;
+                                                                                        </span>
+
+                                                                                        <span class="pagination-item @(currentPage_ProfessorInternships == 1 ? "disabled" : "")"
+                                                                                              @onclick="PreviousPage_ProfessorInternships">
+                                                                                            &lt;
+                                                                                        </span>
+
+                                                                                        @foreach (var pageNum in GetVisiblePages_ProfessorInternships())
+                                                                                        {
+                                                                                            if (pageNum == -1)
+                                                                                            {
+                                                                                                <span class="pagination-ellipsis">...</span>
+                                                                                            }
+                                                                                            else
+                                                                                            {
+                                                                                                <span class="pagination-item @(pageNum == currentPage_ProfessorInternships ? "active" : "")"
+                                                                                                      @onclick="@(() => GoToPage_ProfessorInternships(pageNum))">
+                                                                                                    @pageNum
+                                                                                                </span>
+                                                                                            }
+                                                                                        }
+
+                                                                                        <span class="pagination-item @(currentPage_ProfessorInternships == totalPages_ProfessorInternships ? "disabled" : "")"
+                                                                                              @onclick="NextPage_ProfessorInternships">
+                                                                                            &gt;
+                                                                                        </span>
+
+                                                                                        <span class="pagination-item @(currentPage_ProfessorInternships == totalPages_ProfessorInternships ? "disabled" : "")"
+                                                                                              @onclick="GoToLastPage_ProfessorInternships">
+                                                                                            &gt;&gt;
+                                                                                        </span>
+
+                                                                                        <span class="ms-3">
+                                                                                            Σελίδα @currentPage_ProfessorInternships από @totalPages_ProfessorInternships
+                                                                                        </span>
+                                                                                    </div>
+                                                                                    <br/>
+                                                                                }
+                                                                            </div>
+                                                                        </div>
+                                                                        <br/>
+                                                                        <br/>
+                                                                    }
+
+                                                                    <!-- Slot Warning Modal for Professor Internships - NEW CODE -->
+                                                                    @if (showSlotWarningModalForProfessorInternship)
+                                                                    {
+                                                                        <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0, 0, 0, 0.5); z-index: 1060;">
+                                                                            <div class="modal-dialog modal-dialog-centered" role="document">
+                                                                                <div class="modal-content" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); border: 2px solid #2d3748;">
+                                                                                    <div class="modal-header" style="border-bottom: 1px solid #e9ecef; border-radius: 12px 12px 0 0; background-color: #FFFFFF;">
+                                                                                        <h5 class="modal-title" style="color: #2d3748; font-weight: 600; font-size: 1.25rem;">
+                                                                                            <i class="fas fa-exclamation-triangle me-2"></i>Προσοχή - Όριο Slots Πρακτικής
+                                                                                        </h5>
+                                                                                        <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" 
+                                                                                                @onclick="CloseSlotWarningModalForProfessorInternship"
+                                                                                                onmouseover="this.style.backgroundColor='#2d3748'" 
+                                                                                                onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                                            <span style="font-size: 1.2rem; line-height: 1;">×</span>
+                                                                                        </button>
+                                                                                    </div>
+                                                                                    <div class="modal-body" style="padding: 20px;">
+                                                                                        <div class="alert alert-warning" style="border-radius: 8px; margin: 0;">
+                                                                                            <div class="d-flex align-items-center">
+                                                                                                <i class="fas fa-exclamation-circle fa-2x me-3" style="color: #2d3748;"></i>
+                                                                                                <div>
+                                                                                                    <h6 style="color: #2d3748; margin-bottom: 8px; font-weight: bold;">Υπέρβαση Διαθέσιμων Θέσεων Πρακτικής Άσκησης</h6>
+                                                                                                    <p style="color: #2d3748; margin: 0; line-height: 1.5;">@slotWarningMessageForProfessorInternship</p>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    <div class="modal-footer" style="border-top: 1px solid #e9ecef; border-radius: 0 0 12px 12px; background-color: #FFFFFF;">
+                                                                                        <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; padding: 8px 20px; transition: all 0.2s;" 
+                                                                                                @onclick="CloseSlotWarningModalForProfessorInternship"
+                                                                                                onmouseover="this.style.backgroundColor='#2d3748'" 
+                                                                                                onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                                            <i class="fas fa-times me-1"></i>Κλείσιμο
+                                                                                        </button>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    }
+
+                                                                    <!-- Bulk Action Modal for Professor Internships -->
+                                                                    @if (showBulkActionModalForProfessorInternships)
+                                                                    {
+                                                                        <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0, 0, 0, 0.5);">
+                                                                            <div class="modal-dialog modal-dialog-centered" role="document">
+                                                                                <div class="modal-content" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);">
+                                                                                    <div class="modal-header" style="border-bottom: 1px solid #e9ecef; border-radius: 12px 12px 0 0; background-color: #f8f9fa;">
+                                                                                        <h5 class="modal-title" style="color: #4682B4; font-weight: 600; font-size: 1.25rem;">
+                                                                                            <i class="fas fa-cogs me-2"></i>Μαζική Επεξεργασία Πρακτικών Ασκήσεων
+                                                                                        </h5>
+                                                                                        <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" 
+                                                                                                @onclick="CloseBulkActionModalForProfessorInternships"
+                                                                                                onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                                                onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                                            <span style="font-size: 1.2rem; line-height: 1;">×</span>
+                                                                                        </button>
+                                                                                    </div>
+                                                                                    <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                                                                                        <div class="list-group">
+                                                                                            <div class="form-group">
+                                                                                                <label style="font-weight: bold; color: #2d3748;">Επιλεγμένες Πρακτικές</label>
+                                                                                                <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                                                                                                    <i class="fas fa-list-check" style="color: #5F9EA0; margin-right: 8px;"></i>
+                                                                                                    <span>@selectedProfessorInternshipIds.Count πρακτικές</span>
+                                                                                                </div>
+                                                                                            </div>
+
+                                                                                            <div class="form-group">
+                                                                                                <label style="font-weight: bold; color: #2d3748;">Επιλέξτε Ενέργεια</label>
+                                                                                                <div class="form-control" style="border-radius: 8px; background-color: #f8f9fa; border: none;">
+                                                                                                    <div class="form-check mb-2">
+                                                                                                        <input class="form-check-input" type="radio" name="bulkActionProfessorInternships" 
+                                                                                                               id="actionStatusProfessorInternships" value="status" @onchange="@((e) => bulkActionForProfessorInternships = "status")" 
+                                                                                                               style="cursor: pointer; margin-right: 8px;" />
+                                                                                                        <label class="form-check-label" for="actionStatusProfessorInternships" style="cursor: pointer; color: #2d3748;">
+                                                                                                            <i class="fas fa-arrows-up-down me-1" style="color: #4682B4;"></i>
+                                                                                                            Αλλαγή Κατάστασης
+                                                                                                        </label>
+                                                                                                    </div>
+                                                                                                    <div class="form-check">
+                                                                                                        <input class="form-check-input" type="radio" name="bulkActionProfessorInternships" 
+                                                                                                               id="actionCopyProfessorInternships" value="copy" @onchange="@((e) => bulkActionForProfessorInternships = "copy")" 
+                                                                                                               style="cursor: pointer; margin-right: 8px;" />
+                                                                                                        <label class="form-check-label" for="actionCopyProfessorInternships" style="cursor: pointer; color: #2d3748;">
+                                                                                                            <i class="fas fa-copy me-1" style="color: #4682B4;"></i>
+                                                                                                            Αντιγραφή Πρακτικών
+                                                                                                        </label>
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                            </div>
+
+                                                                                            @if (bulkActionForProfessorInternships == "status")
+                                                                                            {
+                                                                                                <div class="form-group">
+                                                                                                    <label style="font-weight: bold; color: #2d3748;">Νέα Κατάσταση</label>
+                                                                                                    <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa; padding: 0;">
+                                                                                                        <select class="form-select" @bind="newStatusForBulkActionForProfessorInternships" style="border: none; background: transparent; box-shadow: none;">
+                                                                                                            <option value="Δημοσιευμένη">Δημοσιευμένη</option>
+                                                                                                            <option value="Μη Δημοσιευμένη">Μη Δημοσιευμένη</option>
+                                                                                                            <option value="Αποσυρμένη">Αποσυρμένη</option>
+                                                                                                        </select>
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                            }
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    <div class="modal-footer" style="border-top: 1px solid #e9ecef; border-radius: 0 0 12px 12px; background-color: #f8f9fa;">
+                                                                                        <button type="button" class="modern-button" style="background-color: #6c757d; color: white; border: none; border-radius: 6px; padding: 8px 20px; transition: all 0.2s;" 
+                                                                                                @onclick="CloseBulkActionModalForProfessorInternships"
+                                                                                                onmouseover="this.style.backgroundColor='#5a6268'" 
+                                                                                                onmouseout="this.style.backgroundColor='#6c757d'">
+                                                                                            <i class="fas fa-times me-1"></i>Ακύρωση
+                                                                                        </button>
+                                                                                        <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; padding: 8px 20px; transition: all 0.2s;" 
+                                                                                                @onclick="ExecuteBulkActionForProfessorInternships" 
+                                                                                                disabled="@string.IsNullOrEmpty(bulkActionForProfessorInternships)"
+                                                                                                onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                                                onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                                            <i class="fas fa-play me-1"></i>Εκτέλεση
+                                                                                        </button>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    }
+
+                                                                    <!-- Email Confirmation Modal for Professor Internship Applicants -->
+                                                                    @if (showEmailConfirmationModalForProfessorInternshipApplicants)
+                                                                    {
+                                                                        <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0, 0, 0, 0.5);">
+                                                                            <div class="modal-dialog modal-dialog-centered" role="document">
+                                                                                <div class="modal-content" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);">
+                                                                                    <div class="modal-header" style="border-bottom: 1px solid #e9ecef; border-radius: 12px 12px 0 0; background-color: #f8f9fa;">
+                                                                                        <h5 class="modal-title" style="color: #4682B4; font-weight: 600; font-size: 1.25rem;">
+                                                                                            <i class="fas fa-envelope me-2"></i>Αποστολή Email Πρακτικής
+                                                                                        </h5>
+                                                                                        <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" 
+                                                                                                @onclick="CloseEmailConfirmationModalForProfessorInternshipApplicants"
+                                                                                                onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                                                onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                                            <span style="font-size: 1.2rem; line-height: 1;">×</span>
+                                                                                        </button>
+                                                                                    </div>
+                                                                                    <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                                                                                        <div class="list-group">
+                                                                                            <div class="form-group">
+                                                                                                <label style="font-weight: bold; color: #2d3748;">Επιλεγμένες Αιτήσεις</label>
+                                                                                                <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                                                                                                    <i class="fas fa-list-check" style="color: #5F9EA0; margin-right: 8px;"></i>
+                                                                                                    <span>@selectedProfessorInternshipApplicantIds.Count αιτήσεις</span>
+                                                                                                </div>
+                                                                                            </div>
+
+                                                                                            <div class="form-group">
+                                                                                                <label style="font-weight: bold; color: #2d3748;">Ενέργεια</label>
+                                                                                                <div class="form-control d-flex align-items-center" style="height: auto; border-radius: 8px; background-color: #f8f9fa;">
+                                                                                                    <i class="fas @(pendingBulkActionForProfessorInternshipApplicants == "accept" ? "fa-check text-success" : "fa-times text-danger") me-2"></i>
+                                                                                                    <span>@(pendingBulkActionForProfessorInternshipApplicants == "accept" ? "Μαζική Αποδοχή" : "Μαζική Απόρριψη")</span>
+                                                                                                </div>
+                                                                                            </div>
+
+                                                                                            <div class="form-group">
+                                                                                                <label style="font-weight: bold; color: #2d3748;">Αποστολή Email Ειδοποιήσεων</label>
+                                                                                                <div class="form-control" style="border-radius: 8px; background-color: #f8f9fa; border: none;">
+                                                                                                    <div class="form-check mb-2">
+                                                                                                        <input class="form-check-input" type="radio" name="emailOptionProfessorInternship" 
+                                                                                                               id="sendEmailsProfessorInternship" value="true" @onchange="@((e) => sendEmailsForBulkProfessorInternshipAction = true)" 
+                                                                                                               checked="@sendEmailsForBulkProfessorInternshipAction"
+                                                                                                               style="cursor: pointer; margin-right: 8px;" />
+                                                                                                        <label class="form-check-label" for="sendEmailsProfessorInternship" style="cursor: pointer; color: #2d3748;">
+                                                                                                            <i class="fas fa-envelope me-1" style="color: #4682B4;"></i>
+                                                                                                            Να σταλούν Email στους Φοιτητές και στον Καθηγητή
+                                                                                                        </label>
+                                                                                                    </div>
+                                                                                                    <div class="form-check">
+                                                                                                        <input class="form-check-input" type="radio" name="emailOptionProfessorInternship" 
+                                                                                                               id="dontSendEmailsProfessorInternship" value="false" @onchange="@((e) => sendEmailsForBulkProfessorInternshipAction = false)" 
+                                                                                                               checked="@(!sendEmailsForBulkProfessorInternshipAction)"
+                                                                                                               style="cursor: pointer; margin-right: 8px;" />
+                                                                                                        <label class="form-check-label" for="dontSendEmailsProfessorInternship" style="cursor: pointer; color: #2d3748;">
+                                                                                                            <i class="fas fa-envelope-slash me-1" style="color: #6c757d;"></i>
+                                                                                                            Να μην σταλούν Email (μόνο ενημέρωση κατάστασης)
+                                                                                                        </label>
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                            </div>
+
+                                                                                            <div class="alert @(sendEmailsForBulkProfessorInternshipAction ? "alert-info" : "alert-warning")" style="border-radius: 8px;">
+                                                                                                <i class="fas @(sendEmailsForBulkProfessorInternshipAction ? "fa-info-circle" : "fa-exclamation-triangle") me-2"></i>
+                                                                                                @if (sendEmailsForBulkProfessorInternshipAction)
+                                                                                                {
+                                                                                                    <strong>Πληροφορία:</strong> 
+                                                                                                    <span>Θα σταλούν @selectedProfessorInternshipApplicantIds.Count email @(pendingBulkActionForProfessorInternshipApplicants == "accept" ? "αποδοχής" : "απόρριψης") στους φοιτητές και email ειδοποίησης στον καθηγητή.</span>
+                                                                                                }
+                                                                                                else
+                                                                                                {
+                                                                                                    <strong>Προσοχή:</strong> 
+                                                                                                    <span>Η ενέργεια θα εφαρμοστεί μόνο στην εφαρμογή. Δεν θα σταλούν email ειδοποιήσεων. Οι φοιτητές θα δουν την αλλαγή κατάστασης όταν συνδεθούν.</span>
+                                                                                                }
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    <div class="modal-footer" style="border-top: 1px solid #e9ecef; border-radius: 0 0 12px 12px; background-color: #f8f9fa;">
+                                                                                        <button type="button" class="modern-button" style="background-color: #6c757d; color: white; border: none; border-radius: 6px; padding: 8px 20px; transition: all 0.2s;" 
+                                                                                                @onclick="CloseEmailConfirmationModalForProfessorInternshipApplicants"
+                                                                                                onmouseover="this.style.backgroundColor='#5a6268'" 
+                                                                                                onmouseout="this.style.backgroundColor='#6c757d'">
+                                                                                            <i class="fas fa-times me-1"></i>Ακύρωση
+                                                                                        </button>
+                                                                                        <button type="button" class="modern-button" style="background-color: #2d3748; color: white; border: none; border-radius: 6px; padding: 8px 20px; transition: all 0.2s;" 
+                                                                                                @onclick="ExecuteBulkActionForProfessorInternshipApplicants" 
+                                                                                                onmouseover="this.style.backgroundColor='#4a5568'" 
+                                                                                                onmouseout="this.style.backgroundColor='#2d3748'">
+                                                                                            <i class="fas fa-play me-1"></i>Εκτέλεση
+                                                                                        </button>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    }
+
+<ProfessorStudentDetailModal 
+    IsVisible="isModalVisibleToShowStudentDetailsAsProfessorFromTheirHyperlinkNameInProfessorInternships && selectedStudent != null"
+    Student="selectedStudent"
+    OnClose="CloseModalforHyperLinkTitleStudentName_StudentAppliedinternshipsAtProfessor"
+    OnDownloadCV="DownloadStudentCVForProfessorInternships" />
+                                                                    }
+
+
+
+<ProfessorInternshipDetailModal 
+    IsVisible="isModalVisibleForProfessorInternships && currentProfessorInternship != null"
+    Internship="currentProfessorInternship"
+    OnClose="CloseModalForProfessorInternships" />
+                                                                        }
+

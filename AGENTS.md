@@ -1,71 +1,177 @@
-# Project: Split-It Refactoring
+# Project: Split-It (AcademyHub)
 
-This project refactors a very large and historically grown Blazor MainLayout.razor that acted as a monolithic container for layout, role-based UI, and feature logic across the entire application from a .NET 6 Blazor app. This document outlines the tasks being performed to refactor the a Blazor application MainLayout.razor into separate components for different user roles (student, company, professor, admin). Additionally, it includes steps for extracting shared components and replacing manual pagination controls with a standardized component.
+## Status: .NET 8 Production Application ✅
 
-## Task History
+---
 
-### 1. Splitting `MainLayout.razor` into Role-Specific Components
+## Overview
 
-**Goal:** Deconstruct the monolithic `MainLayout.razor` file into smaller, more manageable components based on user roles.
+Split-It (also known as AcademyHub) is a .NET 8 Blazor Server application for managing academic job/internship/thesis postings joining students, companies, professors, and research groups.
 
-**Method:**
-- Identify blocks of code within `MainLayout.razor` that are specific to a user role (e.g., `Student`, `Company`, `Professor`, `Admin`). These are typically enclosed in `@if (UserRole == "...")` statements.
-- Extract the content of each role-specific `if` block into a new `.razor` file named after the corresponding role (e.g., `Student.razor`, `Company.razor`).
-- To aid in this process, specific comments in the original file were designated as anchors and replaced with `div` elements with unique IDs.
+---
 
-**Anchor `div` Mappings:**
-- `STUDENTS TAB TABLE START` -> `<div id="students-tab-table-start"></div>`
-- `STUDENTS TAB TABLE END` -> `<div id="students-tab-table-end"></div>`
-- `COMPANIES START` -> `<div id="companies-start"></div>`
-- `ΕΝΕΡΓΕΣ ΘΕΣΕΙΣ ΕΡΓΑΣΙΑΣ COMPANY` -> `<div id="energes-theseis-ergasias-company"></div>`
-- `JOBS TAB COMPANIES END` -> `<div id="jobs-tab-companies-end"></div>`
-- `INTERNSHIPS TAB COMPANIES START` -> `<div id="internships-tab-companies-start"></div>`
-- `SHOW MY UPLOADED INTERNSHIPS AS COMPANY` -> `<div id="show-my-uploaded-internships-as-company"></div>`
-- `INTERNSHIPS TAB COMPANIES END` -> `<div id="internships-tab-companies-end"></div>`
-- `THESIS COMPANIES START` -> `<div id="thesis-companies-start"></div>`
-- `COMPANY THESIS END` -> `<div id="company-thesis-end"></div>`
-- `COMPANY EVENTS START` -> `<div id="company-events-start"></div>`
-- `COMPANY EVENTS END` -> `<div id="company-events-end"></div>`
-- `COMPANY STUDENT SEARCH START` -> `<div id="company-student-search-start"></div>`
-- `COMPANY STUDENT SEARCH END` -> `<div id="company-student-search-end"></div>`
-- `COMPANY FOR PROFESSOR SEARCH TAB START` -> `<div id="company-for-professor-search-tab-start"></div>`
-- `PROFESSORS TAB TABLE START` -> `<div id="professors-tab-table-start"></div>`
-- `PROFESSOR PTYXIAKES - DIMIOURGIA PTYXIAKIS` -> `<div id="professor-ptyxiakes-dimiourgia-ptyxiakis"></div>`
-- `SHOW MY UPLOADED INTERNSHIPS AS PROFESSOR` -> `<div id="show-my-uploaded-internships-as-professor"></div>`
-- `PROFESSORS TAB TABLE END` -> `<div id="professors-tab-table-end"></div>`
-- `ADMIN TABLE END` -> `<div id="admin-table-end"></div>`
+## Technology Stack
 
-**Status:** Completed.
+- **Framework**: .NET 8 (SDK 9.0.302 via `global.json`)
+- **UI**: Blazor Server with Interactive Server rendering
+- **Database**: Entity Framework Core 8 with SQL Server
+- **Auth**: Auth0 (role-based: Student, Company, Professor, ResearchGroup, Admin)
+- **CSS**: Bootstrap 5 + custom styles
 
-## Current Task
+---
 
-### 2. Identifying and Extracting Shared Components
+## Folder Structure
 
-**Goal:** Analyze the four newly created Razor files (`Student.razor`, `Company.razor`, `Professor.razor`, and `Admin.razor`) and identify common, reusable code that can be extracted into shared Blazor components within a `Shared/` folder.
+```
+Components/
+├── Layout/
+│   ├── MainLayout.razor + .cs + .css
+│   ├── NavMenu.razor + .css
+│   ├── AccessControl.razor
+│   ├── StudentSections/
+│   │   ├── StudentSection.razor
+│   │   ├── StudentAnnouncementsSection.razor + .cs
+│   │   ├── StudentCompanySearchSection.razor + .cs
+│   │   ├── StudentEventsSection.razor + .cs
+│   │   ├── StudentInternshipsSection.razor + .cs
+│   │   ├── StudentJobsDisplaySection.razor + .cs
+│   │   └── StudentThesisDisplaySection.razor + .cs
+│   ├── CompanySections/
+│   │   └── (10 component pairs)
+│   ├── ProfessorSections/
+│   │   └── (10 component pairs)
+│   ├── ResearchGroupSections/
+│   │   └── (5-6 component pairs)
+│   └── AdminSections/
+│       └── AdminSection.razor + .cs
+├── Pages/
+│   └── (Blazor routable pages)
+└── Helpers/
+    └── (shared UI components)
 
-**Motivation:** This will reduce code duplication and improve the maintainability of the application, following the principles of .NET 8 Blazor server development. After refactoring and placing common markup code to `/Shared`, we will wire the code-behind (`MainLayout.razor.cs`, which contains the extracted `@code{}` section from the original ~780000 line MainLayout.razor) to the refactored Razor components.
+Services/
+├── UserContext/
+│   ├── IUserContextService.cs
+│   ├── UserContextService.cs
+│   └── UserContextState.cs
+├── FrontPage/
+│   ├── IFrontPageService.cs
+│   ├── FrontPageService.cs
+│   └── FrontPageData.cs
+├── StudentDashboard/
+│   ├── IStudentDashboardService.cs
+│   ├── StudentDashboardService.cs
+│   └── StudentDashboardData.cs
+├── CompanyDashboard/
+├── ProfessorDashboard/
+└── ResearchGroupDashboard/
 
-**Strategic Plan:** See [REFACTORING_PLAN.md](REFACTORING_PLAN.md) for a comprehensive plan with priorities, phases, and execution order. The plan recommends completing component extraction before wiring the code-behind.
+Pages/            # Razor Pages (cshtml) for auth
+├── _Host.cshtml
+├── Login.cshtml + .cs
+├── Logout.cshtml + .cs
+└── Error.cshtml + .cs
 
-For completed tasks and progress updates, see [PROGRESS.md](PROGRESS.md).
+Models/           # EF Core entities
+Data/             # DbContext, migrations config
+ViewModels/       # DTOs for forms/display
+```
 
-## Operational Guidelines
+---
 
-### Command Line Tools for File Manipulation
+## Namespaces
 
-**Recommendation:** For robust and efficient text processing and file manipulation tasks, especially for replacements and pattern matching, prefer command-line utilities such as `grep`, `sed`, and `rg` (ripgrep).
+| Area          | Namespace                                             |
+| ------------- | ----------------------------------------------------- |
+| Layout        | `QuizManager.Components.Layout`                       |
+| Student       | `QuizManager.Components.Layout.StudentSections`       |
+| Company       | `QuizManager.Components.Layout.CompanySections`       |
+| Professor     | `QuizManager.Components.Layout.ProfessorSections`     |
+| ResearchGroup | `QuizManager.Components.Layout.ResearchGroupSections` |
+| Admin         | `QuizManager.Components.Layout.AdminSections`         |
+| Helpers       | `QuizManager.Components.Helpers`                      |
 
-**Usage Notes:**
-- `grep`: Ideal for searching text patterns within files.
-- `rg` (ripgrep): A faster and more user-friendly alternative to `grep`, often preferred for large codebases.
-- `sed`: Powerful for stream editing, including search-and-replace operations on specific lines or blocks of text. When using `sed` on macOS for in-place editing, remember to use `sed -i ''` to avoid creating backup files. For multi-line replacements, careful escaping of newlines (`\`) or using temporary files with `sed` commands is crucial for accuracy.
+---
 
-**Reasoning:** These tools offer precise control over text, handle large files efficiently, and are less prone to issues related to programming language-specific string handling or environment variations when used correctly. This approach minimizes errors during automated code modifications.
+## Services Architecture
 
-## Memories
-- Shared components should follow this pattern:
-- Common code across all user roles goes directly into `Shared/`.
-- Role-specific sections extracted from a monolithic file are placed in a subdirectory under `Shared/` named after the role from which they were extracted (e.g., `Shared/Company/ComponentName.razor` for components extracted from `Company.razor`).
-- Always update AGENTS.md and PROGRESS.md and keep them updated after changes or tasks being completed.
-- Only place code in the Shared/ folder if it is exactly the same for all user roles that will use it. If the code is not exactly the same, it should not be a shared component.
-- if a component is only in one user role create a folder under Shared with that user-role name and place there the extracted component
+### Dashboard Services Pattern
+
+All database operations flow through dedicated services:
+
+1. **UserContextService** - Authentication state and user profile data
+2. **FrontPageService** - Public events/announcements for landing page
+3. **StudentDashboardService** - Student CRUD operations
+4. **CompanyDashboardService** - Company CRUD operations
+5. **ProfessorDashboardService** - Professor CRUD operations
+6. **ResearchGroupDashboardService** - Research group operations
+
+### Key Principles
+
+- Services use `IDbContextFactory<AppDbContext>` (not direct injection)
+- All read operations use `.AsNoTracking()`
+- DTOs are immutable with `init` properties
+- Services registered as **Scoped** in `Program.cs`
+- All async methods accept `CancellationToken cancellationToken = default`
+
+### MainLayout
+
+- **Current size**: ~163 lines (code-behind)
+- Handles: auth state, front page data, navigation helpers
+- Does NOT handle: database queries, business logic
+
+---
+
+## Role-Based Components
+
+Each role has a main section component and specialized sub-sections:
+
+| Role          | Main Component       | Sub-Sections                                                                                  |
+| ------------- | -------------------- | --------------------------------------------------------------------------------------------- |
+| Student       | StudentSection       | Events, Jobs, Thesis, Internships, CompanySearch, Announcements                               |
+| Company       | CompanySection       | Jobs, Internships, Theses, Events, Announcements, Search (Students/Professors/ResearchGroups) |
+| Professor     | ProfessorSection     | Theses, Events, Internships, Announcements, Search (Students/Companies/ResearchGroups)        |
+| ResearchGroup | ResearchGroupSection | Events, Announcements, Statistics, Search                                                     |
+| Admin         | AdminSection         | User management, system config                                                                |
+
+---
+
+## Build & Run
+
+```bash
+# Restore and build
+dotnet restore
+dotnet build split-it.sln
+
+# Run locally
+dotnet run --project QuizManager.csproj
+
+# Production build
+dotnet publish -c Release
+```
+
+---
+
+## Configuration
+
+- `appsettings.json` - Base configuration
+- `appsettings.Development.json` - Local development (connection strings, Auth0 dev tenant)
+- `appsettings.Production.json` - Production settings
+- `global.json` - SDK version pinned to 9.0.302
+
+---
+
+## Known Issues
+
+1. **OmniSharp Analyzer Errors**: The `muhammad-sammy.csharp` extension has issues loading `Microsoft.AspNetCore.Razor.Utilities.Shared` with .NET 9 SDKs. This only affects Code Actions (quick fixes); IntelliSense works fine.
+
+---
+
+## Additional Documentation
+
+See the `docs/` folder for:
+
+- `COMPONENT_EXTRACTION_PROGRESS.md` - Refactoring history
+- `ERROR_INVESTIGATION.md` - Debugging notes
+- `USER_ROLE_ANALYSIS.md` - Role requirements
+- `production_layout_analysis.md` - UI/UX analysis

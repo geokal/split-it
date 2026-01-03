@@ -1,0 +1,126 @@
+@using Microsoft.AspNetCore.Components
+
+@code {
+    [CascadingParameter(Name = "UserRole")]
+    public string UserRole { get; set; } = "";
+    
+    [CascadingParameter(Name = "isProfessorRegistered")]
+    public bool isProfessorRegistered { get; set; }
+    
+    [CascadingParameter(Name = "isInitializedAsProfessorUser")]
+    public bool isInitializedAsProfessorUser { get; set; }
+}
+
+<div id="professors-tab-table-start"></div>
+
+@if (UserRole == "Professor")
+{
+                                @if (!isInitializedAsProfessorUser)
+                                {
+                                    <div class="professional-loading">
+                                        <div class="loading-content">
+                                            <div class="loading-spinner">
+                                                <div class="spinner-circle"></div>
+                                                <div class="spinner-circle"></div>
+                                                <div class="spinner-circle"></div>
+                                            </div>
+                                            <div class="loading-text">
+                                                <span class="loading-title">Φορτώνει, Παρακαλώ Περιμένετε...</span>
+                                                <span class="loading-subtitle">Γίνεται προετοιμασία του περιεχομένου</span>
+                                            </div>
+                                        </div>
+                                        <div class="loading-progress">
+                                            <div class="progress-bar">
+                                                <div class="progress-fill"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                                else if (!isProfessorRegistered)
+                                {
+                                    <div style="display: flex; justify-content: flex-start; padding: 20px; flex-direction: column;">
+                                        <div style="width: 300px; border: none; border-radius: 12px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); transition: transform 0.3s ease, box-shadow 0.3s ease; background: linear-gradient(135deg, #f9f9f9, #e0e0e0);">
+                                            <div style="padding: 20px; text-align: center;">
+                                                <h5 style="font-size: 1.5rem; font-weight: bold; color: #333; margin-bottom: 20px;">Εγγραφή Καθηγητή</h5>
+                                                <a style="background-color: #007bff; border: none; border-radius: 25px; padding: 10px 20px; font-size: 1rem; color: white; text-decoration: none; transition: background-color 0.3s ease, transform 0.2s ease;" 
+                                                   href="professorRegistration" 
+                                                   onmouseover="this.style.backgroundColor='#0056b3'; this.style.transform='scale(1.05)'" 
+                                                   onmouseout="this.style.backgroundColor='#007bff'; this.style.transform='scale(1)'">
+                                                    Εγγραφή
+                                                </a>
+                                            </div>
+                                        </div>
+                                        <p style="font-size: 0.9rem; color: #000; margin-top: 7px; text-align: center; font-weight: bold;">
+                                            <span style="color: #ff0000;">**</span> <span style="color: #ff0000;">Προσοχή</span>: Για εμφάνιση του περιεχομένου της σελίδας είναι <span style="color: #ff0000;">Υποχρεωτική</span> η Εγγραφή σας
+                                        </p>                                      
+                                    </div>
+                                }
+                                else
+                                {
+                                <div class="content-area">
+                                    <div class="table-bordered">
+                                        <!-- Tabs navigation -->
+                                        <ul class="nav nav-tabs" id="myTab" role="tablist">
+                                            <li class="nav-item" role="presentation">
+                                                <button class="nav-link fade show active" id="professorannouncements-tab" data-bs-toggle="tab" data-bs-target="#professorannouncements" type="button" role="tab" aria-controls="professorannouncements" aria-selected="true">Ανακοινώσεις</button>
+                                            </li>
+                                            <li class="nav-item" role="presentation">
+                                                <button class="nav-link" id="professorevent-tab" data-bs-toggle="tab" data-bs-target="#professorevent" type="button" role="tab" aria-controls="professorevent" aria-selected="false">Εκδηλώσεις</button>
+                                            </li>
+                                            <li class="nav-item" role="presentation">
+                                                <button class="nav-link" id="professorthesis-tab" data-bs-toggle="tab" data-bs-target="#professorthesis" type="button" role="tab" aria-controls="professorthesis" aria-selected="false">Διπλωματικές Εργασίες</button>
+                                            </li>
+                                            <li class="nav-item" role="presentation">
+                                                <button class="nav-link" id="professorinternships-tab" data-bs-toggle="tab" data-bs-target="#professorinternships" type="button" role="tab" aria-controls="professorinternships" aria-selected="false">Θέσεις Πρακτικής Άσκησης</button>
+                                            </li>
+                                            <li class="nav-item" role="presentation">
+                                                <button class="nav-link" id="professorsearchstudent-tab" data-bs-toggle="tab" data-bs-target="#professorsearchstudent" type="button" role="tab" aria-controls="professorsearchstudent" aria-selected="false">Αναζήτηση Φοιτητή</button>
+                                            </li>
+                                            <li class="nav-item" role="presentation">
+                                                <button class="nav-link" id="professorsearchcompany-tab" data-bs-toggle="tab" data-bs-target="#professorsearchcompany" type="button" role="tab" aria-controls="professorsearchcompany" aria-selected="false">Αναζήτηση Εταιρείας</button>
+                                            </li>
+                                            <li class="nav-item" role="presentation">
+                                                <button class="nav-link" id="professorresearchgroup-search-tab" data-bs-toggle="tab" data-bs-target="#professorresearchgroup-search" type="button" role="tab" aria-controls="professorresearchgroup-search" aria-selected="false">Αναζήτηση Ερευνητικής Ομάδας</button>
+                                            </li>
+                                        </ul>
+                                    
+                                              <!-- Tab panes -->
+                                              <div class="tab-content mt-3" id="myTabContent">
+                                                    <!-- CREATE ANNOUNCEMENTS TAB AS PROFESSOR -->
+                                                    <div class="tab-pane fade show active" id="professorannouncements" role="tabpanel" aria-labelledby="professorannouncements-tab">
+                                                        <ProfessorAnnouncementsManagementSection />
+                                                    </div>
+                                                    <div id="professor-ptyxiakes-dimiourgia-ptyxiakis"></div>
+                                                        
+                                                    <div class="tab-pane fade" id="professorthesis" role="tabpanel" aria-labelledby="professorthesis-tab">
+                                                        <ProfessorThesesSection />
+                                                    </div>
+
+                                                    <div class="tab-pane fade" id="professorinternships" role="tabpanel" aria-labelledby="professorinternships-tab">
+                                                        <ProfessorInternshipsSection />
+                                                    </div>
+                                                         
+                                                    <div class="tab-pane fade" id="professorevent" role="tabpanel" aria-labelledby="professorevent-tab">  
+                                                        <ProfessorEventsSection />
+                                                    </div>
+                                                                
+
+
+                                                    <div class="tab-pane fade" id="professorsearchstudent" role="tabpanel" aria-labelledby="professorsearchstudent-tab">
+                                                        <ProfessorStudentSearchSection />
+                                                    </div>
+
+
+                                                    @*SEARCH COMPANIES AS PROFESSOR*@
+                                                    <div class="tab-pane fade" id="professorsearchcompany" role="tabpanel" aria-labelledby="professorsearchcompany-tab">
+                                                        <ProfessorCompanySearchSection />
+                                                    </div>
+                                                @*SEARCH RESEARCH GROUP AS PROFESSOR - START - *@
+                                                <div class="tab-pane fade" id="professorresearchgroup-search" role="tabpanel" aria-labelledby="professorresearchgroup-search-tab">
+                                                    <ProfessorResearchGroupSearchSection />
+                                                </div>
+                                              </div>
+                                    </div>
+                                </div>
+    }
+}

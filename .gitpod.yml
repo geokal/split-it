@@ -1,0 +1,35 @@
+# Use Dev Container configuration
+image:
+  file: .devcontainer/docker-compose.yml
+
+# Ports to expose
+ports:
+  - port: 5168
+    onOpen: notify
+    name: HTTP
+  - port: 7290
+    onOpen: open-browser
+    name: HTTPS
+  - port: 1433
+    onOpen: ignore
+    name: SQL Server
+
+# Tasks to run on workspace start
+tasks:
+  - name: Restore .NET packages
+    init: |
+      dotnet restore
+      dotnet tool restore
+      dotnet tool install -g dotnet-ef || true
+    command: |
+      echo "Workspace ready!"
+      dotnet --version
+
+# VS Code extensions
+vscode:
+  extensions:
+    - ms-dotnettools.csharp
+    - ms-dotnettools.csdevkit
+    - ms-dotnettools.vscode-dotnet-runtime
+    - ms-azuretools.vscode-docker
+    - editorconfig.editorconfig
